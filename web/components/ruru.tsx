@@ -108,7 +108,7 @@ export function Ruru({ pose = "happy", costume = "none", className, title }: Rur
             fontSize="22"
             fontWeight="700"
             fill="#FFFFFF"
-            fontFamily="var(--font-bricolage), sans-serif"
+            fontFamily="var(--font-jakarta), sans-serif"
           >
             1
           </text>

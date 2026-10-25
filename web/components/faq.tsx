@@ -31,7 +31,7 @@ export function Faq() {
           key={item.q}
           className="group rounded-[1.5rem] border border-line bg-chalk transition-colors open:border-pitch/20 open:bg-mist hover:border-pitch/25"
         >
-          <summary className="flex cursor-pointer list-none items-center gap-4 p-5 text-left font-display text-lg font-bold sm:p-6 sm:text-xl [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-4 p-5 text-left font-display text-lg font-extrabold sm:p-6 sm:text-xl [&::-webkit-details-marker]:hidden">
             <span className="flex-1">{item.q}</span>
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-mist transition-transform duration-300 group-open:rotate-45 group-open:bg-ember">
               <Plus aria-hidden className="size-5" />

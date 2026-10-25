@@ -16,7 +16,7 @@ export function SiteNav() {
       >
         <a href="#" className="flex items-center gap-2 rounded-full">
           <RuruMark className="size-8 sm:size-9" />
-          <span className="font-display text-lg font-bold tracking-tight sm:text-xl">SatuRoom</span>
+          <span className="font-display text-lg font-extrabold tracking-tight sm:text-xl">SatuRoom</span>
           <span className="hidden rounded-full bg-turf-soft px-2 py-0.5 text-xs font-bold text-pitch sm:inline">
             Bola
           </span>

@@ -10,7 +10,7 @@ function ScreenTitle({ kicker, title }: { kicker: string; title: string }) {
   return (
     <div className="px-4 pt-11">
       <p className="text-[11px] font-semibold text-ink-soft">{kicker}</p>
-      <p className="font-display text-lg font-bold">{title}</p>
+      <p className="font-display text-lg font-extrabold">{title}</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ function ScheduleScreen() {
         {days.map(([d, team, time, place], i) => (
           <li key={d} className="flex items-center gap-3 rounded-2xl bg-chalk p-3">
             <span
-              className={`grid size-11 place-items-center rounded-xl font-display text-sm font-bold ${
+              className={`grid size-11 place-items-center rounded-xl font-display text-sm font-extrabold ${
                 i === 1 ? "bg-ember text-ink" : "bg-mist"
               }`}
             >
@@ -235,7 +235,7 @@ export function FeatureStory() {
                 >
                   <Icon aria-hidden className="size-6" />
                 </span>
-                <h3 className="mt-5 font-display text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
+                <h3 className="mt-5 font-display text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">
                   {s.title}
                 </h3>
                 <p className="mt-3 text-lg leading-relaxed text-ink-soft">{s.body}</p>

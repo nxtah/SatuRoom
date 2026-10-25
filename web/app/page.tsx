@@ -92,7 +92,7 @@ export default function Home() {
         {/* Masalah yang diselesaikan, dalam bahasa pemilik akademi. */}
         <section className="px-4 py-16 sm:px-6 lg:py-24">
           <div className="mx-auto max-w-6xl rounded-[2rem] bg-pitch px-6 py-12 text-white sm:px-12 sm:py-16">
-            <h2 className="max-w-2xl font-display text-3xl leading-tight font-bold tracking-tight sm:text-5xl">
+            <h2 className="max-w-2xl font-display text-3xl leading-tight font-extrabold tracking-tight sm:text-5xl">
               Kalau urusannya masih begini, wajar capek.
             </h2>
             <ul className="mt-10 grid gap-3">
@@ -121,7 +121,7 @@ export default function Home() {
 
         <section id="fitur" className="scroll-mt-24 px-4 py-16 sm:px-6 lg:py-24">
           <div className="mx-auto max-w-6xl">
-            <h2 className="max-w-3xl font-display text-4xl leading-[1.05] font-bold tracking-tight sm:text-6xl">
+            <h2 className="max-w-3xl font-display text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl">
               Yang dipakai setiap hari di akademi.
             </h2>
             <p className="mt-5 max-w-xl text-lg text-ink-soft">
@@ -136,7 +136,7 @@ export default function Home() {
         {/* Cara mulai: memang berurutan, jadi diberi nomor. */}
         <section id="mulai" className="scroll-mt-24 bg-mist px-4 py-16 sm:px-6 lg:py-24">
           <div className="mx-auto max-w-6xl">
-            <h2 className="max-w-2xl font-display text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl">
+            <h2 className="max-w-2xl font-display text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-5xl">
               Siap dipakai di latihan berikutnya.
             </h2>
             <ol className="mt-12 grid gap-4 md:grid-cols-3">
@@ -148,7 +148,7 @@ export default function Home() {
                   <span className="font-display text-6xl font-extrabold text-turf-soft transition-colors duration-300 group-hover:text-ember">
                     {i + 1}
                   </span>
-                  <h3 className="mt-4 font-display text-2xl font-bold">{title}</h3>
+                  <h3 className="mt-4 font-display text-2xl font-extrabold">{title}</h3>
                   <p className="mt-2 text-base leading-relaxed text-ink-soft">{body}</p>
                 </li>
               ))}
@@ -159,7 +159,7 @@ export default function Home() {
         <section id="tanya" className="scroll-mt-24 px-4 py-16 sm:px-6 lg:py-24">
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
             <div>
-              <h2 className="font-display text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl">
+              <h2 className="font-display text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-5xl">
                 Yang sering ditanyakan.
               </h2>
               {CONTACT_EMAIL ? (
@@ -200,7 +200,7 @@ export default function Home() {
       <footer className="px-4 py-10 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 text-sm text-ink-soft">
           <p>
-            <span className="font-display font-bold text-ink">SatuRoom</span>, aplikasi untuk
+            <span className="font-display font-extrabold text-ink">SatuRoom</span>, aplikasi untuk
             bisnis yang ingin rapi tanpa ribet.
           </p>
           <p>© {new Date().getFullYear()} SatuRoom</p>

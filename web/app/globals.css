@@ -19,7 +19,7 @@
   --color-ink-soft: #4d5a52;
   --color-sun: #ffc93c;
 
-  --font-display: var(--font-bricolage), ui-sans-serif, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, sans-serif;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 
   --radius-panel: 2rem;

@@ -30,7 +30,7 @@ export function AttendanceDemo() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-ink-soft">Selasa, 16.00</p>
-            <p className="font-display text-lg font-bold leading-tight">Latihan U-12</p>
+            <p className="font-display text-lg font-extrabold leading-tight">Latihan U-12</p>
           </div>
           <span className="rounded-full bg-chalk px-2.5 py-1 text-[11px] font-bold text-ink-soft">
             Contoh
@@ -54,7 +54,7 @@ export function AttendanceDemo() {
             <div className="w-28">
               <Ruru pose="cheer" costume="academy" />
             </div>
-            <p className="mt-3 font-display text-xl font-bold">Absen tersimpan</p>
+            <p className="mt-3 font-display text-xl font-extrabold">Absen tersimpan</p>
             <p className="mt-1 text-sm text-ink-soft">
               Pemilik akademi langsung bisa melihatnya. Tidak perlu kirim foto kertas absen.
             </p>
