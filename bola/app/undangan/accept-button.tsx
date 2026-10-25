@@ -6,19 +6,28 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
-export function AcceptButton({ id, academyName }: { id: string; academyName: string }) {
+export function AcceptButton({
+  id,
+  academyName,
+  kind = "staff",
+}: {
+  id: string;
+  academyName: string;
+  kind?: "staff" | "guardian";
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
   async function accept() {
     setBusy(true);
-    const r = await api<{ academyId: string }>("/me/invitations/accept", { body: { invitationId: id } });
+    const path = kind === "guardian" ? "/me/guardian-invitations/accept" : "/me/invitations/accept";
+    const r = await api(path, { body: { invitationId: id } });
     if (!r.ok) {
       setBusy(false);
       return setError(r.error.message);
     }
-    router.replace("/?selamat=gabung");
+    router.replace(kind === "guardian" ? "/wali" : "/?selamat=gabung");
     router.refresh();
   }
 

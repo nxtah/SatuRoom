@@ -10,6 +10,8 @@ import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
 import { playerAttendance } from "@/server/attendance";
 import { requireAcademyPage } from "@/server/routing";
 import { loadPlayer } from "../load";
+import { guardianAccess } from "@/server/guardian";
+import { GuardianAccounts } from "./guardian-accounts";
 import { StatusToggle } from "./status-toggle";
 
 export const metadata: Metadata = { title: "Pemain" };
@@ -20,6 +22,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const p = await loadPlayer(ctx, id);
   const history = await playerAttendance(ctx, id);
   const canManage = ctx.can("players.manage");
+  const access = canManage && p.guardian && p.status === "active" ? await guardianAccess(ctx, id) : null;
   const rows: [string, React.ReactNode][] = [
     ["Tanggal lahir", `${formatDate(p.birthDate)} (${ageOf(p.birthDate)} tahun)`],
     ["Posisi", POSITIONS.find((x) => x.id === p.position)?.label ?? "Belum diisi"],
@@ -123,6 +126,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           ) : (
             <p className="mt-2 text-ink-soft">Belum diisi.</p>
           )}
+          {access ? <GuardianAccounts playerId={id} linked={access.linked} pending={access.pending} /> : null}
         </section>
       ) : null}
 

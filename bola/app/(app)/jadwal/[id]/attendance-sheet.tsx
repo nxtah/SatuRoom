@@ -15,13 +15,17 @@ interface Entry {
   fullName: string;
   shirtNumber: number | null;
   status: AttendanceStatus | null;
+  notice: { status: "excused" | "sick"; note: string | null } | null;
 }
 
 /** Lembar absensi untuk HP: satu ketukan per pemain, lalu simpan sekali. */
 export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: string; roster: Entry[]; editable: boolean }) {
   const router = useRouter();
   const saved = useMemo(() => new Map(roster.map((r) => [r.playerId, r.status])), [roster]);
-  const [marks, setMarks] = useState(() => new Map(saved));
+  // Izin dari orang tua langsung terisi; tetap bisa diubah pelatih sebelum disimpan.
+  const [marks, setMarks] = useState(
+    () => new Map(roster.map((r) => [r.playerId, r.status ?? (editable ? (r.notice?.status ?? null) : null)])),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [done, setDone] = useState(false);
@@ -83,8 +87,16 @@ export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: st
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-pitch text-sm font-extrabold text-white">
                   {r.shirtNumber ?? r.fullName[0]?.toUpperCase()}
                 </span>
-                <span className="min-w-0 truncate font-bold" id={`p-${r.playerId}`}>
-                  {r.fullName}
+                <span className="min-w-0">
+                  <span className="block truncate font-bold" id={`p-${r.playerId}`}>
+                    {r.fullName}
+                  </span>
+                  {r.notice ? (
+                    <span className="block text-sm text-ink-soft">
+                      {r.notice.status === "sick" ? "Sakit" : "Izin"} dari orang tua
+                      {r.notice.note ? `: ${r.notice.note}` : ""}
+                    </span>
+                  ) : null}
                 </span>
               </div>
               <div

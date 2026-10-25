@@ -17,6 +17,8 @@ export interface RosterEntry {
   fullName: string;
   shirtNumber: number | null;
   status: AttendanceStatus | null;
+  /** Izin/sakit yang dikirim orang tua lewat portal sebelum latihan. */
+  notice: { status: "excused" | "sick"; note: string | null } | null;
 }
 
 export interface SessionSheet {
@@ -36,14 +38,23 @@ export interface SessionSheet {
 export function getSessionSheet(ctx: AcademyContext, sessionId: string): Promise<SessionSheet> {
   return inAcademy(ctx, async (tx) => {
     const session = await getSession(ctx, sessionId, tx);
-    const roster = (await tx.execute(sql`
-      SELECT p.id AS "playerId", p.full_name AS "fullName", p.shirt_number AS "shirtNumber", a.status
+    const rows = (await tx.execute(sql`
+      SELECT p.id AS "playerId", p.full_name AS "fullName", p.shirt_number AS "shirtNumber", a.status,
+             n.status AS "noticeStatus", n.note AS "noticeNote"
       FROM bola.players p
       LEFT JOIN bola.attendance a ON a.player_id = p.id AND a.session_id = ${sessionId}::uuid
+      LEFT JOIN bola.absence_notices n ON n.player_id = p.id AND n.session_id = ${sessionId}::uuid
       WHERE a.session_id IS NOT NULL
          OR (p.status = 'active' AND EXISTS (
               SELECT 1 FROM bola.team_players tp WHERE tp.player_id = p.id AND tp.team_id = ${session.teamId}::uuid))
-      ORDER BY p.full_name`)) as unknown as RosterEntry[];
+      ORDER BY p.full_name`)) as unknown as (Omit<RosterEntry, "notice"> & {
+      noticeStatus: "excused" | "sick" | null;
+      noticeNote: string | null;
+    })[];
+    const roster = rows.map(({ noticeStatus, noticeNote, ...r }) => ({
+      ...r,
+      notice: noticeStatus ? { status: noticeStatus, note: noticeNote } : null,
+    }));
     const scope = await visibleTeamIds(ctx, tx);
     const inScope = !scope || scope.includes(session.teamId);
     const canRecordRole = inScope && (ctx.can("attendance.record_all") || scope !== null);

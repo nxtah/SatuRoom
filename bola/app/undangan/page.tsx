@@ -6,6 +6,7 @@ import { Ruru } from "@/components/ruru";
 import { listMyAcademies } from "@/server/academy";
 import { currentSession } from "@/server/context";
 import { roleLabels, myInvitations } from "@/server/staff";
+import { hasChildren, myGuardianInvitations } from "@/server/guardian";
 import { AcceptButton } from "./accept-button";
 
 export const metadata: Metadata = { title: "Undangan" };
@@ -13,7 +14,13 @@ export const metadata: Metadata = { title: "Undangan" };
 export default async function UndanganPage() {
   const session = await currentSession();
   if (!session) redirect("/masuk?lanjut=undangan");
-  const [invites, mine] = await Promise.all([myInvitations(session.userId), listMyAcademies(session.userId)]);
+  const [staffInvites, guardianInvites, mine, children] = await Promise.all([
+    myInvitations(session.userId),
+    myGuardianInvitations(session.userId),
+    listMyAcademies(session.userId),
+    hasChildren(session.userId),
+  ]);
+  const invites = [...staffInvites, ...guardianInvites];
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col px-4 py-8 sm:py-12">
@@ -34,7 +41,17 @@ export default async function UndanganPage() {
 
       {invites.length ? (
         <ul className="mt-6 grid gap-3">
-          {invites.map((i) => (
+          {guardianInvites.map((i) => (
+            <li key={i.id} className="rise rounded-[2rem] bg-chalk p-6">
+              <p className="text-xl font-extrabold">{i.academyName}</p>
+              <p className="mt-1 text-ink-soft">
+                Sebagai <span className="font-bold text-ink">orang tua/wali {i.playerName}</span>. Anda bisa melihat
+                jadwal, mengirim izin, kehadiran, dan status iuran.
+              </p>
+              <AcceptButton id={i.id} academyName={i.academyName} kind="guardian" />
+            </li>
+          ))}
+          {staffInvites.map((i) => (
             <li key={i.id} className="rise rounded-[2rem] bg-chalk p-6">
               <p className="text-xl font-extrabold">{i.academyName}</p>
               <p className="mt-1 text-ink-soft">
@@ -53,7 +70,11 @@ export default async function UndanganPage() {
       )}
 
       <p className="mt-8 text-center text-sm text-ink-soft">
-        {mine.length ? (
+        {children ? (
+          <Link href="/wali" className="font-bold text-ink underline-offset-4 hover:underline">
+            Ke portal orang tua
+          </Link>
+        ) : mine.length ? (
           <Link href="/" className="font-bold text-ink underline-offset-4 hover:underline">
             Ke akademi saya
           </Link>

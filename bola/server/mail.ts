@@ -66,5 +66,19 @@ export function sendStaffInvite(to: string, academyName: string, inviterName: st
   );
 }
 
+export function sendGuardianInvite(to: string, academyName: string, playerName: string) {
+  const url = `${env().APP_URL}/undangan`;
+  return send(
+    to,
+    `Pantau latihan ${playerName} di ${academyName}`,
+    layout(
+      `Portal orang tua ${escapeHtml(academyName)}`,
+      `${escapeHtml(academyName)} mengundang Anda sebagai orang tua/wali ${escapeHtml(playerName)}. Di portal ini Anda bisa melihat jadwal latihan, mengirim izin atau sakit, melihat kehadiran, dan status iuran. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Undangan berlaku 14 hari.`,
+      { label: "Buka undangan", url },
+    ),
+    `${academyName} mengundang Anda sebagai wali ${playerName}. Masuk atau daftar dengan email ${to}: ${url}`,
+  );
+}
+
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

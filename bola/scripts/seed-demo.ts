@@ -14,6 +14,7 @@ import { saveAttendance } from "@/server/attendance";
 import { loadAcademyContext } from "@/server/context";
 import { db } from "@/server/db";
 import { generateInvoices, monthSummary, setTeamFee, updateInvoice } from "@/server/fees";
+import { submitNotice } from "@/server/guardian";
 import { createPlayer } from "@/server/players";
 import type { Role } from "@/server/permissions";
 import { addDays, createSchedule, listSessions } from "@/server/schedule";
@@ -91,12 +92,17 @@ async function main() {
     });
   }
 
-  // Jadwal rutin Selasa, Kamis, Sabtu sejak 7 hari lalu (batas aplikasi); absensi untuk sesi yang sudah lewat.
+  // Jadwal rutin Selasa, Kamis, Sabtu. Aplikasi hanya mengizinkan mulai 7 hari lalu, jadi untuk riwayat
+  // 6 minggu tanggal mulainya dimundurkan langsung di database, lalu sesinya dibuat.
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
-  const start = addDays(today, -7);
+  const start = addDays(today, -41);
   for (const id of teamIds) {
-    await createSchedule(ctx, { teamId: id, weekdays: [2, 4, 6], startTime: "15:30", durationMin: 90, startsOn: start });
+    await createSchedule(ctx, { teamId: id, weekdays: [2, 4, 6], startTime: "15:30", durationMin: 90, startsOn: addDays(today, -7) });
   }
+  await withContext(db(), { userId: ctx.userId, businessId: academyId }, async (tx) => {
+    await tx.execute(sql`UPDATE bola.schedules SET starts_on = ${start}::date`);
+    await tx.execute(sql`SELECT bola.generate_sessions(${start}::date, ${today}::date)`);
+  });
   const past = (await listSessions(ctx, { from: start, to: addDays(today, -1) })).filter((s) => s.status === "scheduled");
   const roster = async (teamId: string) =>
     (await withContext(db(), { userId: ctx.userId, businessId: academyId }, (tx) =>
@@ -104,18 +110,20 @@ async function main() {
     )) as unknown as { id: string }[];
   for (const [si, s] of past.entries()) {
     const players = await roster(s.teamId);
+    // Kehadiran naik pelan dari minggu ke minggu agar grafik terlihat hidup.
+    const week = Math.floor((si / past.length) * 6);
     await saveAttendance(ctx, s.id, {
       entries: players.map((p, i) => ({
         playerId: p.id,
         // Satu pemain KU 10-13 alpa terus di sesi terakhir agar muncul di "Perlu perhatian".
         status:
-          s.teamId === teamIds[1] && i === 0
+          s.teamId === teamIds[1] && i === 0 && s.date >= addDays(today, -9)
             ? "absent"
-            : (i + si) % 11 === 0
+            : (i + si) % (9 + week * 2) === 0
               ? "sick"
-              : (i + si) % 7 === 0
+              : (i * 3 + si) % (10 + week * 2) === 0
                 ? "excused"
-                : (i + si) % 13 === 0
+                : (i + 2 * si) % (8 + week * 3) === 0
                   ? "absent"
                   : "present",
       })),
@@ -130,10 +138,24 @@ async function main() {
     if (i % 3 !== 0) await updateInvoice(ctx, inv.id, { action: "pay", method: i % 2 ? "transfer" : "cash" });
   }
 
+  // Akun orang tua dengan dua anak (kakak-adik di tim berbeda) dan satu izin untuk latihan berikutnya.
+  const parent = await account("Sari Pratama", "wali");
+  const kids = [(await roster(teamIds[0]!))[0]!.id, (await roster(teamIds[1]!))[1]!.id];
+  await withContext(db(), { userId: ctx.userId, businessId: academyId }, async (tx) => {
+    for (const kid of kids) {
+      await tx.execute(sql`INSERT INTO bola.guardians (business_id, player_id, user_id)
+                           VALUES (${academyId}::uuid, ${kid}::uuid, ${parent.userId}::uuid)`);
+    }
+  });
+  const next = (await listSessions(ctx, { from: today, to: addDays(today, 7) })).find(
+    (s) => s.teamId === teamIds[1] && s.status === "scheduled" && s.date > today,
+  );
+  if (next) await submitNotice(parent, { playerId: kids[1]!, sessionId: next.id, status: "excused", note: "Acara keluarga" });
+
   const [count] = await db().select({ n: sql<number>`count(*)::int` }).from(users).where(eq(users.email, owner.email));
   console.log(`Data demo siap (${count?.n} pemilik, ${n} pemain, ${past.length} sesi berabsen).`);
   console.log(`Password semua akun: ${PASSWORD}`);
-  for (const l of ["pemilik", ...staff.map((s) => s.local)]) console.log(`  ${l}@${DOMAIN}`);
+  for (const l of ["pemilik", ...staff.map((s) => s.local), "wali"]) console.log(`  ${l}@${DOMAIN}`);
   process.exit(0);
 }
 

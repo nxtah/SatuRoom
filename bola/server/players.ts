@@ -31,7 +31,7 @@ export interface PlayerFilter {
 }
 
 /** Id pemain yang boleh dilihat; null = semua pemain akademi. */
-async function visiblePlayerIds(ctx: AcademyContext, tx: Tx): Promise<string[] | null> {
+export async function visiblePlayerIds(ctx: AcademyContext, tx: Tx): Promise<string[] | null> {
   if (ctx.can("players.read_all")) return null;
   const scope = (await visibleTeamIds(ctx, tx)) ?? [];
   if (scope.length === 0) return [];
