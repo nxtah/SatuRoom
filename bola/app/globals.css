@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/*
+  SatuRoom Bola: premium, rounded, tenang. Hijau lapangan yang dalam sebagai dasar mewah,
+  oranye SatuRoom hanya untuk aksi utama. Tidak ada gradien dekoratif.
+*/
+@theme {
+  --color-pitch: #0d3b2e;
+  --color-pitch-2: #124a3a;
+  --color-turf: #1f8a5b;
+  --color-turf-soft: #e2f2e9;
+  --color-ember: #ff6a00;
+  --color-ember-deep: #b84a00;
+  --color-ember-soft: #fff0e5;
+  --color-chalk: #ffffff;
+  --color-mist: #f1f4f0;
+  --color-line: #dfe5df;
+  --color-ink: #17201b;
+  --color-ink-soft: #4d5a52;
+  --color-sun: #ffc93c;
+
+  --font-display: var(--font-jakarta), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-panel: 2rem;
+  --radius-card: 1.5rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--color-chalk);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-ember);
+    outline-offset: 3px;
+    border-radius: 12px;
+  }
+  ::selection {
+    background: var(--color-sun);
+    color: var(--color-ink);
+  }
+}
+
+/* Lambaian Ruru, sekali saat muncul. */
+@keyframes ruru-wave {
+  0%, 100% { transform: rotate(0deg); }
+  20%, 60% { transform: rotate(-14deg); }
+  40%, 80% { transform: rotate(8deg); }
+}
+.ruru-wave {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: ruru-wave 1.4s ease-in-out 0.8s 1 both;
+}
+
+/* Muncul pelan saat layar berganti (langkah onboarding, kartu baru). */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+}
+.rise { animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.pop { animation: pop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

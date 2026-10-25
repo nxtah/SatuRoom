@@ -1,0 +1,24 @@
+# Layanan lokal untuk pengembangan di laptop. Port sengaja berbeda dari proyek lama.
+#   docker compose -f infra/docker-compose.dev.yml up -d
+name: saturoom-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: saturoom
+      POSTGRES_PASSWORD: saturoom-dev-only
+      POSTGRES_DB: saturoom
+    ports: ["127.0.0.1:5434:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saturoom -d saturoom"]
+      interval: 3s
+      retries: 20
+  # Menangkap semua email saat dev; buka http://localhost:8026
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports: ["127.0.0.1:1026:1025", "127.0.0.1:8026:8025"]
+
+volumes:
+  pgdata:

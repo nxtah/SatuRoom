@@ -108,3 +108,8 @@ Visual: premium, profesional, rounded, mudah untuk orang awam.
 4. Staf dan peran.
 5. Website saturoom.com.
 6. Pengerasan, uji di HP, deploy ke VPS (dengan persetujuan).
+
+## Progres
+
+- 2026-10-25 **web/** landing page selesai (disetujui pemilik, font Plus Jakarta Sans).
+- 2026-10-25 **Tahap 1 bola/** selesai: daftar, konfirmasi email, masuk/keluar, lupa password, onboarding (selamat datang + data akademi), pilih/ganti akademi, Beranda, Pengaturan profil akademi. Database: schema `core` + `bola`, RLS, user `bola_app`. Tes: 13 lulus (login, isolasi, izin).

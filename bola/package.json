@@ -1,0 +1,39 @@
+{
+  "name": "@saturoom/bola",
+  "version": "0.1.0",
+  "private": true,
+  "description": "bola.saturoom.com: aplikasi akademi sepak bola (tampilan + API /api/v1)",
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "start": "next start -p 3200",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@saturoom/core": "workspace:*",
+    "drizzle-orm": "^0.45.0",
+    "lucide-react": "^1.61.0",
+    "next": "16.4.2",
+    "nodemailer": "^7.0.0",
+    "postgres": "^3.4.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/nodemailer": "^7.0.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "4.1.12"
+  }
+}
