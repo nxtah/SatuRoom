@@ -1,11 +1,11 @@
 "use client";
 
-import { House, Settings, Shirt, UsersRound } from "lucide-react";
+import { CalendarDays, House, Settings, Shirt, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/nav";
 
-const ICONS = { home: House, teams: Shirt, players: UsersRound, settings: Settings } as const;
+const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, settings: Settings } as const;
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -54,7 +54,7 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] text-xs font-bold transition ${
+                className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] text-[11px] font-bold transition sm:text-xs ${
                   on ? "bg-pitch text-white" : "text-ink-soft"
                 }`}
               >

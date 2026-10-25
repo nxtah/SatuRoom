@@ -82,3 +82,50 @@ export const teamPlayers = bola.table(
   },
   (t) => [primaryKey({ columns: [t.teamId, t.playerId] })],
 );
+
+export const schedules = bola.table("schedules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  teamId: uuid("team_id").notNull(),
+  locationId: uuid("location_id").notNull(),
+  weekday: smallint("weekday").notNull(),
+  startTime: text("start_time").notNull(),
+  durationMin: smallint("duration_min").notNull(),
+  startsOn: date("starts_on").notNull(),
+  endsOn: date("ends_on"),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const sessionKind = bola.enum("session_kind", ["training", "match"]);
+export const sessionStatus = bola.enum("session_status", ["scheduled", "cancelled"]);
+
+export const sessions = bola.table("sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  teamId: uuid("team_id").notNull(),
+  locationId: uuid("location_id").notNull(),
+  scheduleId: uuid("schedule_id"),
+  kind: sessionKind("kind").notNull().default("training"),
+  title: text("title"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  status: sessionStatus("status").notNull().default("scheduled"),
+  cancelReason: text("cancel_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const attendanceStatus = bola.enum("attendance_status", ["present", "excused", "sick", "absent"]);
+
+export const attendance = bola.table(
+  "attendance",
+  {
+    businessId: uuid("business_id").notNull(),
+    sessionId: uuid("session_id").notNull(),
+    playerId: uuid("player_id").notNull(),
+    status: attendanceStatus("status").notNull(),
+    recordedBy: uuid("recorded_by"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.playerId] })],
+);

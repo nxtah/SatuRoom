@@ -1,16 +1,25 @@
-import { ChevronRight, CircleCheck } from "lucide-react";
+import { ChevronRight, CircleAlert, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Ruru } from "@/components/ruru";
+import { SessionCard } from "@/components/session-card";
+import { dayLabel } from "@/lib/dates";
+import { ABSENT_STREAK, needsAttention } from "@/server/attendance";
 import { getAcademy } from "@/server/academy";
 import { onboardingSteps } from "@/server/onboarding";
 import { requireAcademyPage } from "@/server/routing";
+import { todaySessions } from "@/server/schedule";
 
 export const metadata: Metadata = { title: "Beranda" };
 
 export default async function BerandaPage({ searchParams }: { searchParams: Promise<{ selamat?: string; siap?: string }> }) {
   const ctx = await requireAcademyPage();
-  const [academy, steps] = await Promise.all([getAcademy(ctx), onboardingSteps(ctx)]);
+  const [academy, steps, day, attention] = await Promise.all([
+    getAcademy(ctx),
+    onboardingSteps(ctx),
+    todaySessions(ctx),
+    needsAttention(ctx),
+  ]);
   const sp = await searchParams;
   const justCreated = sp.selamat === "1";
   const remaining = steps.filter((s) => !s.done).length;
@@ -76,18 +85,53 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
             )}
           </ol>
         </section>
-      ) : (
-        <section className="rise grid gap-3 sm:grid-cols-2" aria-label="Pintasan">
-          <Link href="/tim" className="group rounded-[2rem] bg-chalk p-6 transition hover:-translate-y-0.5">
-            <p className="text-xl font-extrabold">Tim</p>
-            <p className="mt-1 text-ink-soft">Kelompok umur dan pelatihnya.</p>
+      ) : null}
+
+      <section className="rise" aria-labelledby="hari-ini">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 id="hari-ini" className="text-xl font-extrabold">
+            Hari ini
+          </h2>
+          <Link href="/jadwal" className="text-sm font-bold text-ink-soft hover:text-ink">
+            {dayLabel(day.today)}, lihat jadwal
           </Link>
-          <Link href="/pemain" className="group rounded-[2rem] bg-chalk p-6 transition hover:-translate-y-0.5">
-            <p className="text-xl font-extrabold">Pemain</p>
-            <p className="mt-1 text-ink-soft">Cari dan kelola data pemain.</p>
-          </Link>
+        </div>
+        {day.sessions.length ? (
+          <ul className="grid gap-2">
+            {day.sessions.map((s) => (
+              <li key={s.id}>
+                <SessionCard s={s} today={day.today} action />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-[1.5rem] border-2 border-dashed border-line px-5 py-4 text-ink-soft">Tidak ada latihan hari ini.</p>
+        )}
+      </section>
+
+      {attention.length ? (
+        <section className="rise rounded-[2rem] bg-chalk p-6 sm:p-8" aria-labelledby="perhatian">
+          <h2 id="perhatian" className="flex items-center gap-2 text-xl font-extrabold">
+            <CircleAlert aria-hidden className="size-5 text-[#d92d20]" /> Perlu perhatian
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">Alpa {ABSENT_STREAK} kali atau lebih berturut-turut. Mungkin perlu dihubungi.</p>
+          <ul className="mt-4 grid gap-1">
+            {attention.map((a) => (
+              <li key={a.playerId}>
+                <Link href={`/pemain/${a.playerId}`} className="flex items-center gap-3 rounded-2xl p-3 transition hover:bg-mist">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold">{a.fullName}</span>
+                    <span className="block truncate text-sm text-ink-soft">{a.teamNames || "Tanpa tim"}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-[#fdecec] px-3 py-1 text-sm font-extrabold text-[#b42318]">
+                    {a.streak}x alpa
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

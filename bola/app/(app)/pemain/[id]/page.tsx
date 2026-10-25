@@ -1,10 +1,13 @@
 import { Pencil, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { STATUS_STYLE } from "@/components/attendance-badge";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { ageOf, formatDate } from "@/lib/age";
-import { POSITIONS } from "@/lib/schemas";
+import { dayLabel } from "@/lib/dates";
+import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
+import { playerAttendance } from "@/server/attendance";
 import { requireAcademyPage } from "@/server/routing";
 import { loadPlayer } from "../load";
 import { StatusToggle } from "./status-toggle";
@@ -15,6 +18,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const ctx = await requireAcademyPage();
   const { id } = await params;
   const p = await loadPlayer(ctx, id);
+  const history = await playerAttendance(ctx, id);
   const canManage = ctx.can("players.manage");
   const rows: [string, React.ReactNode][] = [
     ["Tanggal lahir", `${formatDate(p.birthDate)} (${ageOf(p.birthDate)} tahun)`],
@@ -65,6 +69,39 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           </div>
         ))}
       </dl>
+
+      <section className="rise mt-4 rounded-[2rem] bg-chalk p-6" aria-labelledby="kehadiran">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="kehadiran" className="font-extrabold">
+            Kehadiran
+          </h2>
+          {history.rate !== null ? (
+            <p className="text-sm text-ink-soft">
+              <span className="text-2xl font-extrabold text-ink">{history.rate}%</span> hadir, {history.recorded} sesi dalam 60 hari
+            </p>
+          ) : null}
+        </div>
+        {history.recent.length ? (
+          <ol className="mt-4 grid gap-1">
+            {history.recent.map((h) => {
+              const label = ATTENDANCE.find((a) => a.id === h.status)!.label;
+              return (
+                <li key={h.sessionId}>
+                  <Link href={`/jadwal/${h.sessionId}`} className="flex items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-mist">
+                    <span aria-hidden className={`size-3 shrink-0 rounded-full ${STATUS_STYLE[h.status].dot}`} />
+                    <span className="min-w-0 flex-1 truncate">
+                      {dayLabel(h.date)} <span className="text-ink-soft">{h.teamName}</span>
+                    </span>
+                    <span className="shrink-0 font-bold">{label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <p className="mt-2 text-ink-soft">Belum ada absensi tercatat.</p>
+        )}
+      </section>
 
       {p.guardian ? (
         <section className="rise mt-4 rounded-[2rem] bg-chalk p-6" aria-labelledby="wali">

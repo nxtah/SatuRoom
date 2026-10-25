@@ -1,0 +1,48 @@
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import type { SessionRow } from "@/server/schedule";
+
+/** Kartu sesi di kalender dan Beranda: jam, tim, dan status absensinya. */
+export function SessionCard({ s, today, action }: { s: SessionRow; today: string; action?: boolean }) {
+  const cancelled = s.status === "cancelled";
+  const future = s.date > today;
+  const recorded = s.recordedCount > 0;
+  const status = cancelled
+    ? { text: "Dibatalkan", tone: "text-[#b42318]" }
+    : recorded
+      ? { text: `${s.presentCount} dari ${Math.max(s.rosterCount, s.recordedCount)} hadir`, tone: "text-turf" }
+      : future
+        ? { text: `${s.rosterCount} pemain`, tone: "text-ink-soft" }
+        : { text: "Belum diabsen", tone: "text-ember-deep" };
+
+  return (
+    <Link
+      href={`/jadwal/${s.id}`}
+      className={`group flex items-center gap-4 rounded-[1.5rem] bg-chalk p-4 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(13_59_46/0.5)] ${
+        cancelled ? "opacity-60" : ""
+      }`}
+    >
+      <span className={`w-14 shrink-0 text-center ${cancelled ? "line-through" : ""}`}>
+        <span className="block text-lg leading-tight font-extrabold">{s.startTime}</span>
+        <span className="block text-xs font-semibold text-ink-soft">{s.endTime}</span>
+      </span>
+      <span aria-hidden className={`h-10 w-1 shrink-0 rounded-full ${s.kind === "match" ? "bg-ember" : "bg-turf"}`} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-extrabold">
+          {s.kind === "match" ? (s.title ?? "Pertandingan") : s.teamName}
+        </span>
+        <span className="block truncate text-sm">
+          {s.kind === "match" ? <span className="text-ink-soft">{s.teamName}, </span> : s.title ? <span className="text-ink-soft">{s.title}, </span> : null}
+          <span className={`font-bold ${status.tone}`}>{status.text}</span>
+        </span>
+      </span>
+      {action && !cancelled && !future ? (
+        <span className="shrink-0 rounded-full bg-ember px-4 py-2 text-sm font-extrabold text-ink transition group-hover:bg-[#ff7d24]">
+          {recorded ? "Lihat" : "Absen"}
+        </span>
+      ) : (
+        <ChevronRight aria-hidden className="size-5 shrink-0 text-ink-soft transition group-hover:translate-x-0.5" />
+      )}
+    </Link>
+  );
+}

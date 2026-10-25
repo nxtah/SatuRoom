@@ -81,3 +81,53 @@ export const PlayerInput = z.object({
 });
 
 export const PlayerStatusInput = z.object({ status: z.enum(["active", "inactive"]) });
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pilih tanggal.");
+const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Isi jam, contoh 15:30.");
+const duration = z.coerce.number().int().min(15, "Minimal 15 menit.").max(300, "Maksimal 5 jam.");
+
+export const WEEKDAYS = [
+  { id: 1, short: "Sen", label: "Senin" },
+  { id: 2, short: "Sel", label: "Selasa" },
+  { id: 3, short: "Rab", label: "Rabu" },
+  { id: 4, short: "Kam", label: "Kamis" },
+  { id: 5, short: "Jum", label: "Jumat" },
+  { id: 6, short: "Sab", label: "Sabtu" },
+  { id: 7, short: "Min", label: "Minggu" },
+] as const;
+
+export const ScheduleInput = z.object({
+  teamId: z.string().uuid("Pilih tim."),
+  weekdays: z.array(z.coerce.number().int().min(1).max(7)).min(1, "Pilih minimal satu hari.").max(7),
+  startTime: clock,
+  durationMin: duration,
+  startsOn: isoDate,
+});
+
+export const SessionInput = z.object({
+  teamId: z.string().uuid("Pilih tim."),
+  date: isoDate,
+  startTime: clock,
+  durationMin: duration,
+  kind: z.enum(["training", "match"]),
+  title: z.preprocess(emptyToNull, z.string().trim().max(80, "Maksimal 80 karakter.").nullable()).optional(),
+});
+
+export const CancelInput = z.object({
+  reason: z.preprocess(emptyToNull, z.string().trim().max(200, "Maksimal 200 karakter.").nullable()).optional(),
+});
+
+export const ATTENDANCE = [
+  { id: "present", short: "H", label: "Hadir" },
+  { id: "excused", short: "I", label: "Izin" },
+  { id: "sick", short: "S", label: "Sakit" },
+  { id: "absent", short: "A", label: "Alpa" },
+] as const;
+export type AttendanceStatus = (typeof ATTENDANCE)[number]["id"];
+
+export const AttendanceInput = z.object({
+  entries: z
+    .array(z.object({ playerId: z.string().uuid(), status: z.enum(["present", "excused", "sick", "absent"]) }))
+    .min(1, "Tandai minimal satu pemain.")
+    .max(300),
+});
