@@ -1,9 +1,9 @@
 /** Tabel schema `bola` untuk query bertipe. Struktur sebenarnya ada di bola/migrations/*.sql. */
-import { boolean, date, pgSchema, primaryKey, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgSchema, primaryKey, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const bola = pgSchema("bola");
 
-export const staffRole = bola.enum("staff_role", ["owner", "admin", "head_coach", "coach"]);
+export const staffRole = bola.enum("staff_role", ["owner", "admin", "head_coach", "coach", "treasurer"]);
 
 export const staffRoles = bola.table(
   "staff_roles",
@@ -141,4 +141,27 @@ export const invitations = bola.table("invitations", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
+});
+
+export const teamFees = bola.table("team_fees", {
+  businessId: uuid("business_id").notNull(),
+  teamId: uuid("team_id").primaryKey(),
+  amount: integer("amount").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const invoiceStatus = bola.enum("invoice_status", ["unpaid", "paid", "waived"]);
+export const paymentMethod = bola.enum("payment_method", ["cash", "transfer", "other"]);
+
+export const invoices = bola.table("invoices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  playerId: uuid("player_id").notNull(),
+  period: date("period").notNull(),
+  amount: integer("amount").notNull(),
+  status: invoiceStatus("status").notNull().default("unpaid"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  method: paymentMethod("method"),
+  recordedBy: uuid("recorded_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

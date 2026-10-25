@@ -7,6 +7,7 @@ export const ROLE_INFO: { id: Role; label: string; hint: string }[] = [
   { id: "admin", label: "Admin", hint: "Kelola staf, tim, pemain, jadwal, dan kontak orang tua." },
   { id: "head_coach", label: "Kepala pelatih", hint: "Kelola semua tim, pemain, jadwal, dan absensi." },
   { id: "coach", label: "Pelatih", hint: "Hanya tim yang dipegang: jadwal dan absensi." },
+  { id: "treasurer", label: "Bendahara", hint: "Iuran bulanan dan kontak orang tua untuk penagihan." },
 ];
 
 /** Pilihan peran (boleh lebih dari satu) dan tim yang dipegang. */

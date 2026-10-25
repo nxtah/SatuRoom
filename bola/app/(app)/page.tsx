@@ -9,16 +9,19 @@ import { getAcademy } from "@/server/academy";
 import { onboardingSteps } from "@/server/onboarding";
 import { requireAcademyPage } from "@/server/routing";
 import { todaySessions } from "@/server/schedule";
+import { billingHome } from "@/server/fees";
+import { monthLabel, rupiah } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Beranda" };
 
 export default async function BerandaPage({ searchParams }: { searchParams: Promise<{ selamat?: string; siap?: string }> }) {
   const ctx = await requireAcademyPage();
-  const [academy, steps, day, attention] = await Promise.all([
+  const [academy, steps, day, attention, billing] = await Promise.all([
     getAcademy(ctx),
     onboardingSteps(ctx),
     todaySessions(ctx),
     needsAttention(ctx),
+    billingHome(ctx),
   ]);
   const sp = await searchParams;
   const justCreated = sp.selamat === "1";
@@ -109,6 +112,20 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           <p className="rounded-[1.5rem] border-2 border-dashed border-line px-5 py-4 text-ink-soft">Tidak ada latihan hari ini.</p>
         )}
       </section>
+
+      {billing && billing.unpaidCount > 0 ? (
+        <Link
+          href="/iuran"
+          className="rise group flex items-center gap-4 rounded-[2rem] bg-ember-soft p-6 transition hover:-translate-y-0.5"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-ember-deep">Iuran {monthLabel(billing.month)}</span>
+            <span className="block text-2xl font-extrabold">{rupiah(billing.outstanding)} belum terbayar</span>
+            <span className="block text-sm text-ink-soft">{billing.unpaidCount} pemain</span>
+          </span>
+          <ChevronRight aria-hidden className="size-5 shrink-0 text-ember-deep transition group-hover:translate-x-0.5" />
+        </Link>
+      ) : null}
 
       {attention.length ? (
         <section className="rise rounded-[2rem] bg-chalk p-6 sm:p-8" aria-labelledby="perhatian">

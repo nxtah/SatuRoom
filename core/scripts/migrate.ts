@@ -80,7 +80,7 @@ async function setupBolaRole(sql: postgres.Sql, password: string): Promise<void>
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA bola TO bola_app;
   `);
   // Data pemain dan tim tidak dihapus permanen oleh aplikasi: hanya dinonaktifkan/diarsipkan.
-  for (const table of ["bola.players", "bola.teams"]) {
+  for (const table of ["bola.players", "bola.teams", "bola.invoices"]) {
     const [found] = await sql`SELECT to_regclass(${table}) AS t`;
     if (found?.t) await sql.unsafe(`REVOKE DELETE ON ${table} FROM bola_app`);
   }

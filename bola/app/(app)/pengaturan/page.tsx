@@ -1,6 +1,7 @@
-import { ChevronRight, IdCard } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { mobileNav, NAV } from "@/lib/nav";
 import { getAcademy } from "@/server/academy";
 import { requireAcademyPage } from "@/server/routing";
 import { AcademyForm } from "./academy-form";
@@ -11,22 +12,35 @@ export default async function PengaturanPage() {
   const ctx = await requireAcademyPage();
   const academy = await getAcademy(ctx);
   const canEdit = ctx.can("academy.update");
+  // Menu yang tidak muat di tab bawah HP dibuka dari sini.
+  const allowed = NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href);
+  const inTabs = new Set(mobileNav(allowed).map((i) => i.href));
+  const HINTS: Record<string, { title: string; hint: string }> = {
+    "/tim": { title: "Tim", hint: "Kelompok umur, pemain, dan pelatihnya." },
+    "/staf": { title: "Staf dan peran", hint: "Undang pelatih, atur peran dan tim yang dipegang." },
+    "/iuran": { title: "Iuran", hint: "Tarif, tagihan bulanan, dan pembayaran." },
+  };
+  const more = allowed.filter((h) => !inTabs.has(h) && HINTS[h]).map((h) => ({ href: h, ...HINTS[h]! }));
   return (
     <div className="grid gap-5">
       <h1 className="rise pt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Pengaturan</h1>
 
-      {ctx.can("staff.read") ? (
-        <Link
-          href="/staf"
-          className="rise group flex items-center gap-4 rounded-[2rem] bg-pitch p-6 text-white transition hover:-translate-y-0.5 lg:hidden"
-        >
-          <IdCard aria-hidden className="size-6 shrink-0" />
-          <span className="flex-1">
-            <span className="block text-lg font-extrabold">Staf dan peran</span>
-            <span className="block text-sm text-white/70">Undang pelatih, atur peran dan tim yang dipegang.</span>
-          </span>
-          <ChevronRight aria-hidden className="size-5" />
-        </Link>
+      {more.length ? (
+        <nav aria-label="Menu lainnya" className="rise grid gap-2 lg:hidden">
+          {more.map((m) => (
+            <Link
+              key={m.href}
+              href={m.href}
+              className="group flex items-center gap-4 rounded-[2rem] bg-pitch p-5 text-white transition hover:-translate-y-0.5"
+            >
+              <span className="flex-1">
+                <span className="block text-lg font-extrabold">{m.title}</span>
+                <span className="block text-sm text-white/70">{m.hint}</span>
+              </span>
+              <ChevronRight aria-hidden className="size-5" />
+            </Link>
+          ))}
+        </nav>
       ) : null}
 
       <section className="rise rounded-[2rem] bg-chalk p-6 sm:p-8" aria-labelledby="profil">

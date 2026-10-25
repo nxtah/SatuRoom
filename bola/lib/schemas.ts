@@ -134,12 +134,33 @@ export const AttendanceInput = z.object({
 });
 
 const staffRoles = z
-  .array(z.enum(["owner", "admin", "head_coach", "coach"]))
+  .array(z.enum(["owner", "admin", "head_coach", "coach", "treasurer"]))
   .min(1, "Pilih minimal satu peran.")
-  .max(4);
+  .max(5);
 const teamIdList = z.array(z.string().uuid()).max(50).default([]);
 
 export const InviteInput = z.object({ email, roles: staffRoles, teamIds: teamIdList });
 export const StaffUpdateInput = z.object({ roles: staffRoles, teamIds: teamIdList });
 export const StaffStatusInput = z.object({ status: z.enum(["active", "suspended"]) });
 export const InvitationIdInput = z.object({ invitationId: z.string().uuid() });
+
+const rupiah = z.preprocess(
+  (v) => (typeof v === "string" ? v.replace(/[^0-9]/g, "") : v),
+  z.coerce.number().int().min(0, "Tidak boleh minus.").max(100_000_000, "Terlalu besar."),
+);
+const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Pilih bulan.");
+
+export const TeamFeeInput = z.object({ teamId: z.string().uuid(), amount: rupiah });
+export const GenerateInvoicesInput = z.object({ month });
+export const InvoicePayInput = z.object({ method: z.enum(["cash", "transfer", "other"]) });
+export const InvoiceUpdateInput = z.object({
+  action: z.enum(["pay", "unpay", "waive", "amount"]),
+  method: z.enum(["cash", "transfer", "other"]).optional(),
+  amount: rupiah.optional(),
+});
+
+export const PAYMENT_METHODS = [
+  { id: "cash", label: "Tunai" },
+  { id: "transfer", label: "Transfer" },
+  { id: "other", label: "Lainnya" },
+] as const;

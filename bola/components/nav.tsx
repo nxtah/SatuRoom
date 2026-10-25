@@ -1,11 +1,11 @@
 "use client";
 
-import { CalendarDays, House, IdCard, Settings, Shirt, UsersRound } from "lucide-react";
+import { CalendarDays, House, IdCard, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV } from "@/lib/nav";
+import { mobileNav, NAV } from "@/lib/nav";
 
-const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, staff: IdCard, settings: Settings } as const;
+const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, staff: IdCard, billing: Wallet, settings: Settings } as const;
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -41,7 +41,7 @@ export function SideNav({ allowed }: { allowed: string[] }) {
 /** Tab bawah di HP: menu utama dalam jangkauan jempol. */
 export function BottomNav({ allowed }: { allowed: string[] }) {
   const pathname = usePathname();
-  const items = NAV.filter((i) => i.mobile && allowed.includes(i.href));
+  const items = mobileNav(allowed);
   return (
     <nav
       aria-label="Menu utama"
@@ -50,7 +50,7 @@ export function BottomNav({ allowed }: { allowed: string[] }) {
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const Icon = ICONS[item.icon];
-          const on = isActive(pathname, item.href) || (item.href === "/pengaturan" && pathname.startsWith("/staf"));
+          const on = isActive(pathname, item.href) || (item.href === "/pengaturan" && !items.some((i) => i.href !== "/" && pathname.startsWith(i.href)) && pathname !== "/");
           return (
             <li key={item.href}>
               <Link

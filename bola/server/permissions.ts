@@ -2,7 +2,7 @@
  * Izin per peran. Server memeriksa izin ini di setiap aksi; menu yang disembunyikan di layar
  * hanya kenyamanan, bukan pengaman. Peran baru cukup ditambahkan di sini dan di enum database.
  */
-export const ROLES = ["owner", "admin", "head_coach", "coach"] as const;
+export const ROLES = ["owner", "admin", "head_coach", "coach", "treasurer"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -10,6 +10,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "Admin",
   head_coach: "Kepala pelatih",
   coach: "Pelatih",
+  treasurer: "Bendahara",
 };
 
 export const PERMISSIONS = [
@@ -23,6 +24,8 @@ export const PERMISSIONS = [
   "guardians.read",
   "schedule.manage_all",
   "attendance.record_all",
+  "billing.read",
+  "billing.manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -38,6 +41,8 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     "guardians.read",
     "schedule.manage_all",
     "attendance.record_all",
+    "billing.read",
+    "billing.manage",
   ],
   head_coach: [
     "staff.read",
@@ -50,6 +55,8 @@ const GRANTS: Record<Role, readonly Permission[]> = {
   ],
   // Pelatih tidak punya izin "_all": aksesnya dibatasi ke tim yang dia latih.
   coach: [],
+  // Bendahara: iuran dan kontak orang tua untuk penagihan; tidak mengelola tim, jadwal, atau staf.
+  treasurer: ["teams.read_all", "players.read_all", "guardians.read", "billing.read", "billing.manage"],
 };
 
 export function permissionsFor(roles: readonly Role[]): Set<Permission> {
