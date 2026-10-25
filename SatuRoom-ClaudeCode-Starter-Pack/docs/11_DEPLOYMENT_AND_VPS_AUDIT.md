@@ -31,12 +31,12 @@ DNS (from anywhere): `dig +short saturoom.com`, `dig +short bola.saturoom.com`, 
 Decisions that wait on this audit: staging vs production split, backup target off-host, firewall, TLS issuance method, whether the host can run RLS-capable Postgres with a dedicated role.
 
 ---
-## VPS audit result (2026-10-25, read-only, Verified over SSH key `~/.ssh/saturoom_vps_ed25519`)
+## VPS audit result (2026-10-25, read-only, Verified over SSH key `<kunci SSH pemilik>`)
 Supersedes the "not performed" note above.
 
 | Item | Finding |
 |---|---|
-| Host | `202.10.36.167`, hostname `vps.saturoom.com`, KVM guest, provisioned 2026-10-23 (provider recipe logs in `/root`; provider likely Rumahweb, not confirmed) |
+| Host | `<IP VPS, lihat catatan pemilik>`, hostname `vps.saturoom.com`, KVM guest, provisioned 2026-10-23 (provider recipe logs in `/root`; provider likely Rumahweb, not confirmed) |
 | OS | Ubuntu 24.04 LTS, kernel 6.8.0-31, unattended-upgrades active, no pending reboot flag |
 | Resources | 1 vCPU, 2.2 GiB RAM, 255 MiB swap, 40 GB disk (7% used) |
 | Software | Fresh: no Docker, Postgres, Node, web server, certbot, fail2ban. Only `git` |
