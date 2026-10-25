@@ -5,14 +5,14 @@ import { redirect } from "next/navigation";
 import { listMyAcademies } from "./academy";
 import { academyContext, currentSession, loadAcademyContext, type AcademyContext } from "./context";
 import { db } from "./db";
-import { hasChildren, myGuardianInvitations } from "./guardian";
+import { hasPlayerAccount, myPlayerInvitations } from "./player-account";
 import { myInvitations } from "./staff";
 import { AppError } from "./errors";
 
 /**
  * Dipakai layout halaman aplikasi: memastikan ada sesi dan akademi aktif yang sah.
- * Belum login: ke /masuk. Belum punya akademi: ke /undangan bila ada undangan, ke /wali bila
- * terhubung sebagai orang tua, selain itu ke /mulai. Punya beberapa tapi belum memilih:
+ * Belum login: ke /masuk. Bukan staf: ke /saya bila akun pemain, ke /undangan bila ada undangan,
+ * selain itu ke /mulai. Punya beberapa tapi belum memilih:
  * ke /pilih-akademi. Tepat satu: langsung dipilih.
  */
 export const requireAcademyPage = cache(async (): Promise<AcademyContext> => {
@@ -25,13 +25,14 @@ export const requireAcademyPage = cache(async (): Promise<AcademyContext> => {
   }
   const mine = await listMyAcademies(session.userId);
   if (mine.length === 0) {
-    const [staffInvites, guardianInvites, children] = await Promise.all([
+    const [staffInvites, playerInvites, isPlayer] = await Promise.all([
       myInvitations(session.userId),
-      myGuardianInvitations(session.userId),
-      hasChildren(session.userId),
+      myPlayerInvitations(session.userId),
+      hasPlayerAccount(session.userId),
     ]);
-    if (staffInvites.length || guardianInvites.length) redirect("/undangan");
-    redirect(children ? "/wali" : "/mulai");
+    if (isPlayer) redirect("/saya");
+    if (staffInvites.length || playerInvites.length) redirect("/undangan");
+    redirect("/mulai");
   }
   if (mine.length > 1) redirect("/pilih-akademi");
   // Tepat satu akademi: pilih langsung dan lanjut. Tanpa redirect ke halaman yang sama,

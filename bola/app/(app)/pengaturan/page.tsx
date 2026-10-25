@@ -26,7 +26,7 @@ export default async function PengaturanPage() {
       <h1 className="rise pt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Pengaturan</h1>
 
       {more.length ? (
-        <nav aria-label="Menu lainnya" className="rise grid gap-2 lg:hidden">
+        <nav aria-label="Menu lainnya" className="rise grid gap-2 md:hidden">
           {more.map((m) => (
             <Link
               key={m.href}

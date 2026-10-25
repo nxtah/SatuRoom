@@ -205,3 +205,27 @@ export async function billingHome(
   const s = await monthSummary(ctx, month);
   return { month, outstanding: s.outstanding, unpaidCount: s.unpaidCount, billed: s.billed, collected: s.collected };
 }
+
+export interface PlayerInvoice {
+  id: string;
+  month: string;
+  amount: number;
+  status: "unpaid" | "paid" | "waived";
+  paidOn: string | null;
+}
+
+/** Riwayat iuran satu pemain (6 bulan terakhir) untuk halaman pemain. */
+export async function playerInvoices(ctx: AcademyContext, playerId: string): Promise<PlayerInvoice[]> {
+  requirePermission(ctx, "billing.read");
+  return inAcademy(
+    ctx,
+    async (tx) =>
+      (await tx.execute(sql`
+        SELECT i.id, to_char(i.period, 'YYYY-MM') AS month, i.amount, i.status,
+               to_char(i.paid_at AT TIME ZONE b.timezone, 'YYYY-MM-DD') AS "paidOn"
+        FROM bola.invoices i JOIN core.businesses b ON b.id = i.business_id
+        WHERE i.player_id = ${playerId}::uuid
+        ORDER BY i.period DESC
+        LIMIT 6`)) as unknown as PlayerInvoice[],
+  );
+}

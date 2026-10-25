@@ -6,7 +6,8 @@ import { Ruru } from "@/components/ruru";
 import { listMyAcademies } from "@/server/academy";
 import { currentSession } from "@/server/context";
 import { roleLabels, myInvitations } from "@/server/staff";
-import { hasChildren, myGuardianInvitations } from "@/server/guardian";
+import { ageOf } from "@/lib/age";
+import { hasPlayerAccount, myPlayerInvitations } from "@/server/player-account";
 import { AcceptButton } from "./accept-button";
 
 export const metadata: Metadata = { title: "Undangan" };
@@ -14,13 +15,15 @@ export const metadata: Metadata = { title: "Undangan" };
 export default async function UndanganPage() {
   const session = await currentSession();
   if (!session) redirect("/masuk?lanjut=undangan");
-  const [staffInvites, guardianInvites, mine, children] = await Promise.all([
+  const [staffInvites, playerInvites, mine, isPlayer] = await Promise.all([
     myInvitations(session.userId),
-    myGuardianInvitations(session.userId),
+    myPlayerInvitations(session.userId),
     listMyAcademies(session.userId),
-    hasChildren(session.userId),
+    hasPlayerAccount(session.userId),
   ]);
-  const invites = [...staffInvites, ...guardianInvites];
+  // Akun yang sudah menjadi akun pemain tidak bisa menerima undangan pemain lain.
+  const usablePlayerInvites = isPlayer ? [] : playerInvites;
+  const invites = [...staffInvites, ...usablePlayerInvites];
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col px-4 py-8 sm:py-12">
@@ -41,14 +44,20 @@ export default async function UndanganPage() {
 
       {invites.length ? (
         <ul className="mt-6 grid gap-3">
-          {guardianInvites.map((i) => (
+          {usablePlayerInvites.map((i) => (
             <li key={i.id} className="rise rounded-[2rem] bg-chalk p-6">
               <p className="text-xl font-extrabold">{i.academyName}</p>
               <p className="mt-1 text-ink-soft">
-                Sebagai <span className="font-bold text-ink">orang tua/wali {i.playerName}</span>. Anda bisa melihat
+                Akun pemain untuk <span className="font-bold text-ink">{i.playerName}</span>. Dari akun ini bisa dilihat
                 jadwal, mengirim izin, kehadiran, dan status iuran.
               </p>
-              <AcceptButton id={i.id} academyName={i.academyName} kind="guardian" />
+              <AcceptButton
+                id={i.id}
+                academyName={i.academyName}
+                kind="player"
+                minor={ageOf(i.birthDate) < 18}
+                playerName={i.playerName}
+              />
             </li>
           ))}
           {staffInvites.map((i) => (
@@ -70,9 +79,9 @@ export default async function UndanganPage() {
       )}
 
       <p className="mt-8 text-center text-sm text-ink-soft">
-        {children ? (
-          <Link href="/wali" className="font-bold text-ink underline-offset-4 hover:underline">
-            Ke portal orang tua
+        {isPlayer ? (
+          <Link href="/saya" className="font-bold text-ink underline-offset-4 hover:underline">
+            Ke akun pemain saya
           </Link>
         ) : mine.length ? (
           <Link href="/" className="font-bold text-ink underline-offset-4 hover:underline">

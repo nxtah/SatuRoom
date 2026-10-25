@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PasswordField } from "@/components/password-field";
 import { Alert } from "@/components/ui/alert";
@@ -12,7 +11,6 @@ import { LoginInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
 export function LoginForm({ next = "/" }: { next?: string }) {
-  const router = useRouter();
   const form = useForm(LoginInput);
   const [email, setEmail] = useState("");
   const [resent, setResent] = useState(false);
@@ -23,10 +21,9 @@ export function LoginForm({ next = "/" }: { next?: string }) {
     const done = await form.submit(formValues(e.currentTarget), (input) =>
       api("/auth/login", { body: input }),
     );
-    if (done) {
-      router.replace(next);
-      router.refresh();
-    }
+    // Navigasi penuh: tujuan akhir ditentukan server (akademi, akun pemain, atau undangan) lewat redirect,
+    // dan router klien bisa berputar-putar bila redirect itu terjadi saat transisi.
+    if (done) window.location.replace(next);
   }
 
   async function resend() {

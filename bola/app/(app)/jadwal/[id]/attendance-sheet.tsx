@@ -22,7 +22,7 @@ interface Entry {
 export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: string; roster: Entry[]; editable: boolean }) {
   const router = useRouter();
   const saved = useMemo(() => new Map(roster.map((r) => [r.playerId, r.status])), [roster]);
-  // Izin dari orang tua langsung terisi; tetap bisa diubah pelatih sebelum disimpan.
+  // Izin dari akun pemain langsung terisi; tetap bisa diubah pelatih sebelum disimpan.
   const [marks, setMarks] = useState(
     () => new Map(roster.map((r) => [r.playerId, r.status ?? (editable ? (r.notice?.status ?? null) : null)])),
   );
@@ -93,7 +93,7 @@ export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: st
                   </span>
                   {r.notice ? (
                     <span className="block text-sm text-ink-soft">
-                      {r.notice.status === "sick" ? "Sakit" : "Izin"} dari orang tua
+                      {r.notice.status === "sick" ? "Sakit" : "Izin"} dikirim pemain
                       {r.notice.note ? `: ${r.notice.note}` : ""}
                     </span>
                   ) : null}
@@ -129,7 +129,7 @@ export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: st
       </ul>
 
       {editable ? (
-        <div className="sticky bottom-24 z-30 mt-4 lg:bottom-4">
+        <div className="sticky bottom-24 z-30 mt-4 md:bottom-4">
           <div className="flex items-center gap-3 rounded-[1.75rem] bg-pitch p-2 pl-5 text-white shadow-[0_24px_50px_-20px_rgb(13_59_46/0.8)]">
             {done && changed.length === 0 ? (
               <>

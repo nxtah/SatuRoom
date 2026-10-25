@@ -7,7 +7,13 @@ import { api } from "@/lib/api";
 type Notice = { status: "excused" | "sick"; note: string | null } | null;
 
 /** Kirim atau batalkan izin/sakit untuk satu latihan. */
-export function NoticeActions({ playerId, sessionId, notice }: { playerId: string; sessionId: string; notice: Notice }) {
+export function NoticeActions({
+  sessionId,
+  notice,
+}: {
+  sessionId: string;
+  notice: Notice;
+}) {
   const router = useRouter();
   const [choice, setChoice] = useState<"excused" | "sick">();
   const [note, setNote] = useState("");
@@ -17,7 +23,10 @@ export function NoticeActions({ playerId, sessionId, notice }: { playerId: strin
   async function send(method: "PUT" | "DELETE", body: object) {
     setBusy(true);
     setError(undefined);
-    const r = await api("/wali/notices", { method, body: { playerId, sessionId, ...body } });
+    const r = await api("/me/player/notices", {
+      method,
+      body: { sessionId, ...body },
+    });
     setBusy(false);
     if (!r.ok) return setError(r.error.message);
     setChoice(undefined);
@@ -29,7 +38,8 @@ export function NoticeActions({ playerId, sessionId, notice }: { playerId: strin
     return (
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-sun/35 px-3 py-1.5 text-sm font-bold">
-          {notice.status === "sick" ? "Sakit" : "Izin"} sudah dikirim{notice.note ? `: ${notice.note}` : ""}
+          {notice.status === "sick" ? "Sakit" : "Izin"} sudah dikirim
+          {notice.note ? `: ${notice.note}` : ""}
         </span>
         <button
           type="button"
@@ -39,7 +49,9 @@ export function NoticeActions({ playerId, sessionId, notice }: { playerId: strin
         >
           Batalkan
         </button>
-        {error ? <p className="w-full text-sm font-bold text-[#b42318]">{error}</p> : null}
+        {error ? (
+          <p className="w-full text-sm font-bold text-[#b42318]">{error}</p>
+        ) : null}
       </div>
     );
   }
@@ -74,17 +86,24 @@ export function NoticeActions({ playerId, sessionId, notice }: { playerId: strin
       }}
     >
       <label className="text-sm font-bold" htmlFor={`note-${sessionId}`}>
-        {choice === "sick" ? "Sakit" : "Izin"}. Ada pesan untuk pelatih? (boleh kosong)
+        {choice === "sick" ? "Sakit" : "Izin"}. Ada pesan untuk pelatih? (boleh
+        kosong)
       </label>
       <input
         id={`note-${sessionId}`}
         value={note}
         maxLength={200}
         onChange={(e) => setNote(e.target.value)}
-        placeholder={choice === "sick" ? "Contoh: demam sejak semalam" : "Contoh: acara keluarga"}
+        placeholder={
+          choice === "sick"
+            ? "Contoh: demam sejak semalam"
+            : "Contoh: acara keluarga"
+        }
         className="h-11 rounded-xl border border-line bg-chalk px-3 outline-none focus:border-turf"
       />
-      {error ? <p className="text-sm font-bold text-[#b42318]">{error}</p> : null}
+      {error ? (
+        <p className="text-sm font-bold text-[#b42318]">{error}</p>
+      ) : null}
       <div className="flex gap-2">
         <button
           type="submit"
@@ -93,7 +112,11 @@ export function NoticeActions({ playerId, sessionId, notice }: { playerId: strin
         >
           {busy ? "Mengirim…" : "Kirim ke pelatih"}
         </button>
-        <button type="button" onClick={() => setChoice(undefined)} className="h-10 rounded-full px-4 text-sm font-bold text-ink-soft">
+        <button
+          type="button"
+          onClick={() => setChoice(undefined)}
+          className="h-10 rounded-full px-4 text-sm font-bold text-ink-soft"
+        >
           Batal
         </button>
       </div>

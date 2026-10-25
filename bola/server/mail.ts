@@ -66,17 +66,17 @@ export function sendStaffInvite(to: string, academyName: string, inviterName: st
   );
 }
 
-export function sendGuardianInvite(to: string, academyName: string, playerName: string) {
+export function sendPlayerInvite(to: string, academyName: string, playerName: string) {
   const url = `${env().APP_URL}/undangan`;
   return send(
     to,
-    `Pantau latihan ${playerName} di ${academyName}`,
+    `Akun pemain ${playerName} di ${academyName}`,
     layout(
-      `Portal orang tua ${escapeHtml(academyName)}`,
-      `${escapeHtml(academyName)} mengundang Anda sebagai orang tua/wali ${escapeHtml(playerName)}. Di portal ini Anda bisa melihat jadwal latihan, mengirim izin atau sakit, melihat kehadiran, dan status iuran. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Undangan berlaku 14 hari.`,
+      `Akun pemain untuk ${escapeHtml(playerName)}`,
+      `${escapeHtml(academyName)} membuatkan akun pemain untuk ${escapeHtml(playerName)}. Dari akun ini bisa dilihat jadwal latihan, mengirim izin atau sakit, kehadiran, dan status iuran. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Bila pemain di bawah 18 tahun, undangan diterima oleh atau dengan izin orang tua/wali. Undangan berlaku 14 hari.`,
       { label: "Buka undangan", url },
     ),
-    `${academyName} mengundang Anda sebagai wali ${playerName}. Masuk atau daftar dengan email ${to}: ${url}`,
+    `${academyName} membuatkan akun pemain untuk ${playerName}. Masuk atau daftar dengan email ${to}: ${url}`,
   );
 }
 

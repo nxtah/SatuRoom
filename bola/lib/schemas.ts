@@ -166,9 +166,12 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 export const NoticeInput = z.object({
-  playerId: z.string().uuid(),
   sessionId: z.string().uuid(),
   status: z.enum(["excused", "sick"]),
   note: z.string().trim().max(200, "Maksimal 200 karakter.").optional(),
 });
-export const GuardianInviteInput = z.object({ email });
+export const PlayerInviteInput = z.object({ email });
+export const AcceptPlayerInvitationInput = z.object({
+  invitationId: z.string().uuid(),
+  consentBy: z.string().trim().min(2, "Isi nama yang memberi persetujuan.").max(120),
+});

@@ -14,7 +14,7 @@ import { saveAttendance } from "@/server/attendance";
 import { loadAcademyContext } from "@/server/context";
 import { db } from "@/server/db";
 import { generateInvoices, monthSummary, setTeamFee, updateInvoice } from "@/server/fees";
-import { submitNotice } from "@/server/guardian";
+import { submitNotice } from "@/server/player-account";
 import { createPlayer } from "@/server/players";
 import type { Role } from "@/server/permissions";
 import { addDays, createSchedule, listSessions } from "@/server/schedule";
@@ -138,24 +138,22 @@ async function main() {
     if (i % 3 !== 0) await updateInvoice(ctx, inv.id, { action: "pay", method: i % 2 ? "transfer" : "cash" });
   }
 
-  // Akun orang tua dengan dua anak (kakak-adik di tim berbeda) dan satu izin untuk latihan berikutnya.
-  const parent = await account("Sari Pratama", "wali");
-  const kids = [(await roster(teamIds[0]!))[0]!.id, (await roster(teamIds[1]!))[1]!.id];
-  await withContext(db(), { userId: ctx.userId, businessId: academyId }, async (tx) => {
-    for (const kid of kids) {
-      await tx.execute(sql`INSERT INTO bola.guardians (business_id, player_id, user_id)
-                           VALUES (${academyId}::uuid, ${kid}::uuid, ${parent.userId}::uuid)`);
-    }
-  });
+  // Akun pemain (satu pemain satu akun) dengan persetujuan orang tua, plus satu izin untuk latihan berikutnya.
+  const playerUser = await account("Oki Santoso", "pemain");
+  const kid = (await roster(teamIds[1]!))[1]!.id;
+  await withContext(db(), { userId: ctx.userId, businessId: academyId }, (tx) =>
+    tx.execute(sql`INSERT INTO bola.player_accounts (business_id, player_id, user_id, consent_at, consent_by)
+                   VALUES (${academyId}::uuid, ${kid}::uuid, ${playerUser.userId}::uuid, now(), 'Ibu Sari (demo)')`),
+  );
   const next = (await listSessions(ctx, { from: today, to: addDays(today, 7) })).find(
     (s) => s.teamId === teamIds[1] && s.status === "scheduled" && s.date > today,
   );
-  if (next) await submitNotice(parent, { playerId: kids[1]!, sessionId: next.id, status: "excused", note: "Acara keluarga" });
+  if (next) await submitNotice(playerUser, { sessionId: next.id, status: "excused", note: "Acara keluarga" });
 
   const [count] = await db().select({ n: sql<number>`count(*)::int` }).from(users).where(eq(users.email, owner.email));
   console.log(`Data demo siap (${count?.n} pemilik, ${n} pemain, ${past.length} sesi berabsen).`);
   console.log(`Password semua akun: ${PASSWORD}`);
-  for (const l of ["pemilik", ...staff.map((s) => s.local), "wali"]) console.log(`  ${l}@${DOMAIN}`);
+  for (const l of ["pemilik", ...staff.map((s) => s.local), "pemain"]) console.log(`  ${l}@${DOMAIN}`);
   process.exit(0);
 }
 

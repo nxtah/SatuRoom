@@ -40,7 +40,7 @@ export default async function TimPage() {
         {teams.map((t, i) => {
           const range = ageRangeLabel(t.ageMin, t.ageMax);
           return (
-            <li key={t.id} className="rise" style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}>
+            <li key={t.id} className="rise min-w-0" style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}>
               <Link
                 href={`/tim/${t.id}`}
                 className="group flex items-center gap-4 rounded-[1.75rem] bg-chalk p-5 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(13_59_46/0.5)]"
@@ -50,7 +50,7 @@ export default async function TimPage() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-lg font-extrabold">{t.name}</span>
-                  <span className="block truncate text-sm text-ink-soft">
+                  <span className="line-clamp-2 block text-sm text-ink-soft">
                     {[range, `${t.playerCount} pemain`, t.coaches.length ? `Pelatih: ${t.coaches.join(", ")}` : "Belum ada pelatih"]
                       .filter(Boolean)
                       .join(", ")}

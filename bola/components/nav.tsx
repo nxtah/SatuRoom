@@ -23,7 +23,8 @@ export function SideNav({ allowed }: { allowed: string[] }) {
               <Link
                 href={item.href}
                 aria-current={on ? "page" : undefined}
-                className={`flex h-12 items-center gap-3 rounded-2xl px-4 font-bold transition ${
+                title={item.label}
+                className={`flex h-16 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-bold transition lg:h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:text-base ${
                   on ? "bg-pitch text-white shadow-[0_12px_24px_-16px_rgb(13_59_46/0.8)]" : "text-ink-soft hover:bg-chalk hover:text-ink"
                 }`}
               >
@@ -45,7 +46,7 @@ export function BottomNav({ allowed }: { allowed: string[] }) {
   return (
     <nav
       aria-label="Menu utama"
-      className="fixed inset-x-3 bottom-3 z-30 rounded-[1.75rem] border border-line bg-chalk/95 p-1.5 shadow-[0_20px_40px_-20px_rgb(13_59_46/0.45)] backdrop-blur lg:hidden"
+      className="fixed inset-x-3 bottom-3 z-30 rounded-[1.75rem] border border-line bg-chalk/95 p-1.5 shadow-[0_20px_40px_-20px_rgb(13_59_46/0.45)] backdrop-blur md:hidden"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((item) => {

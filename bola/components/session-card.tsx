@@ -1,9 +1,21 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { dayOfMonth, shortDay } from "@/lib/dates";
 import type { SessionRow } from "@/server/schedule";
 
 /** Kartu sesi di kalender dan Beranda: jam, tim, dan status absensinya. */
-export function SessionCard({ s, today, action }: { s: SessionRow; today: string; action?: boolean }) {
+export function SessionCard({
+  s,
+  today,
+  action,
+  withDate,
+}: {
+  s: SessionRow;
+  today: string;
+  action?: boolean;
+  /** Untuk daftar lintas hari (halaman tim/pemain): tanggal di kiri, jam di baris kedua. */
+  withDate?: boolean;
+}) {
   const cancelled = s.status === "cancelled";
   const future = s.date > today;
   const recorded = s.recordedCount > 0;
@@ -18,20 +30,28 @@ export function SessionCard({ s, today, action }: { s: SessionRow; today: string
   return (
     <Link
       href={`/jadwal/${s.id}`}
-      className={`group flex items-center gap-4 rounded-[1.5rem] bg-chalk p-4 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(13_59_46/0.5)] ${
+      className={`group flex items-center gap-4 rounded-[1.5rem] p-4 transition ${withDate ? "bg-mist/70" : "bg-chalk"} hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(13_59_46/0.5)] ${
         cancelled ? "opacity-60" : ""
       }`}
     >
-      <span className={`w-14 shrink-0 text-center ${cancelled ? "line-through" : ""}`}>
-        <span className="block text-lg leading-tight font-extrabold">{s.startTime}</span>
-        <span className="block text-xs font-semibold text-ink-soft">{s.endTime}</span>
-      </span>
+      {withDate ? (
+        <span className={`w-12 shrink-0 text-center ${cancelled ? "line-through" : ""}`}>
+          <span className="block text-xs font-bold text-ink-soft">{shortDay(s.date)}</span>
+          <span className="block text-2xl leading-tight font-extrabold">{dayOfMonth(s.date)}</span>
+        </span>
+      ) : (
+        <span className={`w-14 shrink-0 text-center ${cancelled ? "line-through" : ""}`}>
+          <span className="block text-lg leading-tight font-extrabold">{s.startTime}</span>
+          <span className="block text-xs font-semibold text-ink-soft">{s.endTime}</span>
+        </span>
+      )}
       <span aria-hidden className={`h-10 w-1 shrink-0 rounded-full ${s.kind === "match" ? "bg-ember" : "bg-turf"}`} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-extrabold">
           {s.kind === "match" ? (s.title ?? "Pertandingan") : s.teamName}
         </span>
         <span className="block truncate text-sm">
+          {withDate ? <span className="text-ink-soft">{s.startTime}–{s.endTime}, </span> : null}
           {s.kind === "match" ? <span className="text-ink-soft">{s.teamName}, </span> : s.title ? <span className="text-ink-soft">{s.title}, </span> : null}
           <span className={`font-bold ${status.tone}`}>{status.text}</span>
         </span>

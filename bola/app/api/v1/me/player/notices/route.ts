@@ -1,9 +1,9 @@
 import { NoticeInput } from "@/lib/schemas";
 import { requireSession } from "@/server/context";
-import { cancelNotice, submitNotice } from "@/server/guardian";
 import { body, noContent, route } from "@/server/http";
+import { cancelNotice, submitNotice } from "@/server/player-account";
 
-/** Wali mengirim izin/sakit untuk satu sesi. */
+/** Pemain mengirim izin/sakit untuk satu sesi. */
 export const PUT = route(async (req) => {
   const session = await requireSession();
   await submitNotice(session, await body(req, NoticeInput));
@@ -12,7 +12,7 @@ export const PUT = route(async (req) => {
 
 export const DELETE = route(async (req) => {
   const session = await requireSession();
-  const { playerId, sessionId } = await body(req, NoticeInput.pick({ playerId: true, sessionId: true }));
-  await cancelNotice(session, playerId, sessionId);
+  const { sessionId } = await body(req, NoticeInput.pick({ sessionId: true }));
+  await cancelNotice(session, sessionId);
   return noContent();
 });

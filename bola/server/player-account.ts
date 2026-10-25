@@ -8,38 +8,38 @@ import type { AttendanceStatus, NoticeInput } from "@/lib/schemas";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
 import { AppError, notFound } from "./errors";
-import { sendGuardianInvite } from "./mail";
+import { sendPlayerInvite } from "./mail";
 import { visiblePlayerIds } from "./players";
 import { addDays, academyToday } from "./schedule";
 
-interface ChildLink {
+interface PlayerLink {
   businessId: string;
   playerId: string;
 }
 
-/** Anak yang terhubung ke pengguna ini. Sumber kebenaran ada di database (fungsi SECURITY DEFINER). */
-async function childLinks(userId: string): Promise<ChildLink[]> {
-  const rows = (await withContext(db(), { userId }, (tx) =>
-    tx.execute(sql`SELECT business_id AS "businessId", player_id AS "playerId" FROM bola.my_children()`),
-  )) as unknown as ChildLink[];
-  return rows;
+/** Pemain milik akun ini (satu akun satu pemain). Sumber kebenaran: fungsi SECURITY DEFINER. */
+async function playerLink(userId: string): Promise<PlayerLink | null> {
+  const [row] = (await withContext(db(), { userId }, (tx) =>
+    tx.execute(sql`SELECT business_id AS "businessId", player_id AS "playerId" FROM bola.my_player()`),
+  )) as unknown as PlayerLink[];
+  return row ?? null;
 }
 
-export async function hasChildren(userId: string): Promise<boolean> {
-  return (await childLinks(userId)).length > 0;
+export async function hasPlayerAccount(userId: string): Promise<boolean> {
+  return (await playerLink(userId)) !== null;
 }
 
-async function linkFor(session: SessionInfo, playerId: string): Promise<ChildLink> {
-  const link = (await childLinks(session.userId)).find((l) => l.playerId === playerId);
+async function requireLink(session: SessionInfo): Promise<PlayerLink> {
+  const link = await playerLink(session.userId);
   if (!link) throw notFound("Pemain");
   return link;
 }
 
-/** Transaksi di akademi anak, atas nama wali. Query di dalamnya wajib dibatasi ke `link.playerId`. */
-const asGuardian = <T>(session: SessionInfo, link: ChildLink, work: (tx: Tx) => Promise<T>) =>
+/** Transaksi di akademi pemain, atas nama akun pemain. Query di dalamnya wajib dibatasi ke `link.playerId`. */
+const asPlayer = <T>(session: SessionInfo, link: PlayerLink, work: (tx: Tx) => Promise<T>) =>
   withContext(db(), { userId: session.userId, businessId: link.businessId }, work);
 
-export interface ChildSession {
+export interface PlayerSession {
   sessionId: string;
   date: string;
   startTime: string;
@@ -54,7 +54,7 @@ export interface ChildSession {
   canNotify: boolean;
 }
 
-export interface ChildView {
+export interface PlayerHome {
   playerId: string;
   academyName: string;
   fullName: string;
@@ -62,7 +62,7 @@ export interface ChildView {
   shirtNumber: number | null;
   position: string | null;
   teamNames: string;
-  upcoming: ChildSession[];
+  upcoming: PlayerSession[];
   attendance: {
     rate: number | null;
     counts: Record<AttendanceStatus, number>;
@@ -72,13 +72,13 @@ export interface ChildView {
   outstanding: number;
 }
 
-/** Semua yang dilihat wali di portal, per anak. */
-export async function guardianHome(session: SessionInfo): Promise<ChildView[]> {
-  const links = await childLinks(session.userId);
-  return Promise.all(links.map((link) => asGuardian(session, link, (tx) => childView(tx, link.playerId))));
+/** Semua yang dilihat pemain di portalnya; null bila akun ini bukan akun pemain. */
+export async function playerHome(session: SessionInfo): Promise<PlayerHome | null> {
+  const link = await playerLink(session.userId);
+  return link ? asPlayer(session, link, (tx) => homeOf(tx, link.playerId)) : null;
 }
 
-async function childView(tx: Tx, playerId: string): Promise<ChildView> {
+async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
   const today = await academyToday(tx);
   // Sesi dari jadwal rutin dibuat saat dibutuhkan, sama seperti di halaman jadwal staf.
   await tx.execute(sql`SELECT bola.generate_sessions(${today}::date, ${addDays(today, 14)}::date)`);
@@ -90,7 +90,7 @@ async function childView(tx: Tx, playerId: string): Promise<ChildView> {
                       JOIN bola.teams t ON t.id = tp.team_id AND t.archived_at IS NULL
                       WHERE tp.player_id = p.id), '') AS "teamNames"
     FROM bola.players p JOIN core.businesses b ON b.id = p.business_id
-    WHERE p.id = ${playerId}::uuid`)) as unknown as Omit<ChildView, "playerId" | "upcoming" | "attendance" | "invoices" | "outstanding">[];
+    WHERE p.id = ${playerId}::uuid`)) as unknown as Omit<PlayerHome, "playerId" | "upcoming" | "attendance" | "invoices" | "outstanding">[];
   if (!player) throw notFound("Pemain");
 
   const upcoming = (await tx.execute(sql`
@@ -110,7 +110,7 @@ async function childView(tx: Tx, playerId: string): Promise<ChildView> {
     WHERE s.ends_at > now()
       AND s.starts_at < (${addDays(today, 15)}::date)::timestamp AT TIME ZONE b.timezone
     ORDER BY s.starts_at
-    LIMIT 8`)) as unknown as (Omit<ChildSession, "notice"> & {
+    LIMIT 8`)) as unknown as (Omit<PlayerSession, "notice"> & {
     noticeStatus: "excused" | "sick" | null;
     noticeNote: string | null;
   })[];
@@ -121,7 +121,7 @@ async function childView(tx: Tx, playerId: string): Promise<ChildView> {
     JOIN bola.sessions s ON s.id = a.session_id
     JOIN core.businesses b ON b.id = s.business_id
     WHERE a.player_id = ${playerId}::uuid AND s.starts_at > now() - interval '60 days'
-    ORDER BY s.starts_at DESC`)) as unknown as ChildView["attendance"]["recent"];
+    ORDER BY s.starts_at DESC`)) as unknown as PlayerHome["attendance"]["recent"];
 
   const invoices = (await tx.execute(sql`
     SELECT i.id, to_char(i.period, 'YYYY-MM') AS period, i.amount, i.status,
@@ -129,7 +129,7 @@ async function childView(tx: Tx, playerId: string): Promise<ChildView> {
     FROM bola.invoices i JOIN core.businesses b ON b.id = i.business_id
     WHERE i.player_id = ${playerId}::uuid
     ORDER BY i.period DESC
-    LIMIT 6`)) as unknown as ChildView["invoices"];
+    LIMIT 6`)) as unknown as PlayerHome["invoices"];
 
   const counts = { present: 0, excused: 0, sick: 0, absent: 0 } as Record<AttendanceStatus, number>;
   for (const r of recent) counts[r.status]++;
@@ -150,14 +150,14 @@ async function childView(tx: Tx, playerId: string): Promise<ChildView> {
   };
 }
 
-/** Wali memberi tahu anak izin/sakit untuk satu sesi yang belum mulai. */
+/** Pemain memberi tahu izin/sakit untuk satu sesi yang belum mulai. */
 export async function submitNotice(session: SessionInfo, input: z.infer<typeof NoticeInput>): Promise<void> {
-  const link = await linkFor(session, input.playerId);
-  await asGuardian(session, link, async (tx) => {
-    await assertNotifiable(tx, input.sessionId, input.playerId);
+  const link = await requireLink(session);
+  await asPlayer(session, link, async (tx) => {
+    await assertNotifiable(tx, input.sessionId, link.playerId);
     await tx.execute(sql`
       INSERT INTO bola.absence_notices (business_id, session_id, player_id, status, note, created_by)
-      VALUES (${link.businessId}::uuid, ${input.sessionId}::uuid, ${input.playerId}::uuid,
+      VALUES (${link.businessId}::uuid, ${input.sessionId}::uuid, ${link.playerId}::uuid,
               ${input.status}, ${input.note || null}, ${session.userId}::uuid)
       ON CONFLICT (session_id, player_id)
       DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note, created_by = EXCLUDED.created_by, created_at = now()`);
@@ -167,17 +167,17 @@ export async function submitNotice(session: SessionInfo, input: z.infer<typeof N
       action: "absence_notice.submitted",
       targetType: "session",
       targetId: input.sessionId,
-      meta: { playerId: input.playerId, status: input.status },
+      meta: { playerId: link.playerId, status: input.status },
     });
   });
 }
 
-export async function cancelNotice(session: SessionInfo, playerId: string, sessionId: string): Promise<void> {
-  const link = await linkFor(session, playerId);
-  await asGuardian(session, link, async (tx) => {
-    await assertNotifiable(tx, sessionId, playerId);
+export async function cancelNotice(session: SessionInfo, sessionId: string): Promise<void> {
+  const link = await requireLink(session);
+  await asPlayer(session, link, async (tx) => {
+    await assertNotifiable(tx, sessionId, link.playerId);
     await tx.execute(sql`
-      DELETE FROM bola.absence_notices WHERE session_id = ${sessionId}::uuid AND player_id = ${playerId}::uuid`);
+      DELETE FROM bola.absence_notices WHERE session_id = ${sessionId}::uuid AND player_id = ${link.playerId}::uuid`);
   });
 }
 
@@ -193,75 +193,81 @@ async function assertNotifiable(tx: Tx, sessionId: string, playerId: string) {
   if (!s.future || s.recorded) throw new AppError(409, "closed", "Latihan sudah mulai. Hubungi pelatih langsung.");
 }
 
-export interface MyGuardianInvitation {
+export interface MyPlayerInvitation {
   id: string;
   academyName: string;
   playerName: string;
+  birthDate: string;
   invitedByName: string | null;
 }
 
-export async function myGuardianInvitations(userId: string): Promise<MyGuardianInvitation[]> {
+export async function myPlayerInvitations(userId: string): Promise<MyPlayerInvitation[]> {
   return (await withContext(db(), { userId }, (tx) =>
     tx.execute(sql`
-      SELECT id, academy_name AS "academyName", player_name AS "playerName", invited_by_name AS "invitedByName"
-      FROM bola.my_guardian_invitations()`),
-  )) as unknown as MyGuardianInvitation[];
+      SELECT id, academy_name AS "academyName", player_name AS "playerName",
+             to_char(birth_date, 'YYYY-MM-DD') AS "birthDate", invited_by_name AS "invitedByName"
+      FROM bola.my_player_invitations()`),
+  )) as unknown as MyPlayerInvitation[];
 }
 
-export async function acceptGuardianInvitation(session: SessionInfo, invitationId: string): Promise<string> {
+/** `consentBy`: nama orang tua/wali yang menyetujui, atau nama pemain sendiri bila sudah dewasa. */
+export async function acceptPlayerInvitation(session: SessionInfo, invitationId: string, consentBy: string): Promise<string> {
+  if (await hasPlayerAccount(session.userId)) {
+    throw new AppError(409, "has_player", "Akun ini sudah terhubung ke pemain lain. Satu pemain memakai satu akun.");
+  }
   const [row] = (await withContext(db(), { userId: session.userId }, (tx) =>
-    tx.execute(sql`SELECT bola.accept_guardian_invitation(${invitationId}::uuid) AS id`),
+    tx.execute(sql`SELECT bola.accept_player_invitation(${invitationId}::uuid, ${consentBy}) AS id`),
   )) as unknown as { id: string | null }[];
   if (!row?.id) throw notFound("Undangan");
   return row.id;
 }
 
-/* ---------- Sisi staf: mengelola akun wali seorang pemain ---------- */
+/* ---------- Sisi staf: akun pemain untuk satu pemain ---------- */
 
-export interface GuardianAccess {
-  linked: { userId: string; name: string; email: string }[];
-  pending: { id: string; email: string; expiresAt: string }[];
+export interface PlayerAccountInfo {
+  account: { name: string; email: string; since: string } | null;
+  pending: { id: string; email: string; expiresAt: string } | null;
 }
 
-async function assertGuardianAdmin(ctx: AcademyContext, tx: Tx, playerId: string) {
-  requirePermission(ctx, "guardians.read");
+async function assertAccountAdmin(ctx: AcademyContext, tx: Tx, playerId: string) {
+  requirePermission(ctx, "players.manage");
   const scope = await visiblePlayerIds(ctx, tx);
   if (scope && !scope.includes(playerId)) throw notFound("Pemain");
 }
 
-export function guardianAccess(ctx: AcademyContext, playerId: string): Promise<GuardianAccess> {
+export function playerAccount(ctx: AcademyContext, playerId: string): Promise<PlayerAccountInfo> {
   return inAcademy(ctx, async (tx) => {
-    await assertGuardianAdmin(ctx, tx, playerId);
-    const linked = (await tx.execute(sql`
-      SELECT u.id AS "userId", u.name, u.email FROM bola.guardians g JOIN core.users u ON u.id = g.user_id
-      WHERE g.player_id = ${playerId}::uuid ORDER BY g.created_at`)) as unknown as GuardianAccess["linked"];
-    const pending = (await tx.execute(sql`
-      SELECT id, email, to_char(expires_at, 'YYYY-MM-DD') AS "expiresAt" FROM bola.guardian_invitations
-      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()
-      ORDER BY created_at`)) as unknown as GuardianAccess["pending"];
-    return { linked, pending };
+    await assertAccountAdmin(ctx, tx, playerId);
+    const [account] = (await tx.execute(sql`
+      SELECT u.name, u.email, to_char(a.created_at, 'YYYY-MM-DD') AS since
+      FROM bola.player_accounts a JOIN core.users u ON u.id = a.user_id
+      WHERE a.player_id = ${playerId}::uuid`)) as unknown as NonNullable<PlayerAccountInfo["account"]>[];
+    const [pending] = (await tx.execute(sql`
+      SELECT id, email, to_char(expires_at, 'YYYY-MM-DD') AS "expiresAt" FROM bola.player_invitations
+      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()`)) as unknown as NonNullable<
+      PlayerAccountInfo["pending"]
+    >[];
+    return { account: account ?? null, pending: pending ?? null };
   });
 }
 
-export async function inviteGuardian(ctx: AcademyContext, playerId: string, email: string): Promise<void> {
-  requirePermission(ctx, "players.manage");
+/** Mengundang email untuk menjadi akun pemain ini. Undangan lama yang belum diterima diganti. */
+export async function invitePlayerAccount(ctx: AcademyContext, playerId: string, email: string): Promise<void> {
   const { academyName, playerName } = await inAcademy(ctx, async (tx) => {
-    await assertGuardianAdmin(ctx, tx, playerId);
-    const [already] = (await tx.execute(sql`
-      SELECT 1 FROM bola.guardians g JOIN core.users u ON u.id = g.user_id
-      WHERE g.player_id = ${playerId}::uuid AND u.email = ${email}::citext`)) as unknown as unknown[];
-    if (already) throw new AppError(409, "already_linked", "Email ini sudah terhubung sebagai wali pemain ini.");
-    // Undangan lama ke email yang sama diganti agar masa berlakunya mulai lagi.
+    await assertAccountAdmin(ctx, tx, playerId);
+    const [linked] = (await tx.execute(sql`
+      SELECT 1 FROM bola.player_accounts WHERE player_id = ${playerId}::uuid`)) as unknown as unknown[];
+    if (linked) throw new AppError(409, "has_account", "Pemain ini sudah punya akun. Putuskan dulu bila ingin mengganti.");
     await tx.execute(sql`
-      UPDATE bola.guardian_invitations SET revoked_at = now()
-      WHERE player_id = ${playerId}::uuid AND email = ${email}::citext AND accepted_at IS NULL AND revoked_at IS NULL`);
+      UPDATE bola.player_invitations SET revoked_at = now()
+      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL`);
     await tx.execute(sql`
-      INSERT INTO bola.guardian_invitations (business_id, player_id, email, invited_by)
+      INSERT INTO bola.player_invitations (business_id, player_id, email, invited_by)
       VALUES (${ctx.businessId}::uuid, ${playerId}::uuid, ${email}, ${ctx.userId}::uuid)`);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,
-      action: "guardian.invited",
+      action: "player_account.invited",
       targetType: "player",
       targetId: playerId,
     });
@@ -272,35 +278,32 @@ export async function inviteGuardian(ctx: AcademyContext, playerId: string, emai
     return row!;
   });
   try {
-    await sendGuardianInvite(email, academyName, playerName);
+    await sendPlayerInvite(email, academyName, playerName);
   } catch (error) {
-    // Undangan tetap sah; wali bisa membukanya dari /undangan setelah masuk.
-    console.error("gagal mengirim email undangan wali", error);
+    // Undangan tetap sah; bisa dibuka dari /undangan setelah masuk.
+    console.error("gagal mengirim email undangan akun pemain", error);
   }
 }
 
-export async function revokeGuardianInvitation(ctx: AcademyContext, playerId: string, invitationId: string): Promise<void> {
-  requirePermission(ctx, "players.manage");
+export async function revokePlayerInvitation(ctx: AcademyContext, playerId: string): Promise<void> {
   await inAcademy(ctx, async (tx) => {
-    await assertGuardianAdmin(ctx, tx, playerId);
+    await assertAccountAdmin(ctx, tx, playerId);
     await tx.execute(sql`
-      UPDATE bola.guardian_invitations SET revoked_at = now()
-      WHERE id = ${invitationId}::uuid AND player_id = ${playerId}::uuid AND accepted_at IS NULL`);
+      UPDATE bola.player_invitations SET revoked_at = now()
+      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL`);
   });
 }
 
-export async function unlinkGuardian(ctx: AcademyContext, playerId: string, userId: string): Promise<void> {
-  requirePermission(ctx, "players.manage");
+export async function unlinkPlayerAccount(ctx: AcademyContext, playerId: string): Promise<void> {
   await inAcademy(ctx, async (tx) => {
-    await assertGuardianAdmin(ctx, tx, playerId);
-    await tx.execute(sql`DELETE FROM bola.guardians WHERE player_id = ${playerId}::uuid AND user_id = ${userId}::uuid`);
+    await assertAccountAdmin(ctx, tx, playerId);
+    await tx.execute(sql`DELETE FROM bola.player_accounts WHERE player_id = ${playerId}::uuid`);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,
-      action: "guardian.unlinked",
+      action: "player_account.unlinked",
       targetType: "player",
       targetId: playerId,
-      meta: { userId },
     });
   });
 }

@@ -17,7 +17,7 @@ export interface RosterEntry {
   fullName: string;
   shirtNumber: number | null;
   status: AttendanceStatus | null;
-  /** Izin/sakit yang dikirim orang tua lewat portal sebelum latihan. */
+  /** Izin/sakit yang dikirim pemain lewat akunnya sebelum latihan. */
   notice: { status: "excused" | "sick"; note: string | null } | null;
 }
 
