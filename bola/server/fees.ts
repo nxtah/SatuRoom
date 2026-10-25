@@ -197,9 +197,11 @@ export async function updateInvoice(
 }
 
 /** Ringkasan untuk Beranda: tunggakan bulan ini. */
-export async function billingHome(ctx: AcademyContext): Promise<{ month: string; outstanding: number; unpaidCount: number } | null> {
+export async function billingHome(
+  ctx: AcademyContext,
+): Promise<{ month: string; outstanding: number; unpaidCount: number; billed: number; collected: number } | null> {
   if (!ctx.can("billing.read")) return null;
   const month = (await inAcademy(ctx, academyToday)).slice(0, 7);
   const s = await monthSummary(ctx, month);
-  return { month, outstanding: s.outstanding, unpaidCount: s.unpaidCount };
+  return { month, outstanding: s.outstanding, unpaidCount: s.unpaidCount, billed: s.billed, collected: s.collected };
 }

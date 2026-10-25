@@ -1,8 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { setActiveBusiness } from "@saturoom/core/auth";
 import { redirect } from "next/navigation";
 import { listMyAcademies } from "./academy";
-import { academyContext, currentSession, type AcademyContext } from "./context";
+import { academyContext, currentSession, loadAcademyContext, type AcademyContext } from "./context";
 import { db } from "./db";
 import { myInvitations } from "./staff";
 import { AppError } from "./errors";
@@ -12,7 +13,7 @@ import { AppError } from "./errors";
  * Belum login: ke /masuk. Belum punya akademi: ke /mulai. Punya beberapa tapi belum memilih:
  * ke /pilih-akademi. Tepat satu: langsung dipilih.
  */
-export async function requireAcademyPage(): Promise<AcademyContext> {
+export const requireAcademyPage = cache(async (): Promise<AcademyContext> => {
   const session = await currentSession();
   if (!session) redirect("/masuk");
   try {
@@ -23,6 +24,8 @@ export async function requireAcademyPage(): Promise<AcademyContext> {
   const mine = await listMyAcademies(session.userId);
   if (mine.length === 0) redirect((await myInvitations(session.userId)).length ? "/undangan" : "/mulai");
   if (mine.length > 1) redirect("/pilih-akademi");
+  // Tepat satu akademi: pilih langsung dan lanjut. Tanpa redirect ke halaman yang sama,
+  // yang membuat router Next.js memuat ulang tanpa henti.
   await setActiveBusiness(db(), session.sessionId, mine[0]!.id);
-  redirect("/");
-}
+  return loadAcademyContext({ ...session, activeBusinessId: mine[0]!.id });
+});

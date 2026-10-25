@@ -10,18 +10,21 @@ import { onboardingSteps } from "@/server/onboarding";
 import { requireAcademyPage } from "@/server/routing";
 import { todaySessions } from "@/server/schedule";
 import { billingHome } from "@/server/fees";
+import { homeStats } from "@/server/stats";
+import { AttendanceWidgets, StatTiles } from "@/components/home-stats";
 import { monthLabel, rupiah } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Beranda" };
 
 export default async function BerandaPage({ searchParams }: { searchParams: Promise<{ selamat?: string; siap?: string }> }) {
   const ctx = await requireAcademyPage();
-  const [academy, steps, day, attention, billing] = await Promise.all([
+  const [academy, steps, day, attention, billing, stats] = await Promise.all([
     getAcademy(ctx),
     onboardingSteps(ctx),
     todaySessions(ctx),
     needsAttention(ctx),
     billingHome(ctx),
+    homeStats(ctx),
   ]);
   const sp = await searchParams;
   const justCreated = sp.selamat === "1";
@@ -50,6 +53,8 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           <Ruru pose={celebrate ? "cheer" : "wave"} costume="academy" />
         </div>
       </section>
+
+      {stats.activePlayers > 0 ? <StatTiles stats={stats} billing={billing} /> : null}
 
       {canSetUp && remaining > 0 ? (
         <section className="rise rounded-[2rem] bg-chalk p-6 sm:p-8" aria-labelledby="persiapan">
@@ -150,6 +155,8 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           </ul>
         </section>
       ) : null}
+
+      <AttendanceWidgets stats={stats} />
     </div>
   );
 }
