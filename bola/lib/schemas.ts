@@ -28,10 +28,11 @@ export const AcademyInput = z.object({
   city: z.string().trim().min(2, "Isi kota akademi.").max(80, "Nama kota terlalu panjang."),
 });
 
-const optionalAge = z
-  .union([z.coerce.number().int().min(3, "Umur minimal 3.").max(25, "Umur maksimal 25."), z.literal("")])
-  .optional()
-  .transform((v) => (v === "" || v === undefined ? null : v));
+/** Umur opsional: isian kosong berarti tidak dibatasi. */
+const optionalAge = z.preprocess(
+  (v) => (v === "" || v === undefined || v === null ? null : v),
+  z.coerce.number().int().min(3, "Umur minimal 3.").max(25, "Umur maksimal 25.").nullable(),
+);
 
 export const TeamInput = z
   .object({
@@ -131,3 +132,14 @@ export const AttendanceInput = z.object({
     .min(1, "Tandai minimal satu pemain.")
     .max(300),
 });
+
+const staffRoles = z
+  .array(z.enum(["owner", "admin", "head_coach", "coach"]))
+  .min(1, "Pilih minimal satu peran.")
+  .max(4);
+const teamIdList = z.array(z.string().uuid()).max(50).default([]);
+
+export const InviteInput = z.object({ email, roles: staffRoles, teamIds: teamIdList });
+export const StaffUpdateInput = z.object({ roles: staffRoles, teamIds: teamIdList });
+export const StaffStatusInput = z.object({ status: z.enum(["active", "suspended"]) });
+export const InvitationIdInput = z.object({ invitationId: z.string().uuid() });

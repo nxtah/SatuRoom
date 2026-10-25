@@ -1,20 +1,21 @@
 "use client";
 
-import { CalendarDays, House, Settings, Shirt, UsersRound } from "lucide-react";
+import { CalendarDays, House, IdCard, Settings, Shirt, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/nav";
 
-const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, settings: Settings } as const;
+const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, staff: IdCard, settings: Settings } as const;
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
-export function SideNav() {
+/** `allowed`: href menu yang boleh tampil untuk peran pengguna (dihitung di server). */
+export function SideNav({ allowed }: { allowed: string[] }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Menu utama">
       <ul className="grid gap-1">
-        {NAV.map((item) => {
+        {NAV.filter((i) => allowed.includes(i.href)).map((item) => {
           const Icon = ICONS[item.icon];
           const on = isActive(pathname, item.href);
           return (
@@ -38,17 +39,18 @@ export function SideNav() {
 }
 
 /** Tab bawah di HP: menu utama dalam jangkauan jempol. */
-export function BottomNav() {
+export function BottomNav({ allowed }: { allowed: string[] }) {
   const pathname = usePathname();
+  const items = NAV.filter((i) => i.mobile && allowed.includes(i.href));
   return (
     <nav
       aria-label="Menu utama"
       className="fixed inset-x-3 bottom-3 z-30 rounded-[1.75rem] border border-line bg-chalk/95 p-1.5 shadow-[0_20px_40px_-20px_rgb(13_59_46/0.45)] backdrop-blur lg:hidden"
     >
-      <ul className="grid" style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}>
-        {NAV.map((item) => {
+      <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+        {items.map((item) => {
           const Icon = ICONS[item.icon];
-          const on = isActive(pathname, item.href);
+          const on = isActive(pathname, item.href) || (item.href === "/pengaturan" && pathname.startsWith("/staf"));
           return (
             <li key={item.href}>
               <Link

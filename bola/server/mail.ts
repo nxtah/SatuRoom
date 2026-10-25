@@ -52,5 +52,19 @@ export function sendResetPassword(to: string, token: string) {
   );
 }
 
+export function sendStaffInvite(to: string, academyName: string, inviterName: string, roleLabels: string) {
+  const url = `${env().APP_URL}/undangan`;
+  return send(
+    to,
+    `Undangan bergabung ke ${academyName}`,
+    layout(
+      `Anda diundang ke ${escapeHtml(academyName)}`,
+      `${escapeHtml(inviterName)} mengundang Anda sebagai ${escapeHtml(roleLabels)} di SatuRoom Bola. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Undangan berlaku 14 hari.`,
+      { label: "Lihat undangan", url },
+    ),
+    `${inviterName} mengundang Anda ke ${academyName} sebagai ${roleLabels}. Masuk atau daftar dengan email ${to}: ${url}`,
+  );
+}
+
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

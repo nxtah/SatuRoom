@@ -22,10 +22,11 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
   ]);
   const sp = await searchParams;
   const justCreated = sp.selamat === "1";
+  const justJoined = sp.selamat === "gabung";
   const remaining = steps.filter((s) => !s.done).length;
   // Langkah persiapan yang butuh izin kelola hanya ditampilkan ke yang berhak.
   const canSetUp = ctx.can("teams.manage") && ctx.can("players.manage");
-  const celebrate = justCreated || (sp.siap === "1" && remaining === 0);
+  const celebrate = justCreated || justJoined || (sp.siap === "1" && remaining === 0);
   const firstName = ctx.session.name.split(" ")[0];
 
   return (
@@ -36,7 +37,7 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           <path d="M0 200 H400" stroke="currentColor" strokeWidth="10" />
         </svg>
         <div className="relative min-w-0 flex-1 pb-8 sm:pb-10">
-          <p className="font-semibold text-white/70">{justCreated ? "Akademi berhasil dibuat" : celebrate ? "Persiapan selesai" : `Halo, ${firstName}`}</p>
+          <p className="font-semibold text-white/70">{justCreated ? "Akademi berhasil dibuat" : justJoined ? `Selamat bergabung, ${firstName}` : celebrate ? "Persiapan selesai" : `Halo, ${firstName}`}</p>
           <h1 className="mt-1 text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">
             {academy.name}
           </h1>

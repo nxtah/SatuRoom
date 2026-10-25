@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listMyAcademies } from "./academy";
 import { academyContext, currentSession, type AcademyContext } from "./context";
 import { db } from "./db";
+import { myInvitations } from "./staff";
 import { AppError } from "./errors";
 
 /**
@@ -20,7 +21,7 @@ export async function requireAcademyPage(): Promise<AcademyContext> {
     if (!(error instanceof AppError && error.code === "no_academy")) throw error;
   }
   const mine = await listMyAcademies(session.userId);
-  if (mine.length === 0) redirect("/mulai");
+  if (mine.length === 0) redirect((await myInvitations(session.userId)).length ? "/undangan" : "/mulai");
   if (mine.length > 1) redirect("/pilih-akademi");
   await setActiveBusiness(db(), session.sessionId, mine[0]!.id);
   redirect("/");

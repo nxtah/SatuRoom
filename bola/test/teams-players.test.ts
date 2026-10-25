@@ -124,3 +124,12 @@ describe("tim dan pemain", () => {
     expect(counts).toEqual({ "KU 10-13": 2, "Skuad turnamen": 1 });
   });
 });
+
+describe("aturan isian tim", () => {
+  it("umur boleh dikosongkan dari form", async () => {
+    const { TeamInput } = await import("@/lib/schemas");
+    expect(TeamInput.parse({ name: "Skuad", ageMin: "", ageMax: "" })).toEqual({ name: "Skuad", ageMin: null, ageMax: null });
+    expect(TeamInput.parse({ name: "KU", ageMin: "10", ageMax: "13" })).toMatchObject({ ageMin: 10, ageMax: 13 });
+    expect(TeamInput.safeParse({ name: "KU", ageMin: "2", ageMax: "" }).success).toBe(false);
+  });
+});

@@ -84,6 +84,11 @@ async function setupBolaRole(sql: postgres.Sql, password: string): Promise<void>
     const [found] = await sql`SELECT to_regclass(${table}) AS t`;
     if (found?.t) await sql.unsafe(`REVOKE DELETE ON ${table} FROM bola_app`);
   }
+  // Fungsi SECURITY DEFINER hanya untuk aplikasi bola (EXECUTE dicabut dari PUBLIC di migrasinya).
+  for (const fn of ["bola.my_invitations()", "bola.accept_invitation(uuid)"]) {
+    const [found] = await sql`SELECT to_regprocedure(${fn}) AS f`;
+    if (found?.f) await sql.unsafe(`GRANT EXECUTE ON FUNCTION ${fn} TO bola_app`);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

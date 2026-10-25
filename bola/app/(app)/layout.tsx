@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { NAV } from "@/lib/nav";
 import { getAcademy, listMyAcademies } from "@/server/academy";
 import { ROLE_LABEL, ROLES } from "@/server/permissions";
 import { requireAcademyPage } from "@/server/routing";
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       activeAcademyId={ctx.businessId}
       user={{ name: ctx.session.name, email: ctx.session.email }}
       roleLabel={top ? ROLE_LABEL[top] : "Anggota"}
+      allowed={NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href)}
     >
       {children}
     </AppShell>

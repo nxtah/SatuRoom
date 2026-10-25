@@ -8,10 +8,11 @@ interface Props {
   activeAcademyId: string;
   user: { name: string; email: string };
   roleLabel: string;
+  allowed: string[];
   children: React.ReactNode;
 }
 
-export function AppShell({ academyName, academies, activeAcademyId, user, roleLabel, children }: Props) {
+export function AppShell({ academyName, academies, activeAcademyId, user, roleLabel, allowed, children }: Props) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
       <a
@@ -25,7 +26,7 @@ export function AppShell({ academyName, academies, activeAcademyId, user, roleLa
           <div className="px-2 pt-1">
             <Brand />
           </div>
-          <SideNav />
+          <SideNav allowed={allowed} />
         </div>
       </aside>
       <div className="flex min-w-0 flex-col pb-24 lg:pb-0">
@@ -40,7 +41,7 @@ export function AppShell({ academyName, academies, activeAcademyId, user, roleLa
           {children}
         </main>
       </div>
-      <BottomNav />
+      <BottomNav allowed={allowed} />
     </div>
   );
 }

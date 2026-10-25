@@ -1,4 +1,6 @@
+import { ChevronRight, IdCard } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getAcademy } from "@/server/academy";
 import { requireAcademyPage } from "@/server/routing";
 import { AcademyForm } from "./academy-form";
@@ -12,6 +14,20 @@ export default async function PengaturanPage() {
   return (
     <div className="grid gap-5">
       <h1 className="rise pt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Pengaturan</h1>
+
+      {ctx.can("staff.read") ? (
+        <Link
+          href="/staf"
+          className="rise group flex items-center gap-4 rounded-[2rem] bg-pitch p-6 text-white transition hover:-translate-y-0.5 lg:hidden"
+        >
+          <IdCard aria-hidden className="size-6 shrink-0" />
+          <span className="flex-1">
+            <span className="block text-lg font-extrabold">Staf dan peran</span>
+            <span className="block text-sm text-white/70">Undang pelatih, atur peran dan tim yang dipegang.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-5" />
+        </Link>
+      ) : null}
 
       <section className="rise rounded-[2rem] bg-chalk p-6 sm:p-8" aria-labelledby="profil">
         <h2 id="profil" className="text-xl font-extrabold">

@@ -5,7 +5,12 @@ import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Masuk" };
 
-export default async function MasukPage() {
-  if (await currentSession()) redirect("/");
-  return <LoginForm />;
+/** Tujuan setelah masuk hanya dari daftar tetap, bukan URL bebas (mencegah open redirect). */
+const NEXT = { undangan: "/undangan" } as const;
+
+export default async function MasukPage({ searchParams }: { searchParams: Promise<{ lanjut?: string }> }) {
+  const { lanjut } = await searchParams;
+  const next = lanjut && lanjut in NEXT ? NEXT[lanjut as keyof typeof NEXT] : "/";
+  if (await currentSession()) redirect(next);
+  return <LoginForm next={next} />;
 }

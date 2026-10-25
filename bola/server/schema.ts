@@ -129,3 +129,16 @@ export const attendance = bola.table(
   },
   (t) => [primaryKey({ columns: [t.sessionId, t.playerId] })],
 );
+
+export const invitations = bola.table("invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  email: text("email").notNull(),
+  roles: staffRole("roles").array().notNull(),
+  teamIds: uuid("team_ids").array().notNull().default([]),
+  invitedBy: uuid("invited_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+});

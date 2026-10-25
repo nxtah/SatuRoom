@@ -11,7 +11,7 @@ import { api } from "@/lib/api";
 import { LoginInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-export function LoginForm() {
+export function LoginForm({ next = "/" }: { next?: string }) {
   const router = useRouter();
   const form = useForm(LoginInput);
   const [email, setEmail] = useState("");
@@ -24,7 +24,7 @@ export function LoginForm() {
       api("/auth/login", { body: input }),
     );
     if (done) {
-      router.replace("/");
+      router.replace(next);
       router.refresh();
     }
   }
