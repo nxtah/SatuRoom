@@ -113,3 +113,4 @@ Visual: premium, profesional, rounded, mudah untuk orang awam.
 
 - 2026-10-25 **web/** landing page selesai (disetujui pemilik, font Plus Jakarta Sans).
 - 2026-10-25 **Tahap 1 bola/** selesai: daftar, konfirmasi email, masuk/keluar, lupa password, onboarding (selamat datang + data akademi), pilih/ganti akademi, Beranda, Pengaturan profil akademi. Database: schema `core` + `bola`, RLS, user `bola_app`. Tes: 13 lulus (login, isolasi, izin).
+- 2026-10-26 **Tahap 2 bola/** selesai: Tim (buat dengan saran KU PSSI, ubah, arsipkan), Pemain (tambah beruntun, cari, saring per tim, nonaktifkan, kontak wali khusus Pemilik/Admin), persiapan di Beranda dihitung dari data. Pelatih hanya melihat tim yang ditugaskan (`bola.team_coaches`). Riset peran dan fitur: `docs/RISET_PERAN_DAN_FITUR.md`. Tes: 21 lulus.

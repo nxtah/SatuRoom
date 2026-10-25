@@ -1,11 +1,11 @@
 "use client";
 
-import { House, Settings } from "lucide-react";
+import { House, Settings, Shirt, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/nav";
 
-const ICONS = { home: House, settings: Settings } as const;
+const ICONS = { home: House, teams: Shirt, players: UsersRound, settings: Settings } as const;
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 

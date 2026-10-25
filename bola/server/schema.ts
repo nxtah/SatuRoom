@@ -1,5 +1,5 @@
 /** Tabel schema `bola` untuk query bertipe. Struktur sebenarnya ada di bola/migrations/*.sql. */
-import { boolean, pgSchema, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, pgSchema, primaryKey, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const bola = pgSchema("bola");
 
@@ -32,3 +32,53 @@ export const onboarding = bola.table("onboarding", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const teams = bola.table("teams", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  locationId: uuid("location_id").notNull(),
+  name: text("name").notNull(),
+  ageMin: smallint("age_min"),
+  ageMax: smallint("age_max"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const teamCoaches = bola.table(
+  "team_coaches",
+  {
+    businessId: uuid("business_id").notNull(),
+    teamId: uuid("team_id").notNull(),
+    membershipId: uuid("membership_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.membershipId] })],
+);
+
+export const playerStatus = bola.enum("player_status", ["active", "inactive"]);
+
+export const players = bola.table("players", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  fullName: text("full_name").notNull(),
+  birthDate: date("birth_date").notNull(),
+  position: text("position").$type<"kiper" | "belakang" | "tengah" | "depan">(),
+  shirtNumber: smallint("shirt_number"),
+  guardianName: text("guardian_name"),
+  guardianPhone: text("guardian_phone"),
+  status: playerStatus("status").notNull().default("active"),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const teamPlayers = bola.table(
+  "team_players",
+  {
+    businessId: uuid("business_id").notNull(),
+    teamId: uuid("team_id").notNull(),
+    playerId: uuid("player_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.playerId] })],
+);
