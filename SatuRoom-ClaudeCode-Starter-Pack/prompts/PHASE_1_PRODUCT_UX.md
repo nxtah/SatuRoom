@@ -1,0 +1,2 @@
+# Phase 1 — Product Definition and UX
+Proceed only after Phase 0 and explicit owner approval. Finalize MVP/exclusions, provisional personas, journeys, role matrix, information architecture, navigation, screen inventory/specifications, design tokens, onboarding, all relevant UI states, accessibility/responsive checklist, usability-test tasks, and decision log. Use approved assets. If visual direction is unapproved, show a small set of options and request approval. Do not implement backend features.

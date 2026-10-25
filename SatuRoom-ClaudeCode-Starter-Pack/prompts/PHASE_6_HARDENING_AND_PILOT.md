@@ -1,0 +1,2 @@
+# Phase 6 — Web Hardening, Deployment Readiness, Pilot
+Web only; native mobile remains deferred. Review security/tenant isolation, permissions, accessibility, responsive UI, performance, errors/observability, dependencies/config, backup/restore/rollback, DNS/TLS/deployment, privacy/retention, and real pilot findings if actually collected. Create severity-ranked issues with evidence. Report exact checks/results; never fabricate. Before production deploy, present impact, backup/rollback, and request explicit approval.

@@ -1,0 +1,2 @@
+# Phase 2 — Engineering Foundation
+Proceed only after architecture and scope approval. Inspect repository status first. Implement the minimum approved foundation: reproducible local setup, safe env config and `.env.example`, migrations/seeds for local/test, API conventions/OpenAPI, auth/session, business/membership/authorization, tenant isolation, tests/CI, safe logs/errors, and docs. No mobile, production deploy, or VPS changes without separate approval. Add cross-business denial tests and report actual commands/results.

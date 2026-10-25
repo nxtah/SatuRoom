@@ -1,0 +1,2 @@
+# Phase 3 — First Vertical Slice
+Implement one approved workflow end-to-end across UI/API/persistence/validation/authorization/tests. Candidate: academy profile → squad → player (confirm before treating as final). Use approved design system; include real loading/empty/error/success states; enforce server validation and business scoping; test roles and cross-business IDOR; inspect responsive/accessibility; no fake live data, mobile app, or production deployment. List acceptance criteria/files before coding; report exact test results and gaps.

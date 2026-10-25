@@ -1,0 +1,13 @@
+# Glossary
+- Business: organization using SatuRoom, e.g. an academy.
+- Membership: user's authorized relationship with a business.
+- Role: named grouping of permissions; role label alone does not enforce access.
+- Permission: explicit allowed action on a resource.
+- Tenant isolation: preventing one business from accessing another's records.
+- Marketing website: public brand/product website.
+- Operational app: authenticated business software.
+- API contract: documented request/response behavior.
+- Vertical slice: feature implemented end-to-end across UI, API, persistence, permissions, and tests.
+- Progressive disclosure: show only options needed now; reveal advanced details when relevant.
+- Empty state: designed state when no records exist, including context and next action.
+- MVP: smallest validated product solving a priority problem.

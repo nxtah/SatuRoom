@@ -1,0 +1,2 @@
+# Phase 4 — Core Academy Workflows
+Proceed one workflow at a time according to approved priorities and user evidence. Candidate order: staff setup, player records, teams/squads, training schedule, attendance. Billing, parent portal, development notes require explicit scope approval. For each: define acceptance criteria; update UX/API/data docs; implement one slice; cover states, accessibility, authorization, tenant isolation, and tests; inspect UI; update docs; stop for review before next workflow.

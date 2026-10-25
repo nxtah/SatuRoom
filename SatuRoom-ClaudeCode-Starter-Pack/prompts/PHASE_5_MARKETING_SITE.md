@@ -1,0 +1,2 @@
+# Phase 5 — SatuRoom Marketing Website
+Build/refine `saturoom.com` as a distinct, independently deployable public surface. Explain SatuRoom and real product status, available features, FAQ, and CTA only when supported. Do not imply F&B or future products are available. Use approved brand assets. Keep public pages separate from authenticated operations UI. Plan domain/DNS/TLS/SEO/privacy based on actual audit. Do not share broad cookies across subdomains without security review. No production deploy without approval; no mobile app.
