@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { STATUS_STYLE } from "@/components/attendance-badge";
-import { Brand } from "@/components/brand";
 import { Ruru } from "@/components/ruru";
 import { ageOf } from "@/lib/age";
 import { dayLabel } from "@/lib/dates";
@@ -9,7 +9,6 @@ import { monthLabel, rupiah } from "@/lib/money";
 import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
 import { currentSession } from "@/server/context";
 import { playerHome, type PlayerHome } from "@/server/player-account";
-import { LogoutButton } from "./logout-button";
 import { NoticeActions } from "./notice-actions";
 
 export const metadata: Metadata = { title: "Akun pemain" };
@@ -28,12 +27,7 @@ export default async function SayaPage() {
   const next = me.upcoming.find((s) => !s.cancelled);
 
   return (
-    <div className="mx-auto min-h-dvh max-w-6xl px-4 pb-16 sm:px-8">
-      <header className="flex h-18 items-center justify-between gap-3">
-        <Brand href="/saya" />
-        <LogoutButton />
-      </header>
-
+    <>
       <Hero me={me} />
 
       <section
@@ -71,6 +65,20 @@ export default async function SayaPage() {
         />
       </section>
 
+      <nav aria-label="Jelajahi akun pemain" className="rise mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ["/saya/jadwal", "Lihat jadwal", "Konfirmasi izin sebelum latihan"],
+          ["/saya/kehadiran", "Kehadiran", "Lihat catatan latihan"],
+          ["/saya/iuran", "Iuran", "Cek status tagihan"],
+          ["/saya/profil", "Profil", "Data dari akademi"],
+        ].map(([href, label, note]) => (
+          <Link key={href} href={href} className="rounded-[1.5rem] border border-line bg-chalk p-4 transition hover:-translate-y-0.5 hover:border-turf hover:shadow-lg">
+            <span className="block font-extrabold">{label}</span>
+            <span className="mt-1 block text-sm text-ink-soft">{note}</span>
+          </Link>
+        ))}
+      </nav>
+
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-start">
         <Upcoming me={me} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
@@ -78,7 +86,7 @@ export default async function SayaPage() {
           <Fees me={me} />
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -116,7 +124,7 @@ function Tile({
   );
 }
 
-function Hero({ me }: { me: PlayerHome }) {
+export function Hero({ me }: { me: PlayerHome }) {
   const position = POSITIONS.find((p) => p.id === me.position)?.label;
   return (
     <section className="rise relative overflow-hidden rounded-[2rem] bg-pitch p-6 text-white sm:p-8">
@@ -162,7 +170,7 @@ function Hero({ me }: { me: PlayerHome }) {
   );
 }
 
-function Upcoming({ me }: { me: PlayerHome }) {
+export function Upcoming({ me }: { me: PlayerHome }) {
   return (
     <section
       className="rise rounded-[2rem] bg-chalk p-6"
@@ -225,7 +233,7 @@ function Upcoming({ me }: { me: PlayerHome }) {
   );
 }
 
-function Attendance({ me }: { me: PlayerHome }) {
+export function Attendance({ me }: { me: PlayerHome }) {
   const { counts, recent } = me.attendance;
   return (
     <section
@@ -279,7 +287,7 @@ function Attendance({ me }: { me: PlayerHome }) {
   );
 }
 
-function Fees({ me }: { me: PlayerHome }) {
+export function Fees({ me }: { me: PlayerHome }) {
   return (
     <section
       className="rise rounded-[2rem] bg-chalk p-6"

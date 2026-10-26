@@ -1,0 +1,19 @@
+import type { Metadata } from "next";
+import { Upcoming } from "../page";
+import { requirePlayerHome } from "../player-data";
+
+export const metadata: Metadata = { title: "Jadwal saya" };
+
+export default async function PlayerSchedulePage() {
+  const me = await requirePlayerHome();
+  return (
+    <div className="grid gap-4">
+      <div className="rise">
+        <p className="text-sm font-bold text-turf">Agenda pemain</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">Jadwal latihan</h1>
+        <p className="mt-1 text-ink-soft">Konfirmasi izin atau sakit langsung ke pelatih sebelum latihan dimulai.</p>
+      </div>
+      <Upcoming me={me} />
+    </div>
+  );
+}
