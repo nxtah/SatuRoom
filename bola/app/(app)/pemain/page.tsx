@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { ageOf } from "@/lib/age";
 import { POSITIONS } from "@/lib/schemas";
 import { listPlayers } from "@/server/players";
+import { pendingRegistrationCount } from "@/server/registrations";
 import { requireAcademyPage } from "@/server/routing";
 import { listTeams } from "@/server/teams";
 
@@ -20,14 +21,28 @@ export default async function PemainPage({ searchParams }: { searchParams: Promi
   const status = sp.status === "nonaktif" ? "inactive" : "active";
   const teamId = sp.tim && /^[0-9a-f-]{36}$/i.test(sp.tim) ? sp.tim : undefined;
   const q = sp.q?.slice(0, 100);
-  const [players, teams] = await Promise.all([listPlayers(ctx, { q, teamId, status }), listTeams(ctx)]);
+  const [players, teams, pendingCount] = await Promise.all([
+    listPlayers(ctx, { q, teamId, status }),
+    listTeams(ctx),
+    pendingRegistrationCount(ctx),
+  ]);
+  const canDesk = ctx.can("players.manage") && ctx.can("guardians.read");
   const canManage = ctx.can("players.manage") && teams.length > 0;
   const filtered = Boolean(q || teamId || status === "inactive");
-  const add = canManage ? (
+  const addButton = canManage ? (
     <ButtonLink href={teamId ? `/pemain/baru?tim=${teamId}` : "/pemain/baru"}>
       <Plus aria-hidden className="size-5" /> Tambah pemain
     </ButtonLink>
   ) : null;
+  const desk = canDesk ? (
+    <ButtonLink href="/pemain/pendaftar" variant="outline">
+      Pendaftar
+      {pendingCount > 0 ? (
+        <span className="grid min-w-6 place-items-center rounded-full bg-ember px-1.5 text-xs font-extrabold text-ink">{pendingCount}</span>
+      ) : null}
+    </ButtonLink>
+  ) : null;
+  const add = addButton || desk ? <div className="flex flex-wrap gap-2">{desk}{addButton}</div> : null;
 
   const href = (next: Partial<Search>) => {
     const p = new URLSearchParams();
@@ -48,7 +63,7 @@ export default async function PemainPage({ searchParams }: { searchParams: Promi
         <EmptyState
           title="Belum ada pemain"
           action={
-            add ?? (ctx.can("teams.manage") ? <ButtonLink href="/tim/baru">Buat tim dulu</ButtonLink> : null)
+            addButton ?? (ctx.can("teams.manage") ? <ButtonLink href="/tim/baru">Buat tim dulu</ButtonLink> : null)
           }
         >
           {teams.length === 0 && ctx.can("teams.manage")

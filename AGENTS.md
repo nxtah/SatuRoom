@@ -113,6 +113,9 @@ tim (preset KU PSSI), pemain, jadwal rutin + sesi satu kali/pertandingan + batal
 iuran bulanan (tarif per tim, generate tagihan, lunas/batal/bebaskan/ubah nominal, pengingat WhatsApp),
 statistik Beranda (ubin + grafik mingguan + per tim), akun pemain `/saya` (jadwal, izin/sakit sebelum
 latihan → muncul di lembar absen pelatih, kehadiran, iuran), tautan antar halaman.
+Pendaftaran pemain lewat link publik `/daftar-pemain/[token]` (antrean di Pemain > Pendaftar, diterima/ditolak admin;
+tanpa login, dua fungsi `SECURITY DEFINER` `registration_academy` dan `submit_registration`), pengumuman
+akademi/per tim (`/pengumuman`, tampil di `/saya`, tombol bagikan WhatsApp).
 
 ## 6. Pola kode (ikuti)
 
@@ -158,7 +161,7 @@ Sebelum commit, semua harus bersih:
 cd bola && pnpm -s test && npx tsc --noEmit && npx eslint . && pnpm -s build
 ```
 Tes memakai database `saturoom_test` (dibuat ulang otomatis). Tambahkan tes untuk tiap fitur: alur utama,
-izin per peran, dan isolasi antar-akademi. Status terakhir: **44 tes lulus**.
+izin per peran, dan isolasi antar-akademi. Status terakhir: **60 tes lulus**.
 UI dicek di browser (Playwright) pada 390/820/1440 px: tanpa overflow, tanpa error console.
 Catatan: login dibatasi rate limit di memori; bila tes browser kena 429, restart dev server.
 
@@ -182,5 +185,5 @@ Catatan: login dibatasi rate limit di memori; bila tes browser kena 429, restart
    matikan aplikasi lama setelah pemilik setuju.
 2. Halaman Privasi & Syarat di `web/`, kontak publik (email/WhatsApp) — menunggu data pemilik.
 3. Backup database ke luar server (off-host) — ditunda pemilik.
-4. Fitur kandidat: rapor/perkembangan pemain, link pendaftaran publik, pengumuman ke pemain,
-   cabang/lokasi di UI, ekspor data.
+4. Fitur kandidat: rapor/perkembangan pemain, cabang/lokasi di UI, ekspor data. Migrasi `0010` (pengumuman,
+   pendaftaran) perlu diterapkan ke VPS bersama deploy (izin pemilik).

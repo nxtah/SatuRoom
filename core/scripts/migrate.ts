@@ -119,6 +119,8 @@ async function setupBolaRole(sql: postgres.Sql, password: string): Promise<void>
     "bola.my_player()",
     "bola.my_player_invitations()",
     "bola.accept_player_invitation(uuid, text)",
+    "bola.registration_academy(text)",
+    "bola.submit_registration(text, text, date, text, text, text)",
   ]) {
     const [found] = await sql`SELECT to_regprocedure(${fn}) AS f`;
     if (found?.f) await sql.unsafe(`GRANT EXECUTE ON FUNCTION ${fn} TO bola_app`);

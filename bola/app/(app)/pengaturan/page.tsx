@@ -18,6 +18,7 @@ export default async function PengaturanPage() {
   const HINTS: Record<string, { title: string; hint: string }> = {
     "/tim": { title: "Tim", hint: "Kelompok umur, pemain, dan pelatihnya." },
     "/staf": { title: "Staf dan peran", hint: "Undang pelatih, atur peran dan tim yang dipegang." },
+    "/pengumuman": { title: "Pengumuman", hint: "Kabar libur, ganti jam, dan info untuk pemain." },
     "/iuran": { title: "Iuran", hint: "Tarif, tagihan bulanan, dan pembayaran." },
   };
   const more = allowed.filter((h) => !inTabs.has(h) && HINTS[h]).map((h) => ({ href: h, ...HINTS[h]! }));

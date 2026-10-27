@@ -83,6 +83,36 @@ export const PlayerInput = z.object({
 
 export const PlayerStatusInput = z.object({ status: z.enum(["active", "inactive"]) });
 
+export const AnnouncementInput = z.object({
+  title: z.string().trim().min(2, "Isi judul pengumuman.").max(100, "Judul terlalu panjang."),
+  body: z.string().trim().min(2, "Isi pengumuman.").max(1000, "Pengumuman terlalu panjang (maksimal 1000 huruf)."),
+  /** Kosong = untuk seluruh akademi. */
+  teamId: z.preprocess(emptyToNull, z.string().uuid("Tim tidak valid.").nullable()).optional(),
+});
+
+/** Isian di halaman pendaftaran publik. `website` adalah jebakan untuk bot; manusia tidak melihatnya. */
+export const PublicRegistrationInput = z.object({
+  fullName: z.string().trim().min(2, "Isi nama lengkap calon pemain.").max(100, "Nama terlalu panjang."),
+  birthDate,
+  guardianName: z.string().trim().min(2, "Isi nama orang tua atau wali.").max(100, "Nama terlalu panjang."),
+  guardianPhone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9 -]{8,20}$/, "Nomor HP belum benar, contoh 0812 3456 7890."),
+  note: z.preprocess(emptyToNull, z.string().trim().max(300, "Catatan terlalu panjang.").nullable()).optional(),
+  consent: z.literal(true, "Centang persetujuan orang tua atau wali dulu."),
+  website: z.string().max(200).optional(),
+});
+
+export const RegistrationApproveInput = z.object({
+  teamIds: z.array(z.string().uuid()).min(1, "Pilih minimal satu tim.").max(5),
+});
+export const RegistrationRejectInput = z.object({
+  reason: z.preprocess(emptyToNull, z.string().trim().max(200, "Alasan terlalu panjang.").nullable()).optional(),
+});
+export const RegistrationLinkInput = z.object({ enabled: z.boolean().optional(), rotate: z.boolean().optional() });
+
+
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pilih tanggal.");
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Isi jam, contoh 15:30.");
 const duration = z.coerce.number().int().min(15, "Minimal 15 menit.").max(300, "Maksimal 5 jam.");

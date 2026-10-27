@@ -8,6 +8,7 @@ export const NAV = [
   { href: "/jadwal", label: "Jadwal", icon: "schedule", permission: null, mobile: true },
   { href: "/tim", label: "Tim", icon: "teams", permission: null, mobile: "overflow" },
   { href: "/pemain", label: "Pemain", icon: "players", permission: null, mobile: true },
+  { href: "/pengumuman", label: "Pengumuman", icon: "announce", permission: null, mobile: "overflow" },
   { href: "/iuran", label: "Iuran", icon: "billing", permission: "billing.read", mobile: true },
   { href: "/staf", label: "Staf", icon: "staff", permission: "staff.read", mobile: false },
   { href: "/pengaturan", label: "Pengaturan", icon: "settings", permission: null, mobile: true },

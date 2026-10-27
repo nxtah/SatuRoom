@@ -135,33 +135,36 @@ async function assertTeams(tx: Tx, ids: string[]) {
 
 export async function createPlayer(ctx: AcademyContext, input: PlayerData): Promise<string> {
   requirePermission(ctx, "players.manage");
-  return inAcademy(ctx, async (tx) => {
-    await assertTeams(tx, input.teamIds);
-    const [row] = await tx
-      .insert(players)
-      .values({
-        businessId: ctx.businessId,
-        fullName: input.fullName,
-        birthDate: input.birthDate,
-        position: input.position ?? null,
-        shirtNumber: input.shirtNumber ?? null,
-        ...guardianFields(ctx, input),
-        createdBy: ctx.userId,
-      })
-      .returning({ id: players.id });
-    const id = row!.id;
-    await tx
-      .insert(teamPlayers)
-      .values([...new Set(input.teamIds)].map((teamId) => ({ businessId: ctx.businessId, teamId, playerId: id })));
-    await tx.insert(auditEvents).values({
+  return inAcademy(ctx, (tx) => createPlayerIn(ctx, tx, input));
+}
+
+/** Isi createPlayer di dalam transaksi milik pemanggil, supaya bisa digabung dengan langkah lain. */
+export async function createPlayerIn(ctx: AcademyContext, tx: Tx, input: PlayerData): Promise<string> {
+  await assertTeams(tx, input.teamIds);
+  const [row] = await tx
+    .insert(players)
+    .values({
       businessId: ctx.businessId,
-      actorUserId: ctx.userId,
-      action: "player.created",
-      targetType: "player",
-      targetId: id,
-    });
-    return id;
+      fullName: input.fullName,
+      birthDate: input.birthDate,
+      position: input.position ?? null,
+      shirtNumber: input.shirtNumber ?? null,
+      ...guardianFields(ctx, input),
+      createdBy: ctx.userId,
+    })
+    .returning({ id: players.id });
+  const id = row!.id;
+  await tx
+    .insert(teamPlayers)
+    .values([...new Set(input.teamIds)].map((teamId) => ({ businessId: ctx.businessId, teamId, playerId: id })));
+  await tx.insert(auditEvents).values({
+    businessId: ctx.businessId,
+    actorUserId: ctx.userId,
+    action: "player.created",
+    targetType: "player",
+    targetId: id,
   });
+  return id;
 }
 
 /** Pemain di luar cakupan peminta diperlakukan seperti tidak ada. */

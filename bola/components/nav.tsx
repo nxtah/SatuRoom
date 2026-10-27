@@ -1,11 +1,11 @@
 "use client";
 
-import { CalendarDays, House, IdCard, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
+import { CalendarDays, House, IdCard, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { mobileNav, NAV } from "@/lib/nav";
 
-const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, staff: IdCard, billing: Wallet, settings: Settings } as const;
+const ICONS = { home: House, schedule: CalendarDays, teams: Shirt, players: UsersRound, staff: IdCard, billing: Wallet, settings: Settings, announce: Megaphone } as const;
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 

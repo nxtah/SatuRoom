@@ -31,6 +31,8 @@ export default async function SayaPage() {
     <>
       <Hero me={me} />
 
+      <Announcements me={me} />
+
       <section
         aria-label="Ringkasan"
         className="rise mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"
@@ -325,6 +327,28 @@ export function Fees({ me }: { me: PlayerHome }) {
       ) : (
         <p className="mt-4 text-ink-soft">Belum ada tagihan.</p>
       )}
+    </section>
+  );
+}
+
+export function Announcements({ me }: { me: PlayerHome }) {
+  if (me.announcements.length === 0) return null;
+  return (
+    <section className="rise mt-4 rounded-[2rem] bg-ember-soft p-6" aria-labelledby="pengumuman">
+      <h2 id="pengumuman" className="text-lg font-extrabold">
+        Pengumuman
+      </h2>
+      <ul className="mt-3 grid gap-3">
+        {me.announcements.map((a) => (
+          <li key={a.id} className="rounded-[1.5rem] bg-chalk p-4">
+            <p className="font-extrabold">{a.title}</p>
+            <p className="text-sm text-ink-soft">
+              {a.teamName ? `Tim ${a.teamName}` : "Seluruh akademi"}, {dayLabel(a.createdAt)}
+            </p>
+            <p className="mt-2 break-words whitespace-pre-line">{a.body}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
