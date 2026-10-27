@@ -1,0 +1,1 @@
+export default function OrdersPage(){return <main className="mx-auto max-w-6xl p-4 sm:p-8"><h1 className="text-3xl font-extrabold">Pesanan</h1><p className="mt-2 text-stone-600">Semua pesanan dine-in, takeaway, dan pickup dalam satu antrean.</p><div className="mt-6 rounded-[2rem] bg-white p-8 text-center text-stone-500">Belum ada pesanan aktif.</div></main>}

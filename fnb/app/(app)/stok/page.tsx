@@ -1,0 +1,1 @@
+export default function StockPage(){return <main className="mx-auto max-w-6xl p-4 sm:p-8"><h1 className="text-3xl font-extrabold">Stok bahan</h1><p className="mt-2 text-stone-600">Recipe menu dan pergerakan stok akan terhubung ke penjualan.</p><div className="mt-6 rounded-[2rem] bg-white p-8 text-center text-stone-500">Belum ada bahan baku.</div></main>}

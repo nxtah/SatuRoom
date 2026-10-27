@@ -36,13 +36,14 @@ Riwayat keputusan lengkap ada di `RENCANA_FLOW.md` (bagian "Progres" di bawahnya
 
 ## 3. Produk
 
-SatuRoom = platform manajemen bisnis per kategori. Sekarang hanya **akademi sepak bola**.
-F&B dan aplikasi mobile native **tidak** dibangun sekarang.
+SatuRoom = platform manajemen bisnis per kategori. Produk aktif: **akademi sepak bola** dan fondasi
+baru **F&B/SatuRoom Rasa**. Aplikasi mobile native tidak dibangun sekarang.
 
 | Folder | Domain | Isi | Port dev |
 |---|---|---|---|
 | `web/` | saturoom.com | Website publik (landing). CTA "Coba gratis", tanpa harga. | 3100 |
 | `bola/` | bola.saturoom.com | Aplikasi akademi: UI Next.js + API `/api/v1` + `bola/server` | 3200 |
+| `fnb/` | belum diputuskan | Aplikasi restoran/kafe; schema dan domain terpisah dari Bola | 3300 |
 | `core/` | - | Schema bersama (akun, sesi, bisnis, keanggotaan), auth, runner migrasi | - |
 | `infra/` | - | `docker-compose.dev.yml` (Postgres :5434, Mailpit SMTP :1026 / UI :8026) | - |
 | `docs/` | - | `RISET_PERAN_DAN_FITUR.md` (riset peran & fitur akademi) | - |

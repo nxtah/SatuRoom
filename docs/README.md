@@ -6,6 +6,7 @@
 2. `../RENCANA_FLOW.md` — keputusan pemilik dan progres fitur yang sudah benar-benar selesai.
 3. `ARAH_PENGEMBANGAN_BOLA.md` — roadmap produk akademi sepak bola berikutnya.
 4. `RISET_PERAN_DAN_FITUR.md` — desk research peran dan kebutuhan akademi.
+5. `RENCANA_FNB.md` — role, fitur, database, dan roadmap produk F&B.
 
 ## Starter Pack asli
 

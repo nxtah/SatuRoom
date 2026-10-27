@@ -7,6 +7,7 @@ Rencana dan keputusan: `RENCANA_FLOW.md`. Dokumen asli: `SatuRoom-ClaudeCode-Sta
 |---|---|---|
 | `web/` | saturoom.com, website publik | 3100 |
 | `bola/` | bola.saturoom.com, aplikasi akademi (tampilan + API `/api/v1`) | 3200 |
+| `fnb/` | produk operasional restoran/kafe, schema database `fnb` | 3300 |
 | `core/` | schema bersama (akun, sesi, bisnis, keanggotaan), logika login, runner migrasi | - |
 
 ## Menjalankan di laptop

@@ -17,6 +17,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCOPES = [
   { scope: "core", dir: join(root, "core", "migrations") },
   { scope: "bola", dir: join(root, "bola", "migrations") },
+  { scope: "fnb", dir: join(root, "fnb", "migrations") },
 ];
 
 function required(name: string): string {
@@ -54,10 +55,29 @@ export async function migrate(url: string, bolaPassword: string, log = console.l
       }
     }
     await setupBolaRole(sql, bolaPassword);
+    await setupFnbRole(sql, process.env.FNB_DB_PASSWORD ?? bolaPassword);
+    log("role fnb_app siap");
     log("role bola_app siap");
   } finally {
     await sql.end();
   }
+}
+
+async function setupFnbRole(sql: postgres.Sql, password: string): Promise<void> {
+  const [exists] = await sql`SELECT 1 FROM pg_roles WHERE rolname = 'fnb_app'`;
+  if (!exists) await sql.unsafe(`CREATE ROLE fnb_app LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`);
+  const [stmt] = await sql<{ q: string }[]>`SELECT format('ALTER ROLE fnb_app PASSWORD %L', ${password}::text) AS q`;
+  await sql.unsafe(stmt!.q);
+  await sql.unsafe(`
+    GRANT USAGE ON SCHEMA core, fnb TO fnb_app;
+    GRANT SELECT, INSERT ON core.users TO fnb_app;
+    GRANT UPDATE (name, password_hash, email_verified_at, updated_at) ON core.users TO fnb_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON core.sessions, core.auth_tokens TO fnb_app;
+    GRANT SELECT, INSERT, UPDATE ON core.businesses, core.memberships TO fnb_app;
+    GRANT SELECT, INSERT ON core.audit_events TO fnb_app;
+    GRANT USAGE ON ALL SEQUENCES IN SCHEMA core, fnb TO fnb_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA fnb TO fnb_app;
+  `);
 }
 
 /** Idempoten: aman dijalankan setelah setiap migrasi agar tabel baru ikut ter-grant. */
