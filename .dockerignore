@@ -1,0 +1,10 @@
+.git
+.claude
+.local
+**/node_modules
+**/.next
+**/.env*
+!**/.env.example
+SatuRoom packs
+SatuRoom-ClaudeCode-Starter-Pack
+docs

@@ -1,0 +1,44 @@
+# Produksi. Jalankan di VPS dari /opt/saturoom-platform/app. Database ada di compose terpisah
+# (/opt/saturoom-platform) pada network `saturoom-platform`; file env aplikasi ada di server, tidak di git.
+name: saturoom-app
+x-app: &app
+  image: saturoom-app:latest
+  restart: unless-stopped
+  mem_limit: 450m
+  networks: [platform, edge]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+
+services:
+  web:
+    <<: *app
+    working_dir: /app/web
+    command: ["pnpm", "start"]
+    networks: [edge]
+  bola:
+    <<: *app
+    working_dir: /app/bola
+    command: ["pnpm", "start"]
+    env_file: /opt/saturoom-platform/apps/bola.env
+  fnb:
+    <<: *app
+    working_dir: /app/fnb
+    command: ["pnpm", "start"]
+    env_file: /opt/saturoom-platform/apps/fnb.env
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks: [edge]
+    depends_on: [web, bola, fnb]
+
+volumes:
+  caddy-data:
+networks:
+  edge:
+  platform:
+    name: saturoom-platform
+    external: true

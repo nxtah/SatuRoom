@@ -178,7 +178,12 @@ Catatan: login dibatasi rate limit di memori; bila tes browser kena 429, restart
 
 ## 9. Berikutnya (urut prioritas)
 
-1. **Deploy** (butuh izin pemilik): pemilik mengatur DNS `saturoom.com` & `bola.saturoom.com`.
+1. **Sudah tayang** (2026-10-27): `saturoom.com`, `bola.saturoom.com`, `rasa.saturoom.com` lewat Caddy (HTTPS otomatis),
+   satu image Docker untuk ketiga aplikasi. Deploy ulang: `SATUROOM_HOST=root@<host> SATUROOM_SSH="-i <kunci>" infra/deploy.sh`
+   (build lokal, kirim image, migrasi, `docker compose up -d`; `SKIP_IMAGE=1` bila image sudah terkirim). File env aplikasi ada
+   di server `/opt/saturoom-platform/apps/` (bukan di git). Masih kurang: SMTP (placeholder `localhost:25` di `bola.env`),
+   kunci Google, matikan aplikasi lama bila pemilik setuju.
+   Catatan lama:  pemilik mengatur DNS `saturoom.com` & `bola.saturoom.com`.
    SMTP: pemilik ingin Gmail (`saturoomdigitalteknologi@gmail.com`) via App Password
    (`smtp.gmail.com:465`); App Password belum bisa dibuat karena verifikasi Google — alternatif Brevo.
    Lalu: build image `web` + `bola`, reverse proxy + HTTPS, `COOKIE_SECURE=true`, sambung ke DB platform,

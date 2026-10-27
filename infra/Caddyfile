@@ -1,0 +1,23 @@
+# HTTPS otomatis (Let's Encrypt). Caddy mengisi X-Forwarded-For dengan alamat klien yang sebenarnya.
+(security) {
+	header Strict-Transport-Security "max-age=31536000"
+}
+
+www.saturoom.com {
+	redir https://saturoom.com{uri} permanent
+}
+
+saturoom.com {
+	import security
+	reverse_proxy web:3100
+}
+
+bola.saturoom.com {
+	import security
+	reverse_proxy bola:3200
+}
+
+rasa.saturoom.com {
+	import security
+	reverse_proxy fnb:3300
+}
