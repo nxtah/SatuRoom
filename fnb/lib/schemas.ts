@@ -19,3 +19,14 @@ export const OrderInput=z.object({
 });
 export const OrderStatusInput=z.object({status:z.enum(["open","confirmed","preparing","ready","served","completed","cancelled"])});
 export const LineStatusInput=z.object({status:z.enum(["preparing","ready"])});
+export const PaymentInput=z.object({
+  orderId:z.string().uuid(),
+  amount:z.coerce.number().int().min(1,"Nominal wajib diisi.").max(100_000_000),
+  method:z.enum(["cash","transfer","qris","card","other"]),
+});
+export const VoidPaymentInput=z.object({reason:z.string().trim().min(3,"Alasan wajib diisi.").max(200)});
+export const ShiftOpenInput=z.object({openingCash:z.coerce.number().int().min(0).max(100_000_000)});
+export const ShiftCloseInput=z.object({
+  closingCash:z.coerce.number().int().min(0).max(100_000_000),
+  notes:z.string().trim().max(300).optional(),
+});

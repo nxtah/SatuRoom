@@ -16,7 +16,7 @@ export type OrderLine = {
 };
 export type Order = {
   id: string; number: string; type: string; status: string; tableName: string | null;
-  customerName: string | null; total: number; notes: string | null; openedAt: string; lines: OrderLine[];
+  customerName: string | null; total: number; paid: number; notes: string | null; openedAt: string; lines: OrderLine[];
 };
 
 const canSell = (ctx: FnbContext) => ctx.roles.some((r) => r === "owner" || r === "manager" || r === "cashier" || r === "server");
@@ -26,7 +26,8 @@ const inBusiness = <T>(ctx: FnbContext, work: Parameters<typeof withContext<T>>[
 
 const ORDER_SELECT = sql`
   SELECT o.id, o.order_number::text AS number, o.type, o.status, t.name AS "tableName",
-         o.customer_name AS "customerName", o.total, o.notes, o.opened_at AS "openedAt"
+         o.customer_name AS "customerName", o.total, o.notes, o.opened_at AS "openedAt",
+         (SELECT coalesce(sum(p.amount), 0)::int FROM fnb.payments p WHERE p.order_id = o.id AND p.voided_at IS NULL) AS paid
   FROM fnb.orders o LEFT JOIN fnb.dining_tables t ON t.id = o.table_id
 `;
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const nav = [
-  ["/", "Ringkasan", "⌂"], ["/pos", "POS", "+"], ["/pesanan", "Pesanan", "≡"],
+  ["/", "Ringkasan", "⌂"], ["/pos", "POS", "+"], ["/pesanan", "Pesanan", "≡"], ["/kas", "Kas", "▤"],
   ["/dapur", "Dapur", "♨"], ["/stok", "Stok", "□"], ["/menu", "Menu", "◇"],
 ] as const;
 const mobile = nav.filter(([href]) => ["/pos", "/pesanan", "/dapur", "/stok", "/menu"].includes(href));
