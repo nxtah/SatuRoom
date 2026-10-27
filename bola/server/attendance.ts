@@ -1,4 +1,5 @@
 import "server-only";
+import { tokenHash } from "@saturoom/core/crypto";
 import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
@@ -110,6 +111,31 @@ export async function saveAttendance(
       meta: { count: entries.size },
     });
     return { saved: entries.size };
+  });
+}
+
+/** Memakai QR pemain untuk menandai hadir pada sesi yang sedang dibuka pelatih. */
+export async function scanAttendanceQr(ctx: AcademyContext, sessionId: string, token: string): Promise<{ playerId: string; fullName: string }> {
+  const sheet = await getSessionSheet(ctx, sessionId);
+  return inAcademy(ctx, async (tx) => {
+    await assertTeamAccess(ctx, tx, sheet.session.teamId, "record");
+    if (!sheet.canRecord) throw new AppError(409, "not_open", sheet.blockedReason ?? "Absensi belum bisa diisi.");
+    const [row] = (await tx.execute(sql`
+      SELECT q.id, p.id AS "playerId", p.full_name AS "fullName"
+      FROM bola.attendance_qr_tokens q
+      JOIN bola.players p ON p.id = q.player_id
+      JOIN bola.team_players tp ON tp.player_id = p.id AND tp.team_id = ${sheet.session.teamId}::uuid
+      WHERE q.token_hash = ${tokenHash(token)} AND q.expires_at > now() AND q.consumed_at IS NULL
+        AND p.status = 'active'
+      FOR UPDATE OF q`)) as unknown as { id: string; playerId: string; fullName: string }[];
+    if (!row) throw new AppError(404, "invalid_qr", "QR tidak valid atau sudah kedaluwarsa.");
+    await tx.execute(sql`
+      INSERT INTO bola.attendance (business_id, session_id, player_id, status, recorded_by)
+      VALUES (${ctx.businessId}::uuid, ${sessionId}::uuid, ${row.playerId}::uuid, 'present', ${ctx.userId}::uuid)
+      ON CONFLICT (session_id, player_id) DO UPDATE SET status = 'present', recorded_by = EXCLUDED.recorded_by, recorded_at = now()`);
+    await tx.execute(sql`UPDATE bola.attendance_qr_tokens SET consumed_at = now(), consumed_by = ${ctx.userId}::uuid WHERE id = ${row.id}::uuid`);
+    await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: "attendance.qr_scanned", targetType: "session", targetId: sessionId, meta: { playerId: row.playerId } });
+    return { playerId: row.playerId, fullName: row.fullName };
   });
 }
 

@@ -132,6 +132,7 @@ export const AttendanceInput = z.object({
     .min(1, "Tandai minimal satu pemain.")
     .max(300),
 });
+export const AttendanceQrScanInput = z.object({ token: z.string().min(20).max(200) });
 
 const staffRoles = z
   .array(z.enum(["owner", "admin", "head_coach", "coach", "treasurer"]))

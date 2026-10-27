@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Hero } from "../page";
 import { requirePlayerHome } from "../player-data";
+import { AttendanceQr } from "../attendance-qr";
 
 export const metadata: Metadata = { title: "Profil pemain" };
 
@@ -14,6 +15,7 @@ export default async function PlayerProfilePage() {
         <p className="mt-1 text-ink-soft">Butuh pembaruan data? Hubungi admin akademi.</p>
       </div>
       <Hero me={me} />
+      <AttendanceQr />
       <section className="rise max-w-xl rounded-[2rem] bg-chalk p-6" aria-labelledby="data-pemain">
         <h2 id="data-pemain" className="text-lg font-extrabold">Data terhubung</h2>
         <p className="mt-1 text-sm text-ink-soft">Tim, jadwal, kehadiran, dan iuran di akun ini berasal langsung dari catatan akademi.</p>

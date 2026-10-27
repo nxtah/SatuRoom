@@ -10,6 +10,7 @@ import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
 import { currentSession } from "@/server/context";
 import { playerHome, type PlayerHome } from "@/server/player-account";
 import { NoticeActions } from "./notice-actions";
+import { AttendanceQr } from "./attendance-qr";
 
 export const metadata: Metadata = { title: "Akun pemain" };
 
@@ -82,6 +83,7 @@ export default async function SayaPage() {
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-start">
         <Upcoming me={me} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+          <AttendanceQr />
           <Attendance me={me} />
           <Fees me={me} />
         </div>

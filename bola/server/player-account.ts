@@ -1,5 +1,6 @@
 import "server-only";
 import type { SessionInfo } from "@saturoom/core/auth";
+import { newToken } from "@saturoom/core/crypto";
 import { withContext, type Tx } from "@saturoom/core/db";
 import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
@@ -27,6 +28,20 @@ async function playerLink(userId: string): Promise<PlayerLink | null> {
 
 export async function hasPlayerAccount(userId: string): Promise<boolean> {
   return (await playerLink(userId)) !== null;
+}
+
+/** QR absensi sekali pakai, berlaku dua menit dan hanya dapat dibuat oleh akun pemainnya. */
+export async function createAttendanceQr(session: SessionInfo): Promise<{ token: string; expiresAt: string }> {
+  const link = await requireLink(session);
+  const { token, hash } = newToken();
+  return asPlayer(session, link, async (tx) => {
+    await tx.execute(sql`DELETE FROM bola.attendance_qr_tokens WHERE player_id = ${link.playerId}::uuid AND (expires_at <= now() OR consumed_at IS NULL)`);
+    const [row] = (await tx.execute(sql`
+      INSERT INTO bola.attendance_qr_tokens (business_id, player_id, token_hash, expires_at)
+      VALUES (${link.businessId}::uuid, ${link.playerId}::uuid, ${hash}, now() + interval '2 minutes')
+      RETURNING to_char(expires_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expiresAt"`)) as unknown as { expiresAt: string }[];
+    return { token, expiresAt: row!.expiresAt };
+  });
 }
 
 async function requireLink(session: SessionInfo): Promise<PlayerLink> {

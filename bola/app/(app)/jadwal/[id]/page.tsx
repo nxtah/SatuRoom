@@ -10,6 +10,7 @@ import { isUuid } from "@/server/ids";
 import { requireAcademyPage } from "@/server/routing";
 import { AttendanceSheet } from "./attendance-sheet";
 import { SessionActions } from "./session-actions";
+import { QrScanner } from "./qr-scanner";
 
 export const metadata: Metadata = { title: "Absensi" };
 
@@ -50,6 +51,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       ) : null}
 
       <section className="rise" aria-label="Absensi">
+        {sheet.canRecord ? <QrScanner sessionId={s.id} /> : null}
         <AttendanceSheet sessionId={s.id} roster={sheet.roster} editable={sheet.canRecord} />
       </section>
 
