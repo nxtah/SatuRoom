@@ -16,6 +16,8 @@ export const RegisterInput = z.object({
 export const LoginInput = z.object({
   email,
   password: z.string().min(1, "Isi password."),
+  /** ID bisnis; boleh kosong hanya untuk pengguna yang belum punya akademi. */
+  businessCode: z.string().trim().max(20, "ID bisnis terlalu panjang.").optional(),
 });
 
 export const EmailInput = z.object({ email });

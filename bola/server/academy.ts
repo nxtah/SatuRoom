@@ -50,13 +50,15 @@ export interface AcademySummary {
   id: string;
   name: string;
   city: string | null;
+  /** ID bisnis untuk masuk (8 karakter). */
+  code: string;
 }
 
 /** Akademi tempat pengguna menjadi anggota aktif (RLS memastikan hanya miliknya yang terbaca). */
 export function listMyAcademies(userId: string): Promise<AcademySummary[]> {
   return withContext(db(), { userId }, (tx) =>
     tx
-      .select({ id: businesses.id, name: businesses.name, city: businesses.city })
+      .select({ id: businesses.id, name: businesses.name, city: businesses.city, code: businesses.code })
       .from(businesses)
       .innerJoin(memberships, eq(memberships.businessId, businesses.id))
       .where(
@@ -80,7 +82,7 @@ export interface AcademyProfile extends AcademySummary {
 export function getAcademy(ctx: AcademyContext): Promise<AcademyProfile> {
   return inAcademy(ctx, async (tx) => {
     const [row] = await tx
-      .select({ id: businesses.id, name: businesses.name, city: businesses.city, timezone: businesses.timezone })
+      .select({ id: businesses.id, name: businesses.name, city: businesses.city, code: businesses.code, timezone: businesses.timezone })
       .from(businesses)
       .where(eq(businesses.id, ctx.businessId));
     if (!row) throw notFound("Akademi");

@@ -2,6 +2,8 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { AreaTrend, BarList, Sparkline } from "@/components/charts";
 import { Maskot } from "@/components/maskot";
+import { formatBusinessCode } from "@/lib/business-code";
+import { getFnbBusinessCode } from "@/server/business";
 import { listOrders } from "@/server/orders";
 import { dailyReport, salesSeries, todayJakarta } from "@/server/reports";
 import { requireFnbPage } from "@/server/routing";
@@ -21,7 +23,8 @@ export default async function FnbDashboard() {
   const canReport = ctx.roles.some((r) => ["owner", "manager", "accounting"].includes(r));
   const canCash = ctx.roles.some((r) => ["owner", "manager", "cashier", "accounting"].includes(r));
   const today = todayJakarta();
-  const [orders, stock, report, series] = await Promise.all([
+  const [code, orders, stock, report, series] = await Promise.all([
+    getFnbBusinessCode(ctx),
     listOrders(ctx, "active"),
     listStock(ctx),
     canReport ? dailyReport(ctx, today) : null,
@@ -45,6 +48,7 @@ export default async function FnbDashboard() {
         <p className="font-bold text-saffron">{todayLabel}</p>
         <h1 className="mt-2 text-3xl leading-tight font-extrabold tracking-tight sm:text-5xl">Operasional hari ini</h1>
         <p className="mt-2 max-w-md text-white/70">POS, dapur, stok, dan laporan terhubung dalam satu alur.</p>
+        <p className="mt-3 text-white/70">ID bisnis <span className="rounded-full bg-white/12 px-2.5 py-0.5 font-extrabold tracking-wider text-white select-all">{formatBusinessCode(code)}</span></p>
         <nav aria-label="Pintasan" className="mt-6 flex flex-wrap gap-2">
           {links.filter(([, , show]) => show).map(([href, label], i) => (
             <Link key={href} href={href} className={`inline-flex h-11 items-center rounded-full px-5 font-extrabold transition hover:-translate-y-0.5 ${i === 0 ? "bg-saffron text-kitchen hover:bg-white" : "bg-white/12 text-white hover:bg-white/20"}`}>{label}</Link>

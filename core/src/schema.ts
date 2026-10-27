@@ -1,4 +1,5 @@
 /** Definisi tabel schema `core` untuk query bertipe. Struktur sebenarnya ada di migrations/*.sql. */
+import { sql } from "drizzle-orm";
 import { customType, jsonb, pgSchema, text, timestamp, uuid, bigint } from "drizzle-orm/pg-core";
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
@@ -44,6 +45,7 @@ export const businesses = core.table("businesses", {
   id: uuid("id").primaryKey().defaultRandom(),
   product: text("product").notNull(),
   name: text("name").notNull(),
+  code: text("code").notNull().default(sql`core.new_business_code()`),
   city: text("city"),
   timezone: text("timezone").notNull().default("Asia/Jakarta"),
   createdBy: uuid("created_by").notNull(),

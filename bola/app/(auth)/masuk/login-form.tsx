@@ -48,12 +48,22 @@ export function LoginForm({ next = "/", lanjut, google, notice }: { next?: strin
         {notice && NOTICE[notice] ? <Alert tone="error">{NOTICE[notice]}</Alert> : null}
         {form.error ? <Alert tone="error">{form.error.message}</Alert> : null}
         <Field
+          label="ID bisnis"
+          name="businessCode"
+          autoComplete="organization"
+          autoCapitalize="characters"
+          spellCheck={false}
+          placeholder="K7M2-QX9P"
+          hint="Ada di halaman Beranda akademi. Baru daftar atau baru diundang? Kosongkan."
+          autoFocus
+          error={form.fields.businessCode}
+        />
+        <Field
           label="Email"
           name="email"
           type="email"
           autoComplete="email"
           inputMode="email"
-          autoFocus
           error={form.fields.email}
         />
         <PasswordField label="Password" name="password" autoComplete="current-password" error={form.fields.password} />

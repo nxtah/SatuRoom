@@ -80,9 +80,14 @@ export async function verifyEmail(db: Db, token: string): Promise<boolean> {
 
 export type LoginResult = { status: "ok"; token: string; userId: string } | { status: "invalid" };
 
+/**
+ * Masuk dengan email, password, dan ID bisnis. Dengan ID bisnis, sesi langsung membuka bisnis itu
+ * (anggota aktif, atau akun pemain Bola). Tanpa ID, hanya boleh bila pengguna belum punya bisnis di
+ * produk ini (baru daftar atau baru diundang); selain itu ditolak sama seperti password salah.
+ */
 export async function login(
   db: Db,
-  input: { email: string; password: string; product: string },
+  input: { email: string; password: string; product: string; businessCode?: string },
 ): Promise<LoginResult> {
   const [user] = await db
     .select({ id: users.id, passwordHash: users.passwordHash })
@@ -93,15 +98,29 @@ export async function login(
     return { status: "invalid" };
   }
   if (!(await verifyPassword(user.passwordHash, input.password))) return { status: "invalid" };
-  return { status: "ok", token: await createSession(db, user.id, input.product), userId: user.id };
+  const code = input.businessCode?.trim();
+  let businessId: string | null = null;
+  if (code) {
+    const [row] = (await db.execute(
+      sql`SELECT core.login_business(${code}, ${user.id}::uuid, ${input.product}) AS id`,
+    )) as unknown as { id: string | null }[];
+    businessId = row?.id ?? null;
+    if (!businessId) return { status: "invalid" };
+  } else {
+    const [row] = (await db.execute(
+      sql`SELECT core.user_has_business(${user.id}::uuid, ${input.product}) AS has`,
+    )) as unknown as { has: boolean }[];
+    if (row?.has) return { status: "invalid" };
+  }
+  return { status: "ok", token: await createSession(db, user.id, input.product, businessId), userId: user.id };
 }
 
 /** Sesi baru untuk satu produk; sesi lama yang sudah kedaluwarsa ikut dibersihkan. */
-export async function createSession(db: Db, userId: string, product: string): Promise<string> {
+export async function createSession(db: Db, userId: string, product: string, activeBusinessId: string | null = null): Promise<string> {
   const { token, hash } = newToken();
   await db.transaction(async (tx) => {
     await tx.delete(sessions).where(and(eq(sessions.userId, userId), lt(sessions.expiresAt, new Date())));
-    await tx.insert(sessions).values({ userId, tokenHash: hash, product, expiresAt: new Date(Date.now() + SESSION_TTL_MS) });
+    await tx.insert(sessions).values({ userId, tokenHash: hash, product, activeBusinessId, expiresAt: new Date(Date.now() + SESSION_TTL_MS) });
   });
   return token;
 }

@@ -12,6 +12,7 @@ import { todaySessions } from "@/server/schedule";
 import { billingHome } from "@/server/fees";
 import { homeStats } from "@/server/stats";
 import { AttendanceWidgets, StatTiles } from "@/components/home-stats";
+import { formatBusinessCode } from "@/lib/business-code";
 import { monthLabel, rupiah } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Beranda" };
@@ -48,7 +49,9 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           <h1 className="mt-1 text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">
             {academy.name}
           </h1>
-          {academy.city ? <p className="mt-2 text-white/70">{academy.city}</p> : null}
+          <p className="mt-2 text-white/70">
+            {academy.city ? `${academy.city}, ` : ""}ID bisnis <span className="rounded-full bg-white/12 px-2.5 py-0.5 font-extrabold tracking-wider text-white select-all">{formatBusinessCode(academy.code)}</span>
+          </p>
           <nav aria-label="Pintasan" className="mt-6 flex flex-wrap gap-2">
             <Link href="/jadwal" className="inline-flex h-11 items-center rounded-full bg-ember px-5 font-extrabold text-ink transition hover:-translate-y-0.5 hover:bg-sun">
               Absen latihan

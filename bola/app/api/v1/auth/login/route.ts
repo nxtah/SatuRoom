@@ -12,7 +12,7 @@ export const POST = route(async (req) => {
   rateLimit(`login:${normalizeEmail(input.email)}`, 8, 15 * 60_000);
   const result = await login(db(), { ...input, product: PRODUCT });
   if (result.status === "invalid") {
-    throw new AppError(401, "invalid_credentials", "Email atau password salah.");
+    throw new AppError(401, "invalid_credentials", "ID bisnis, email, atau password salah.");
   }
   await setSessionCookie(result.token);
   return ok({ status: "ok" });
