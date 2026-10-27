@@ -6,7 +6,7 @@ import { useId } from "react";
  * hanya mengganti kostum. Dekoratif secara bawaan (aria-hidden); beri `title` bila gambar membawa makna.
  */
 export type RuruPose = "wave" | "happy" | "think" | "cheer";
-export type RuruCostume = "none" | "academy";
+export type RuruCostume = "none" | "academy" | "chef";
 
 const INK = "#1E1B18";
 const BODY = "#FF6A00";
@@ -129,6 +129,18 @@ export function Ruru({ pose = "happy", costume = "none", className, title }: Rur
       <ellipse cx="140" cy="120" rx="9" ry="5" fill="#FF8A9A" opacity="0.75" />
 
       <Mouth pose={pose} />
+
+      {costume === "chef" ? (
+        <g>
+          <g clipPath={`url(#${clipId})`}>
+            <rect x="40" y="140" width="120" height="40" fill="#FFFFFF" />
+            <rect x="40" y="140" width="120" height="5" fill={INK} opacity="0.12" />
+            <circle cx="100" cy="158" r="5" fill={BODY} />
+          </g>
+          <path d="M70 46 C56 46 54 24 70 24 C72 12 94 10 100 20 C108 10 130 12 130 24 C146 24 144 46 130 46 Z" fill="#FFFFFF" stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+          <path d="M72 38 H128" stroke={INK} strokeWidth="2.5" opacity="0.25" />
+        </g>
+      ) : null}
 
       {costume === "academy" ? (
         <g transform="translate(166 176)">

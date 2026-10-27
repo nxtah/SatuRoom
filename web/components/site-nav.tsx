@@ -1,8 +1,9 @@
-import { APP_URL } from "@/lib/site";
+import { BOLA_URL, RASA_URL } from "@/lib/site";
 import { RuruMark } from "./ruru";
 
 const LINKS = [
-  ["Fitur", "#fitur"],
+  ["Bola", "#bola"],
+  ["Rasa", "#rasa"],
   ["Cara mulai", "#mulai"],
   ["Tanya jawab", "#tanya"],
 ];
@@ -17,9 +18,6 @@ export function SiteNav() {
         <a href="#" className="flex items-center gap-2 rounded-full">
           <RuruMark className="size-8 sm:size-9" />
           <span className="font-display text-lg font-extrabold tracking-tight sm:text-xl">SatuRoom</span>
-          <span className="hidden rounded-full bg-turf-soft px-2 py-0.5 text-xs font-bold text-pitch sm:inline">
-            Bola
-          </span>
         </a>
         <ul className="mx-auto hidden items-center gap-1 md:flex">
           {LINKS.map(([label, href]) => (
@@ -34,14 +32,24 @@ export function SiteNav() {
           ))}
         </ul>
         <div className="ml-auto flex items-center gap-1 md:ml-0">
+          {/* Menu masuk tanpa JavaScript: pilih aplikasi yang dipakai. */}
+          <details className="group relative">
+            <summary className="flex cursor-pointer list-none items-center rounded-full px-3 py-2 text-sm font-bold transition hover:bg-mist sm:px-4 [&::-webkit-details-marker]:hidden">
+              Masuk
+            </summary>
+            <div className="absolute right-0 mt-2 grid w-52 gap-1 rounded-[1.25rem] border border-line bg-chalk p-2 shadow-lift">
+              <a href={`${BOLA_URL}/masuk`} className="rounded-xl px-4 py-3 text-sm font-bold hover:bg-mist">
+                SatuRoom Bola
+                <span className="block text-xs font-semibold text-ink-soft">Akademi sepak bola</span>
+              </a>
+              <a href={`${RASA_URL}/masuk`} className="rounded-xl px-4 py-3 text-sm font-bold hover:bg-mist">
+                SatuRoom Rasa
+                <span className="block text-xs font-semibold text-ink-soft">Kafe dan warung</span>
+              </a>
+            </div>
+          </details>
           <a
-            href={`${APP_URL}/masuk`}
-            className="rounded-full px-3 py-2 text-sm font-bold transition hover:bg-mist sm:px-4"
-          >
-            Masuk
-          </a>
-          <a
-            href={`${APP_URL}/daftar`}
+            href="#aplikasi"
             className="rounded-full bg-pitch px-4 py-2.5 text-sm font-bold text-white transition hover:bg-pitch-2 active:scale-[0.97] sm:px-5"
           >
             Coba gratis

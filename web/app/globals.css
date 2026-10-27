@@ -1,4 +1,4 @@
-/* Hallmark · v2.0.0 · redesign: full · built: the project, SatuRoom brand and Ruru kept · copy: verbatim */
+/* Hallmark · v2.0.0 · redesign: full · built: the project, SatuRoom brand and Ruru kept · copy: rewritten for the two-product brand */
 /* Hallmark · dismissed 58 · the hero sentence is the owner's existing copy, kept verbatim */
 /* Hallmark · answered F8 · every scroll effect is CSS scroll-driven, visible by default and off under reduced motion; the owner asked for scroll effects */
 @import "tailwindcss";
@@ -24,6 +24,14 @@
   --color-ink: #17201b;
   --color-ink-soft: #4d5a52;
   --color-sun: #ffc93c;
+  /* Rasa: hangat dapur. */
+  --color-kitchen: #31251d;
+  --color-kitchen-2: #3f3128;
+  --color-plate: #fffaf4;
+  --color-saffron: #f59e0b;
+  --color-saffron-soft: #fdf0d3;
+  --color-basil: #317159;
+  --color-tomato: #dc5a3d;
 
   --font-display: var(--font-jakarta), ui-sans-serif, sans-serif;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;

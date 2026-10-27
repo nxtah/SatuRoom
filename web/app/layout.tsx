@@ -11,12 +11,12 @@ const body = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://saturoom.com"),
-  title: "SatuRoom Bola: aplikasi akademi sepak bola",
+  title: "SatuRoom: aplikasi rapi untuk akademi bola dan usaha makanan",
   description:
-    "Data pemain, jadwal latihan, dan absensi akademi sepak bola dalam satu aplikasi yang mudah dipakai dari HP.",
+    "SatuRoom Bola mengurus pemain, jadwal, dan absensi akademi sepak bola. SatuRoom Rasa mengurus kasir, dapur, dan stok kafe atau warung. Mudah dipakai dari HP.",
   openGraph: {
-    title: "SatuRoom Bola",
-    description: "Urus akademi sepak bola cukup dari HP.",
+    title: "SatuRoom",
+    description: "Aplikasi sederhana untuk akademi sepak bola dan usaha makanan.",
     locale: "id_ID",
     type: "website",
   },
