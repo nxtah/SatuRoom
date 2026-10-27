@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createOrder, updateOrderStatus } from "@/server/orders";
 import { payOrder, voidPayment } from "@/server/payments";
-import { dailyReport, todayJakarta } from "@/server/reports";
+import { dailyReport, salesSeries, todayJakarta } from "@/server/reports";
 import { createIngredient, setRecipe } from "@/server/stock";
 import { businessOf, menuItemOf, staffOf } from "./helpers";
 
@@ -33,6 +33,22 @@ describe("laporan harian", () => {
     expect(r.topItems[0]).toMatchObject({ name: "Mie", quantity: 5, revenue: 50000 });
     expect(r.foodCost).toBe(10000);
     expect(r.lowStock).toHaveLength(0);
+  });
+
+  it("tren 7 hari memuat hari ini, melewatkan pembayaran batal, dan hanya menghitung jam yang ada pesanannya", async () => {
+    const biz = await businessOf(`Kafe ${Math.random()}`);
+    const mie = await menuItemOf(biz.ctx, "Mie", 10000);
+    const { id } = await createOrder(biz.ctx, { type: "takeaway", lines: [{ menuItemId: mie, quantity: 2 }] });
+    await updateOrderStatus(biz.ctx, id, "preparing");
+    await updateOrderStatus(biz.ctx, id, "ready");
+    await payOrder(biz.ctx, { orderId: id, amount: 20000, method: "cash" });
+    const today = todayJakarta();
+    const s = await salesSeries(biz.ctx, today);
+    expect(s.days).toHaveLength(7);
+    expect(s.days.at(-1)).toEqual({ date: today, sales: 20000 });
+    expect(s.days.slice(0, 6).every((d) => d.sales === 0)).toBe(true);
+    expect(s.hours.reduce((a, h) => a + h.orders, 0)).toBe(1);
+    await expect(salesSeries(biz.ctx, "bukan-tanggal")).rejects.toThrow("INVALID_DATE");
   });
 
   it("laporan hari lain kosong dan tanggal buruk ditolak", async () => {

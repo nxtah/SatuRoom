@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/brand";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { listMyAcademies } from "@/server/academy";
 import { currentSession } from "@/server/context";
 import { roleLabels, myInvitations } from "@/server/staff";
@@ -30,7 +30,7 @@ export default async function UndanganPage() {
       <Brand />
       <div className="rise mt-10 flex items-end gap-4">
         <div className="w-24 shrink-0">
-          <Ruru pose={invites.length ? "cheer" : "think"} costume="academy" />
+          <Maskot />
         </div>
         <div className="min-w-0 pb-2">
           <h1 className="text-3xl leading-tight font-extrabold tracking-tight">

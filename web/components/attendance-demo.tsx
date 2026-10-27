@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { PhoneFrame } from "./phone-frame";
-import { Ruru } from "./ruru";
+import { Maskot } from "./maskot";
 
 type Status = "hadir" | "izin" | "sakit" | "alpa";
 
@@ -52,7 +52,7 @@ export function AttendanceDemo() {
         {saved ? (
           <div className="flex flex-col items-center px-2 py-8 text-center" role="status">
             <div className="w-28">
-              <Ruru pose="cheer" costume="academy" />
+              <Maskot />
             </div>
             <p className="mt-3 font-display text-xl font-extrabold">Absen tersimpan</p>
             <p className="mt-1 text-sm text-ink-soft">

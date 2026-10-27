@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { Alert } from "@/components/ui/alert";
 import { ButtonLink } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -48,7 +48,7 @@ export function VerifyEmail({ token }: { token: string }) {
   return (
     <div className="rise text-center">
       <div className="pop mx-auto w-36">
-        <Ruru pose="cheer" />
+        <Maskot />
       </div>
       <h1 className="mt-6 text-3xl font-extrabold tracking-tight">Email Anda sudah dikonfirmasi</h1>
       <p className="mt-3 text-ink-soft">Akun siap. Masuk untuk mulai menyiapkan akademi.</p>

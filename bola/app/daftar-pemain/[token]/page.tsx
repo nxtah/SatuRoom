@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Brand } from "@/components/brand";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { publicRegistrationAcademy } from "@/server/registrations";
 import { PublicRegistrationForm } from "./public-form";
 
@@ -27,7 +27,7 @@ export default async function DaftarPemainPage({ params }: { params: Promise<{ t
                 <h1 className="mt-1 text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-4xl">{academy}</h1>
               </div>
               <div className="w-24 shrink-0 sm:w-28">
-                <Ruru pose="wave" costume="academy" />
+                <Maskot />
               </div>
             </div>
             <p className="rise mt-3 text-ink-soft">
@@ -38,7 +38,7 @@ export default async function DaftarPemainPage({ params }: { params: Promise<{ t
         ) : (
           <div className="rise mt-10 flex flex-col items-center rounded-[2rem] bg-chalk px-6 py-12 text-center">
             <div className="w-28">
-              <Ruru pose="think" />
+              <Maskot />
             </div>
             <h1 className="mt-4 text-2xl font-extrabold">Pendaftaran ini sudah ditutup</h1>
             <p className="mt-2 max-w-sm text-ink-soft">

@@ -1,5 +1,5 @@
 import { BOLA_URL, RASA_URL } from "@/lib/site";
-import { RuruMark } from "./ruru";
+import { LogoMark } from "./maskot";
 
 const LINKS = [
   ["Bola", "#bola"],
@@ -13,10 +13,10 @@ export function SiteNav() {
     <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4">
       <nav
         aria-label="Navigasi utama"
-        className="nav-scroll mx-auto flex h-14 max-w-6xl items-center gap-2 rounded-full border border-transparent px-2 pl-3 backdrop-blur-md sm:h-16 sm:px-3 sm:pl-4"
+        className="mx-auto flex h-14 max-w-6xl items-center gap-2 rounded-full border border-line bg-chalk-glass px-2 pl-3 shadow-nav backdrop-blur-md sm:h-16 sm:px-3 sm:pl-4"
       >
         <a href="#" className="flex items-center gap-2 rounded-full">
-          <RuruMark className="size-8 sm:size-9" />
+          <LogoMark className="h-8 sm:h-9" />
           <span className="font-display text-lg font-extrabold tracking-tight sm:text-xl">SatuRoom</span>
         </a>
         <ul className="mx-auto hidden items-center gap-1 md:flex">

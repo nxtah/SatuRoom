@@ -1,5 +1,5 @@
 import { Brand } from "@/components/brand";
-import { RuruMark } from "@/components/ruru";
+import { LogoMark } from "@/components/maskot";
 import { LogoutButton } from "./logout-button";
 import { PlayerBottomNav, PlayerSideNav } from "./player-nav";
 
@@ -12,7 +12,7 @@ export function PlayerShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:block">
         <div className="sticky top-0 flex h-dvh flex-col gap-8 overflow-y-auto p-3 lg:p-5">
           <div className="hidden px-2 pt-1 lg:block"><Brand href="/saya" /></div>
-          <div className="mx-auto pt-3 lg:hidden"><RuruMark className="size-10" /></div>
+          <div className="mx-auto pt-3 lg:hidden"><LogoMark className="h-10" /></div>
           <PlayerSideNav />
         </div>
       </aside>

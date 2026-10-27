@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -35,7 +35,7 @@ export function PublicRegistrationForm({ token, academyName }: { token: string; 
     return (
       <div role="status" className="rise mt-8 flex flex-col items-center rounded-[2rem] bg-chalk px-6 py-12 text-center">
         <div className="w-32">
-          <Ruru pose="cheer" costume="academy" />
+          <Maskot />
         </div>
         <h2 className="mt-4 text-2xl font-extrabold">Pendaftaran terkirim</h2>
         <p className="mt-2 max-w-sm text-ink-soft">

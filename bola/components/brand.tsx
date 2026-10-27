@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { RuruMark } from "./ruru";
+import { LogoMark } from "./maskot";
 
 export function Brand({ tone = "ink", href = "/" }: { tone?: "ink" | "white"; href?: string }) {
   return (
     <Link href={href} className="inline-flex items-center gap-2 rounded-full">
-      <RuruMark className="size-9" />
+      <LogoMark className="h-9" />
       <span className={`text-xl font-extrabold tracking-tight ${tone === "white" ? "text-white" : "text-ink"}`}>
         SatuRoom
       </span>

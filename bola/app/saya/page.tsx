@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { STATUS_STYLE } from "@/components/attendance-badge";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { ageOf } from "@/lib/age";
 import { RatingDots } from "@/components/rating-dots";
 import { dayLabel } from "@/lib/dates";
@@ -170,7 +170,7 @@ export function Hero({ me }: { me: PlayerHome }) {
           </div>
         </div>
         <div className="w-24 shrink-0 sm:w-36">
-          <Ruru pose="wave" costume="academy" />
+          <Maskot />
         </div>
       </div>
     </section>

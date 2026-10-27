@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { STATUS_STYLE } from "@/components/attendance-badge";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -134,7 +134,7 @@ export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: st
             {done && changed.length === 0 ? (
               <>
                 <span className="pop -my-6 w-14 shrink-0">
-                  <Ruru pose="cheer" costume="academy" />
+                  <Maskot />
                 </span>
                 <p role="status" className="flex-1 font-extrabold">
                   Absen tersimpan

@@ -1,5 +1,5 @@
 import { Brand } from "@/components/brand";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <circle cx="200" cy="200" r="12" fill="currentColor" />
         </svg>
         <div className="pointer-events-none absolute right-10 bottom-10 w-52">
-          <Ruru pose="wave" costume="academy" />
+          <Maskot />
         </div>
       </aside>
 

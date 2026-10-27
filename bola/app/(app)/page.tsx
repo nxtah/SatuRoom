@@ -1,7 +1,7 @@
 import { ChevronRight, CircleAlert, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { SessionCard } from "@/components/session-card";
 import { dayLabel } from "@/lib/dates";
 import { ABSENT_STREAK, needsAttention } from "@/server/attendance";
@@ -37,20 +37,36 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="grid gap-5">
-      <section className="rise relative flex items-end gap-4 overflow-hidden rounded-[2rem] bg-pitch px-6 pt-7 text-white sm:px-10 sm:pt-10">
-        <svg aria-hidden viewBox="0 0 400 400" className="pointer-events-none absolute -top-32 -right-24 w-[420px] text-white/[0.06]">
+      <section className="rise relative grid items-end gap-2 overflow-hidden rounded-[2rem] bg-pitch px-6 pt-8 text-white sm:grid-cols-[minmax(0,1fr)_auto] sm:px-10 sm:pt-10">
+        <svg aria-hidden viewBox="0 0 400 400" className="pointer-events-none absolute -right-20 -bottom-24 w-[460px] text-white/[0.07]">
           <circle cx="200" cy="200" r="150" fill="none" stroke="currentColor" strokeWidth="10" />
           <path d="M0 200 H400" stroke="currentColor" strokeWidth="10" />
         </svg>
-        <div className="relative min-w-0 flex-1 pb-8 sm:pb-10">
+        <span aria-hidden className="pointer-events-none absolute right-6 bottom-0 size-56 rounded-full bg-pitch-2 sm:right-12 sm:size-80" />
+        <div className="relative min-w-0 pb-4 sm:pb-12">
           <p className="font-semibold text-white/70">{justCreated ? "Akademi berhasil dibuat" : justJoined ? `Selamat bergabung, ${firstName}` : celebrate ? "Persiapan selesai" : `Halo, ${firstName}`}</p>
           <h1 className="mt-1 text-3xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">
             {academy.name}
           </h1>
           {academy.city ? <p className="mt-2 text-white/70">{academy.city}</p> : null}
+          <nav aria-label="Pintasan" className="mt-6 flex flex-wrap gap-2">
+            <Link href="/jadwal" className="inline-flex h-11 items-center rounded-full bg-ember px-5 font-extrabold text-ink transition hover:-translate-y-0.5 hover:bg-sun">
+              Absen latihan
+            </Link>
+            {ctx.can("players.manage") ? (
+              <Link href="/pemain/baru" className="inline-flex h-11 items-center rounded-full bg-white/12 px-5 font-bold text-white transition hover:bg-white/20">
+                Tambah pemain
+              </Link>
+            ) : null}
+            {billing ? (
+              <Link href="/iuran" className="inline-flex h-11 items-center rounded-full bg-white/12 px-5 font-bold text-white transition hover:bg-white/20">
+                Iuran
+              </Link>
+            ) : null}
+          </nav>
         </div>
-        <div className={`relative w-28 shrink-0 sm:w-40 ${celebrate ? "pop" : ""}`}>
-          <Ruru pose={celebrate ? "cheer" : "wave"} costume="academy" />
+        <div className={`relative mx-auto w-44 shrink-0 sm:mx-0 sm:w-72 ${celebrate ? "pop" : ""}`}>
+          <Maskot priority className="maskot-float drop-shadow-maskot" />
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 import { Brand } from "./brand";
-import { RuruMark } from "./ruru";
+import { LogoMark } from "./maskot";
 import { AppHeader } from "./app-header";
 import { BottomNav, SideNav } from "./nav";
 
@@ -29,7 +29,7 @@ export function AppShell({ academyName, academies, activeAcademyId, user, roleLa
             <Brand />
           </div>
           <div className="mx-auto pt-3 lg:hidden">
-            <RuruMark className="size-10" />
+            <LogoMark className="h-10" />
           </div>
           <SideNav allowed={allowed} />
         </div>

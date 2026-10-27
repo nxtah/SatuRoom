@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Brand } from "@/components/brand";
-import { Ruru } from "@/components/ruru";
+import { Maskot } from "@/components/maskot";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -50,10 +50,10 @@ export function Onboarding({ firstName, another }: { firstName: string; another:
         {step === 0 ? (
           <section key="welcome" className="rise text-center">
             <div className="pop mx-auto w-40">
-              <Ruru pose="wave" costume="academy" />
+              <Maskot />
             </div>
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-balance sm:text-5xl">
-              Halo {firstName}, aku Ruru.
+              Halo {firstName}, selamat datang.
             </h1>
             <p className="mx-auto mt-4 max-w-md text-lg text-ink-soft">
               Kita siapkan akademimu dalam beberapa langkah singkat. Semuanya bisa diubah nanti.

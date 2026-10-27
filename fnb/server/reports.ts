@@ -66,3 +66,31 @@ export async function dailyReport(ctx: FnbContext, date: string): Promise<DailyR
     };
   });
 }
+
+export type SalesSeries = {
+  /** 7 hari berakhir di `today`, lama ke baru. */
+  days: { date: string; sales: number }[];
+  /** Pesanan per jam buka (WIB) selama 7 hari itu; hanya jam yang ada pesanannya. */
+  hours: { hour: number; orders: number }[];
+};
+
+/** Tren penjualan 7 hari dan jam ramai, untuk grafik di Ringkasan. */
+export async function salesSeries(ctx: FnbContext, today: string): Promise<SalesSeries> {
+  if (!canView(ctx)) throw new Error("FORBIDDEN");
+  if (!REPORT_DATE.test(today)) throw new Error("INVALID_DATE");
+  return withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, async (tx) => {
+    const days = (await tx.execute(sql`
+      SELECT to_char(d::date, 'YYYY-MM-DD') AS date, COALESCE(SUM(p.amount), 0)::int AS sales
+      FROM generate_series(${today}::date - 6, ${today}::date, interval '1 day') d
+      LEFT JOIN fnb.payments p ON p.voided_at IS NULL AND (p.recorded_at AT TIME ZONE 'Asia/Jakarta')::date = d::date
+      GROUP BY d ORDER BY d
+    `)) as unknown as SalesSeries["days"];
+    const hours = (await tx.execute(sql`
+      SELECT EXTRACT(HOUR FROM opened_at AT TIME ZONE 'Asia/Jakarta')::int AS hour, COUNT(*)::int AS orders
+      FROM fnb.orders
+      WHERE status <> 'cancelled' AND (opened_at AT TIME ZONE 'Asia/Jakarta')::date BETWEEN ${today}::date - 6 AND ${today}::date
+      GROUP BY 1 ORDER BY 1
+    `)) as unknown as SalesSeries["hours"];
+    return { days, hours };
+  });
+}
