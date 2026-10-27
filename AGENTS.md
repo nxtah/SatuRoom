@@ -25,12 +25,17 @@ Riwayat keputusan lengkap ada di `RENCANA_FLOW.md` (bagian "Progres" di bawahnya
 
 - Tangkap tujuan produk dari bahasa santai pemilik; lengkapi detail teknis dan UX yang lazim bila
   hasilnya jelas, aman, dapat dibatalkan, dan masih berada dalam ruang lingkup permintaan.
+- **Default kerja adalah eksekusi sampai selesai:** bila tujuan dan hasil yang diinginkan sudah
+  jelas, langsung telusuri kode, putuskan detail implementasi, kerjakan satu vertical slice utuh,
+  tes, cek UI, perbarui dokumentasi/Progres, lalu commit dan push. Jangan berhenti hanya untuk
+  meminta persetujuan atas langkah teknis biasa atau rencana yang sudah jelas.
 - Jangan meminta klarifikasi untuk pilihan implementasi kecil (nama file, komponen, layout rinci,
   validasi umum, atau tes). Pilih solusi yang konsisten dengan pola kode dan jelaskan asumsi penting
   di hasil akhir.
-- Wajib bertanya dulu bila ada lebih dari satu arti bisnis yang mengubah data/izin/alur pengguna,
-  menyangkut anak atau data sensitif, biaya/penagihan, penghapusan permanen, migrasi berisiko,
-  akses VPS/production, atau tindakan tidak bisa dibatalkan.
+- Jika permintaan masih punya beberapa arti, ambil tafsiran paling masuk akal dari dokumen, pola
+  produk, dan percakapan sebelumnya lalu kerjakan. Bertanya hanya sebagai pilihan terakhir bila
+  keputusan tidak bisa dibatalkan atau menyentuh production/VPS, DNS, secret, penghapusan permanen,
+  uang nyata, atau data anak di luar kebijakan yang sudah disetujui.
 - Bila permintaan besar, pecah menjadi vertical slice berurutan. Buat/ubah rencana di `docs/`,
   selesaikan satu slice lengkap, tes, cek UI, catat Progres, commit dan push sebelum slice berikutnya.
 - Rujukan dokumentasi: mulai dari `docs/README.md`; `SatuRoom packs/` adalah referensi lokal
