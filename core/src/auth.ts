@@ -78,17 +78,14 @@ export async function verifyEmail(db: Db, token: string): Promise<boolean> {
   return true;
 }
 
-export type LoginResult =
-  | { status: "ok"; token: string; userId: string }
-  | { status: "invalid" }
-  | { status: "unverified"; userId: string };
+export type LoginResult = { status: "ok"; token: string; userId: string } | { status: "invalid" };
 
 export async function login(
   db: Db,
   input: { email: string; password: string; product: string },
 ): Promise<LoginResult> {
   const [user] = await db
-    .select({ id: users.id, passwordHash: users.passwordHash, verified: users.emailVerifiedAt })
+    .select({ id: users.id, passwordHash: users.passwordHash })
     .from(users)
     .where(eq(users.email, normalizeEmail(input.email)));
   if (!user) {
@@ -96,19 +93,83 @@ export async function login(
     return { status: "invalid" };
   }
   if (!(await verifyPassword(user.passwordHash, input.password))) return { status: "invalid" };
-  if (!user.verified) return { status: "unverified", userId: user.id };
+  return { status: "ok", token: await createSession(db, user.id, input.product), userId: user.id };
+}
 
+/** Sesi baru untuk satu produk; sesi lama yang sudah kedaluwarsa ikut dibersihkan. */
+export async function createSession(db: Db, userId: string, product: string): Promise<string> {
   const { token, hash } = newToken();
   await db.transaction(async (tx) => {
-    await tx.delete(sessions).where(and(eq(sessions.userId, user.id), lt(sessions.expiresAt, new Date())));
-    await tx.insert(sessions).values({
-      userId: user.id,
-      tokenHash: hash,
-      product: input.product,
-      expiresAt: new Date(Date.now() + SESSION_TTL_MS),
-    });
+    await tx.delete(sessions).where(and(eq(sessions.userId, userId), lt(sessions.expiresAt, new Date())));
+    await tx.insert(sessions).values({ userId, tokenHash: hash, product, expiresAt: new Date(Date.now() + SESSION_TTL_MS) });
   });
-  return { status: "ok", token, userId: user.id };
+  return token;
+}
+
+/**
+ * Email yang sudah dibuktikan miliknya (lewat link email atau Google). Akun email-password boleh dipakai
+ * tanpa bukti ini, tetapi undangan yang dikirim ke email itu hanya terbuka bagi yang sudah terbukti.
+ */
+export async function isEmailVerified(db: Db, userId: string): Promise<boolean> {
+  const [row] = await db.select({ at: users.emailVerifiedAt }).from(users).where(eq(users.id, userId));
+  return Boolean(row?.at);
+}
+
+export interface GoogleProfile {
+  sub: string;
+  email: string;
+  name: string;
+}
+
+/**
+ * Masuk atau daftar lewat Google. Google sudah memastikan email milik orang itu, jadi email langsung terverifikasi.
+ * Bila email sudah terdaftar lewat password dan belum pernah dibuktikan, password lama dibuang dan sesinya
+ * diputus: akun itu bisa saja dibuat orang lain yang mengetik email korban sebelum korban mendaftar.
+ */
+export async function loginWithGoogle(
+  db: Db,
+  profile: GoogleProfile,
+  product: string,
+): Promise<{ token: string; userId: string; created: boolean }> {
+  const email = normalizeEmail(profile.email);
+  const userId = await db.transaction(async (tx) => {
+    const [bySub] = await tx.select({ id: users.id }).from(users).where(eq(users.googleSub, profile.sub));
+    if (bySub) return { id: bySub.id, created: false };
+    const [byEmail] = await tx
+      .select({ id: users.id, verified: users.emailVerifiedAt, sub: users.googleSub })
+      .from(users)
+      .where(eq(users.email, email))
+      .for("update");
+    if (byEmail) {
+      // Email ini sudah tertaut ke akun Google lain: jangan ditimpa.
+      if (byEmail.sub) throw new Error("GOOGLE_CONFLICT");
+      const unusable = await hashPassword(newToken().token);
+      await tx
+        .update(users)
+        .set({
+          googleSub: profile.sub,
+          emailVerifiedAt: sql`coalesce(${users.emailVerifiedAt}, now())`,
+          updatedAt: new Date(),
+          ...(byEmail.verified ? {} : { passwordHash: unusable }),
+        })
+        .where(eq(users.id, byEmail.id));
+      if (!byEmail.verified) await tx.delete(sessions).where(eq(sessions.userId, byEmail.id));
+      return { id: byEmail.id, created: false };
+    }
+    const [created] = await tx
+      .insert(users)
+      .values({
+        email,
+        name: profile.name.trim().slice(0, 100) || email.split("@")[0]!,
+        // Akun Google tidak punya password; hash acak yang tidak diketahui siapa pun.
+        passwordHash: await hashPassword(newToken().token),
+        emailVerifiedAt: new Date(),
+        googleSub: profile.sub,
+      })
+      .returning({ id: users.id });
+    return { id: created!.id, created: true };
+  });
+  return { token: await createSession(db, userId.id, product), userId: userId.id, created: userId.created };
 }
 
 export interface SessionInfo {

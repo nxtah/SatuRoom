@@ -10,6 +10,8 @@ const Env = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().min(3),
+  GOOGLE_CLIENT_ID: z.string().min(10).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
   COOKIE_SECURE: z.enum(["true", "false"]).transform((v) => v === "true"),
 });
 

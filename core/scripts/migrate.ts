@@ -79,7 +79,7 @@ async function setupFnbRole(sql: postgres.Sql, password?: string): Promise<void>
   await sql.unsafe(`
     GRANT USAGE ON SCHEMA core, fnb TO fnb_app;
     GRANT SELECT, INSERT ON core.users TO fnb_app;
-    GRANT UPDATE (name, password_hash, email_verified_at, updated_at) ON core.users TO fnb_app;
+    GRANT UPDATE (name, password_hash, email_verified_at, google_sub, updated_at) ON core.users TO fnb_app;
     GRANT SELECT, INSERT, UPDATE, DELETE ON core.sessions, core.auth_tokens TO fnb_app;
     GRANT SELECT, INSERT, UPDATE ON core.businesses, core.memberships TO fnb_app;
     GRANT SELECT, INSERT ON core.audit_events TO fnb_app;
@@ -100,7 +100,7 @@ async function setupBolaRole(sql: postgres.Sql, password: string): Promise<void>
   await sql.unsafe(`
     GRANT USAGE ON SCHEMA core, bola TO bola_app;
     GRANT SELECT, INSERT ON core.users TO bola_app;
-    GRANT UPDATE (name, password_hash, email_verified_at, updated_at) ON core.users TO bola_app;
+    GRANT UPDATE (name, password_hash, email_verified_at, google_sub, updated_at) ON core.users TO bola_app;
     GRANT SELECT, INSERT, UPDATE, DELETE ON core.sessions, core.auth_tokens TO bola_app;
     GRANT SELECT, INSERT, UPDATE ON core.businesses, core.memberships TO bola_app;
     GRANT SELECT, INSERT ON core.audit_events TO bola_app;

@@ -14,9 +14,6 @@ export const POST = route(async (req) => {
   if (result.status === "invalid") {
     throw new AppError(401, "invalid_credentials", "Email atau password salah.");
   }
-  if (result.status === "unverified") {
-    throw new AppError(403, "email_unverified", "Email belum dikonfirmasi. Cek kotak masuk email Anda.");
-  }
   await setSessionCookie(result.token);
   return ok({ status: "ok" });
 });

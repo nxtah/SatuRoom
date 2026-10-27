@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { GoogleButton, OrDivider } from "@/components/google-button";
 import { PasswordField } from "@/components/password-field";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,15 @@ import { api } from "@/lib/api";
 import { RegisterInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-export function RegisterForm() {
-  const router = useRouter();
+export function RegisterForm({ google }: { google: boolean }) {
   const form = useForm(RegisterInput);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const values = formValues(e.currentTarget);
     const done = await form.submit(values, (input) => api("/auth/register", { body: input }));
-    if (done) router.push(`/cek-email?email=${encodeURIComponent(String(values.email))}`);
+    // Langsung masuk; tujuan akhir ditentukan server lewat redirect.
+    if (done) window.location.replace("/");
   }
 
   return (
@@ -26,7 +26,16 @@ export function RegisterForm() {
       <h1 className="text-3xl font-extrabold tracking-tight">Buat akun</h1>
       <p className="mt-2 text-ink-soft">Gratis. Setelah ini Anda langsung bisa menyiapkan akademi.</p>
 
-      <form onSubmit={onSubmit} noValidate className="mt-8 grid gap-5" aria-label="Form daftar">
+      <div className="mt-8 grid gap-5">
+        {google ? (
+          <>
+            <GoogleButton label="Daftar dengan Google" />
+            <OrDivider />
+          </>
+        ) : null}
+      </div>
+
+      <form onSubmit={onSubmit} noValidate className={`${google ? "mt-5" : "mt-8"} grid gap-5`} aria-label="Form daftar">
         {form.error && !form.error.fields ? <Alert tone="error">{form.error.message}</Alert> : null}
         <Field label="Nama Anda" name="name" autoComplete="name" autoFocus error={form.fields.name} />
         <Field
@@ -35,7 +44,7 @@ export function RegisterForm() {
           type="email"
           autoComplete="email"
           inputMode="email"
-          hint="Kami kirim link konfirmasi ke email ini."
+          hint="Kami kirim link konfirmasi. Dibutuhkan untuk menerima undangan akademi."
           error={form.fields.email}
         />
         <PasswordField

@@ -1,5 +1,5 @@
 import "server-only";
-import type { SessionInfo } from "@saturoom/core/auth";
+import { isEmailVerified, type SessionInfo } from "@saturoom/core/auth";
 import { newToken } from "@saturoom/core/crypto";
 import { withContext, type Tx } from "@saturoom/core/db";
 import { auditEvents } from "@saturoom/core/schema";
@@ -10,7 +10,7 @@ import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
 import { announcementsForPlayer } from "./announcements";
 import { evaluationsForPlayer } from "./evaluations";
-import { AppError, notFound } from "./errors";
+import { AppError, notFound, unverifiedEmail } from "./errors";
 import { sendPlayerInvite } from "./mail";
 import { visiblePlayerIds } from "./players";
 import { addDays, academyToday } from "./schedule";
@@ -223,6 +223,8 @@ export interface MyPlayerInvitation {
 }
 
 export async function myPlayerInvitations(userId: string): Promise<MyPlayerInvitation[]> {
+  // Berisi nama dan tanggal lahir anak: hanya untuk pemilik email yang sudah terbukti.
+  if (!(await isEmailVerified(db(), userId))) return [];
   return (await withContext(db(), { userId }, (tx) =>
     tx.execute(sql`
       SELECT id, academy_name AS "academyName", player_name AS "playerName",
@@ -233,6 +235,7 @@ export async function myPlayerInvitations(userId: string): Promise<MyPlayerInvit
 
 /** `consentBy`: nama orang tua/wali yang menyetujui, atau nama pemain sendiri bila sudah dewasa. */
 export async function acceptPlayerInvitation(session: SessionInfo, invitationId: string, consentBy: string): Promise<string> {
+  if (!(await isEmailVerified(db(), session.userId))) throw unverifiedEmail();
   if (await hasPlayerAccount(session.userId)) {
     throw new AppError(409, "has_player", "Akun ini sudah terhubung ke pemain lain. Satu pemain memakai satu akun.");
   }

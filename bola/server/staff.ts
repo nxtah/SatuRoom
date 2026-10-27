@@ -1,5 +1,5 @@
 import "server-only";
-import { setActiveBusiness, type SessionInfo } from "@saturoom/core/auth";
+import { isEmailVerified, setActiveBusiness, type SessionInfo } from "@saturoom/core/auth";
 import { withContext, type Tx } from "@saturoom/core/db";
 import { auditEvents, memberships, users } from "@saturoom/core/schema";
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
@@ -8,7 +8,7 @@ import type { InviteInput, StaffUpdateInput } from "@/lib/schemas";
 import { getAcademy } from "./academy";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
-import { AppError, forbidden, notFound } from "./errors";
+import { AppError, forbidden, notFound, unverifiedEmail } from "./errors";
 import { sendStaffInvite } from "./mail";
 import { ROLE_LABEL, ROLES, type Role } from "./permissions";
 import { invitations, staffRoles, teamCoaches, teams } from "./schema";
@@ -239,6 +239,8 @@ export interface MyInvitation {
 }
 
 export async function myInvitations(userId: string): Promise<MyInvitation[]> {
+  // Undangan dikirim ke alamat email; hanya yang sudah terbukti memiliki alamat itu yang boleh melihatnya.
+  if (!(await isEmailVerified(db(), userId))) return [];
   const rows = (await withContext(db(), { userId }, (tx) =>
     tx.execute(sql`SELECT id, academy_name, invited_by_name, roles FROM bola.my_invitations()`),
   )) as unknown as { id: string; academy_name: string; invited_by_name: string | null; roles: string | Role[] }[];
@@ -252,6 +254,7 @@ export async function myInvitations(userId: string): Promise<MyInvitation[]> {
 }
 
 export async function acceptInvitation(session: SessionInfo, invitationId: string): Promise<string> {
+  if (!(await isEmailVerified(db(), session.userId))) throw unverifiedEmail();
   const [row] = (await withContext(db(), { userId: session.userId }, (tx) =>
     tx.execute(sql`SELECT bola.accept_invitation(${invitationId}::uuid) AS id`),
   )) as unknown as { id: string | null }[];

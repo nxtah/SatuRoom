@@ -5,6 +5,7 @@ import {
   logout,
   registerUser,
   resetPassword,
+  isEmailVerified,
   verifyEmail,
 } from "@saturoom/core/auth";
 import { describe, expect, it } from "vitest";
@@ -14,13 +15,15 @@ const pw = "password-rahasia";
 const mail = () => `a${Date.now()}${Math.random().toString(36).slice(2, 6)}@contoh.id`;
 
 describe("akun dan sesi", () => {
-  it("tidak bisa masuk sebelum email dikonfirmasi, lalu bisa setelahnya", async () => {
+  it("bisa masuk tanpa konfirmasi; email terbukti setelah link dipakai", async () => {
     const email = mail();
     const reg = await registerUser(db(), { name: "Sari", email, password: pw });
     expect(reg.status).toBe("created");
-    expect((await login(db(), { email, password: pw, product: "bola" })).status).toBe("unverified");
+    expect((await login(db(), { email, password: pw, product: "bola" })).status).toBe("ok");
     if (reg.status !== "created") return;
+    expect(await isEmailVerified(db(), reg.userId)).toBe(false);
     expect(await verifyEmail(db(), reg.verifyToken)).toBe(true);
+    expect(await isEmailVerified(db(), reg.userId)).toBe(true);
     // Link konfirmasi hanya sekali pakai.
     expect(await verifyEmail(db(), reg.verifyToken)).toBe(false);
     const res = await login(db(), { email: email.toUpperCase(), password: pw, product: "bola" });
