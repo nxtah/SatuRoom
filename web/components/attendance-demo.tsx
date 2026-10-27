@@ -40,8 +40,8 @@ export function AttendanceDemo() {
         <div className="mt-3 flex items-center gap-2">
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-line">
             <div
-              className="h-full rounded-full bg-turf transition-[width] duration-500"
-              style={{ width: `${(done / PLAYERS.length) * 100}%` }}
+              className="h-full origin-left rounded-full bg-turf transition-transform duration-500"
+              style={{ transform: `scaleX(${done / PLAYERS.length})` }}
             />
           </div>
           <span className="text-[11px] font-bold tabular-nums text-ink-soft" aria-live="polite">
@@ -116,7 +116,7 @@ export function AttendanceDemo() {
               type="button"
               disabled={!complete}
               onClick={() => setSaved(true)}
-              className="mt-3 w-full rounded-full bg-ember py-3 text-sm font-bold text-ink transition hover:bg-[#ff7d24] active:scale-[0.98] disabled:bg-line disabled:text-ink-soft"
+              className="mt-3 w-full rounded-full bg-ember py-3 text-sm font-bold text-ink transition hover:bg-ember-bright active:scale-[0.98] disabled:bg-line disabled:text-ink-soft"
             >
               {complete ? "Simpan absen" : `Tandai ${PLAYERS.length - done} pemain lagi`}
             </button>

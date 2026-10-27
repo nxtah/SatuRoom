@@ -223,7 +223,7 @@ export function FeatureStory() {
               ref={(el) => {
                 refs.current[i] = el;
               }}
-              className="lg:flex lg:min-h-[70vh] lg:items-center"
+              className="lg:flex lg:min-h-[58vh] lg:items-center"
             >
               <div
                 className={`max-w-md transition-opacity duration-500 ${on ? "lg:opacity-100" : "lg:opacity-35"}`}
@@ -259,7 +259,7 @@ export function FeatureStory() {
                 <div
                   key={s.title}
                   aria-hidden={active !== i}
-                  className={`absolute inset-0 transition-all duration-500 ${
+                  className={`absolute inset-0 transition-[opacity,transform] duration-500 ${
                     active === i ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
                   }`}
                 >
@@ -272,7 +272,7 @@ export function FeatureStory() {
             {STEPS.map((s, i) => (
               <span
                 key={s.title}
-                className={`h-2 rounded-full transition-all duration-500 ${active === i ? "w-8 bg-ember" : "w-2 bg-line"}`}
+                className={`h-2 w-2 rounded-full transition-[background-color,transform] duration-500 ${active === i ? "scale-x-[4] bg-ember" : "bg-line"}`}
               />
             ))}
           </div>
