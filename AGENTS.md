@@ -21,6 +21,21 @@ Riwayat keputusan lengkap ada di `RENCANA_FLOW.md` (bagian "Progres" di bawahnya
   Commit + push setelah fitur selesai dan lulus tes. Format pesan: Conventional Commits, bahasa Inggris.
 - Setiap fitur selesai: tambahkan satu baris ke bagian Progres di `RENCANA_FLOW.md` (tanggal, apa, jumlah tes).
 
+### Memahami permintaan pemilik
+
+- Tangkap tujuan produk dari bahasa santai pemilik; lengkapi detail teknis dan UX yang lazim bila
+  hasilnya jelas, aman, dapat dibatalkan, dan masih berada dalam ruang lingkup permintaan.
+- Jangan meminta klarifikasi untuk pilihan implementasi kecil (nama file, komponen, layout rinci,
+  validasi umum, atau tes). Pilih solusi yang konsisten dengan pola kode dan jelaskan asumsi penting
+  di hasil akhir.
+- Wajib bertanya dulu bila ada lebih dari satu arti bisnis yang mengubah data/izin/alur pengguna,
+  menyangkut anak atau data sensitif, biaya/penagihan, penghapusan permanen, migrasi berisiko,
+  akses VPS/production, atau tindakan tidak bisa dibatalkan.
+- Bila permintaan besar, pecah menjadi vertical slice berurutan. Buat/ubah rencana di `docs/`,
+  selesaikan satu slice lengkap, tes, cek UI, catat Progres, commit dan push sebelum slice berikutnya.
+- Rujukan dokumentasi: mulai dari `docs/README.md`; `SatuRoom packs/` adalah referensi lokal
+  historis, sedangkan `AGENTS.md` dan `RENCANA_FLOW.md` adalah sumber keputusan aktif.
+
 ## 2. Aturan keamanan (tidak boleh dilanggar)
 
 - **Repo GitHub ini PUBLIK.** Jangan pernah commit: IP server, password, token, isi `.env*`, kunci SSH,
