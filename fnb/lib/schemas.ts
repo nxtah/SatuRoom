@@ -45,3 +45,16 @@ export const RecipeInput=z.object({
   menuItemId:z.string().uuid(),
   lines:z.array(z.object({ingredientId:z.string().uuid(),quantity:z.coerce.number().positive().max(1_000_000)})).max(50),
 });
+export const SupplierInput=z.object({
+  name:z.string().trim().min(2,"Nama supplier wajib diisi.").max(100),
+  phone:z.preprocess(v=>(typeof v==="string"&&v.trim()===""?undefined:v),z.string().trim().regex(/^\+?[0-9 -]{8,20}$/,"Nomor HP belum benar.").optional()),
+});
+export const PurchaseInput=z.object({
+  supplierId:z.string().uuid().nullish(),
+  notes:z.string().trim().max(300).optional(),
+  lines:z.array(z.object({
+    ingredientId:z.string().uuid("Pilih bahan."),
+    quantity:z.coerce.number().positive("Jumlah harus lebih dari nol.").max(1_000_000),
+    unitCost:z.coerce.number().int().min(0).max(100_000_000),
+  })).min(1,"Isi minimal satu bahan.").max(50),
+});
