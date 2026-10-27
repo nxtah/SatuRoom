@@ -27,3 +27,25 @@
 
 /* Bayangan maskot. */
 @theme { --drop-shadow-maskot: 0 24px 30px rgb(0 0 0 / 0.3); }
+
+/* Halaman perkenalan: efek gulir, tampil normal tanpa dukungan browser. */
+@theme { --color-night: #120d0a; --color-kitchen-2: #3f3128; --drop-shadow-maskot: 0 24px 30px rgb(0 0 0 / 0.3); }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+@keyframes pop { from { opacity: 0; transform: scale(0.85); } }
+.rise { animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pop { animation: pop 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+@keyframes panel-rise { from { opacity: 0; transform: perspective(1400px) rotateX(14deg) translateY(70px) scale(0.94); } }
+@keyframes word-in { from { opacity: 0; transform: translateX(-8%); } }
+@keyframes reveal { from { opacity: 0; transform: translateY(36px); } }
+@keyframes logo-sweep { to { transform: translateY(-120px) rotate(14deg) scale(1.08); } }
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee-track { animation: marquee 38s linear infinite; }
+.marquee-track:hover { animation-play-state: paused; }
+@supports (animation-timeline: view()) {
+  .logo-sweep { animation: logo-sweep linear both; animation-timeline: scroll(root); animation-range: 0 900px; }
+  .panel-rise { animation: panel-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; }
+  .word-in { animation: word-in linear both; animation-timeline: view(); animation-range: entry 0% entry 80%; }
+  .reveal { animation: reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 60%; }
+  .scroll-page :is(.draw, .fade-in, .ring-fill, .grow-bar) { animation-timeline: view(); animation-range: entry 15% cover 40%; animation-delay: 0s; }
+}
+@media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } }
