@@ -1,0 +1,73 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import type { Order } from "@/server/orders";
+
+const COLUMNS = [
+  { key: "confirmed", title: "Baru" },
+  { key: "preparing", title: "Dimasak" },
+  { key: "ready", title: "Siap" },
+] as const;
+
+export function KdsBoard({ initialOrders }: { initialOrders: Order[] }) {
+  const [orders, setOrders] = useState(initialOrders);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/v1/orders");
+    if (res.ok) setOrders(await res.json());
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => { void load(); }, 5000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  async function setLine(orderId: string, lineId: string, status: "preparing" | "ready") {
+    setError("");
+    const res = await fetch(`/api/v1/order-lines/${lineId}/status`, {
+      method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error ?? "Status belum dapat diubah."); return; }
+    void orderId; await load();
+  }
+
+  async function serve(orderId: string) {
+    const res = await fetch(`/api/v1/orders/${orderId}/status`, {
+      method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "served" }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error ?? "Pesanan belum dapat disajikan."); return; }
+    await load();
+  }
+
+  return <>
+    {error ? <p className="mt-4 rounded-2xl bg-tomato/20 p-3 text-sm font-bold text-white">{error}</p> : null}
+    <div className="mt-6 grid gap-4 md:grid-cols-3">
+      {COLUMNS.map((col) => {
+        const list = orders.filter((o) => o.status === col.key);
+        return <section key={col.key} className="rounded-[1.5rem] bg-white/8 p-4">
+          <h2 className="flex items-center gap-2 font-extrabold text-saffron">{col.title}<span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/70">{list.length}</span></h2>
+          <div className="mt-3 grid gap-3">
+            {list.map((o) => <article key={o.id} className="rounded-2xl bg-plate p-4 text-ink">
+              <div className="flex items-center justify-between">
+                <b>#{o.number}</b>
+                <span className="text-xs font-bold text-stone-500">{o.type === "dine_in" ? "Dine in" : o.type === "takeaway" ? "Bungkus" : "Ambil"}{o.tableName ? ` · ${o.tableName}` : ""}</span>
+              </div>
+              {o.customerName ? <p className="text-xs text-stone-500">{o.customerName}</p> : null}
+              <ul className="mt-2 grid gap-1.5">
+                {o.lines.map((l) => <li key={l.id} className="flex items-center gap-2 rounded-xl bg-white p-2">
+                  <span className="min-w-0 flex-1 text-sm"><b>{l.qty}x</b> {l.name}{l.notes ? <em className="block text-xs text-stone-500">{l.notes}</em> : null}</span>
+                  {l.status === "ready" ? <span className="rounded-full bg-basil/10 px-2 py-0.5 text-xs font-bold text-basil">siap</span>
+                    : <button onClick={() => setLine(o.id, l.id, l.status === "confirmed" ? "preparing" : "ready")} className="rounded-full bg-kitchen px-3 py-1 text-xs font-bold text-white">
+                        {l.status === "confirmed" ? "Mulai" : "Siap"}
+                      </button>}
+                </li>)}
+              </ul>
+              {o.status === "ready" ? <button onClick={() => serve(o.id)} className="mt-2 h-9 w-full rounded-full bg-basil text-xs font-extrabold text-white">Sajikan</button> : null}
+            </article>)}
+            {!list.length ? <p className="py-8 text-center text-sm text-white/50">Kosong</p> : null}
+          </div>
+        </section>;
+      })}
+    </div>
+  </>;
+}

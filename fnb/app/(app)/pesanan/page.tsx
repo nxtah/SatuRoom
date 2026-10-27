@@ -1,1 +1,13 @@
-export default function OrdersPage(){return <main className="mx-auto max-w-6xl p-4 sm:p-8"><h1 className="text-3xl font-extrabold">Pesanan</h1><p className="mt-2 text-stone-600">Semua pesanan dine-in, takeaway, dan pickup dalam satu antrean.</p><div className="mt-6 rounded-[2rem] bg-white p-8 text-center text-stone-500">Belum ada pesanan aktif.</div></main>}
+import { listOrders } from "@/server/orders";
+import { requireFnbPage } from "@/server/routing";
+import { OrdersList } from "./orders-list";
+
+export default async function OrdersPage() {
+  const ctx = await requireFnbPage();
+  return <main className="mx-auto max-w-6xl p-4 sm:p-8">
+    <p className="font-bold text-tomato">Penjualan</p>
+    <h1 className="text-3xl font-extrabold">Pesanan</h1>
+    <p className="mt-1 text-stone-600">Dine in, bungkus, dan ambil dalam satu antrean.</p>
+    <OrdersList initialOrders={await listOrders(ctx, "all")} />
+  </main>;
+}

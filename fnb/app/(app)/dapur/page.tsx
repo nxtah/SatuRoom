@@ -1,1 +1,14 @@
-export default function KitchenPage(){return <main className="min-h-[calc(100dvh-4rem)] bg-kitchen p-4 text-white sm:p-8"><h1 className="text-3xl font-extrabold">Dapur</h1><p className="text-white/60">Tiket baru akan muncul otomatis per station.</p><div className="mt-6 grid gap-4 md:grid-cols-3">{["Baru","Dimasak","Siap"].map(x=><section key={x} className="rounded-[1.5rem] bg-white/8 p-5"><h2 className="font-extrabold text-saffron">{x}</h2><p className="mt-10 text-center text-white/50">Kosong</p></section>)}</div></main>}
+import { listOrders } from "@/server/orders";
+import { requireFnbPage } from "@/server/routing";
+import { KdsBoard } from "./kds-board";
+
+export default async function KitchenPage() {
+  const ctx = await requireFnbPage();
+  return <main className="min-h-[calc(100dvh-4rem)] bg-kitchen p-4 text-white sm:p-8">
+    <div className="flex flex-wrap items-end justify-between gap-2">
+      <div><p className="font-bold text-saffron">Dapur</p><h1 className="text-3xl font-extrabold">Tiket masuk</h1></div>
+      <p className="text-sm text-white/60">Diperbarui otomatis tiap 5 detik.</p>
+    </div>
+    <KdsBoard initialOrders={await listOrders(ctx)} />
+  </main>;
+}

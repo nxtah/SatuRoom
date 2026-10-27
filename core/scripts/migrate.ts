@@ -55,7 +55,7 @@ export async function migrate(url: string, bolaPassword: string, log = console.l
       }
     }
     await setupBolaRole(sql, bolaPassword);
-    await setupFnbRole(sql, process.env.FNB_DB_PASSWORD ?? bolaPassword);
+    await setupFnbRole(sql, process.env.FNB_DB_PASSWORD);
     log("role fnb_app siap");
     log("role bola_app siap");
   } finally {
@@ -63,11 +63,19 @@ export async function migrate(url: string, bolaPassword: string, log = console.l
   }
 }
 
-async function setupFnbRole(sql: postgres.Sql, password: string): Promise<void> {
+/**
+ * Password F&B hanya diubah bila FNB_DB_PASSWORD diisi. Kalau tidak, role dibiarkan memakai
+ * password yang sudah ada supaya menjalankan migrasi untuk produk lain tidak memutus koneksi F&B.
+ */
+async function setupFnbRole(sql: postgres.Sql, password?: string): Promise<void> {
   const [exists] = await sql`SELECT 1 FROM pg_roles WHERE rolname = 'fnb_app'`;
   if (!exists) await sql.unsafe(`CREATE ROLE fnb_app LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`);
-  const [stmt] = await sql<{ q: string }[]>`SELECT format('ALTER ROLE fnb_app PASSWORD %L', ${password}::text) AS q`;
-  await sql.unsafe(stmt!.q);
+  if (password) {
+    const [stmt] = await sql<{ q: string }[]>`SELECT format('ALTER ROLE fnb_app PASSWORD %L', ${password}::text) AS q`;
+    await sql.unsafe(stmt!.q);
+  } else if (!exists) {
+    log("fnb_app dibuat tanpa password; isi FNB_DB_PASSWORD untuk bisa login");
+  }
   await sql.unsafe(`
     GRANT USAGE ON SCHEMA core, fnb TO fnb_app;
     GRANT SELECT, INSERT ON core.users TO fnb_app;

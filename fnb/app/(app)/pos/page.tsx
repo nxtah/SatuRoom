@@ -1,2 +1,15 @@
-const items = ["Nasi goreng", "Ayam sambal", "Es kopi susu", "Teh lemon"];
-export default function PosPage(){return <main className="grid min-h-[calc(100dvh-4rem)] gap-4 p-4 sm:p-8 lg:grid-cols-[1fr_360px]"><section><p className="font-bold text-tomato">Kasir</p><h1 className="text-3xl font-extrabold">Pesanan baru</h1><div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-3">{items.map((x,i)=><button key={x} className="min-h-32 rounded-[1.5rem] bg-white p-5 text-left"><span className="font-extrabold">{x}</span><span className="mt-6 block font-bold text-basil">Rp{(18000+i*4000).toLocaleString("id-ID")}</span></button>)}</div></section><aside className="rounded-[2rem] bg-white p-6"><h2 className="text-xl font-extrabold">Keranjang</h2><p className="mt-20 text-center text-stone-500">Pilih menu untuk mulai pesanan.</p></aside></main>}
+import { listCatalog } from "@/server/catalog";
+import { listOrders } from "@/server/orders";
+import { requireFnbPage } from "@/server/routing";
+import { PosClient } from "./pos-client";
+
+export default async function PosPage() {
+  const ctx = await requireFnbPage();
+  const [catalog, orders] = await Promise.all([listCatalog(ctx), listOrders(ctx)]);
+  return <main className="mx-auto max-w-6xl p-4 sm:p-8">
+    <p className="font-bold text-tomato">Kasir</p>
+    <h1 className="text-3xl font-extrabold">Pesanan baru</h1>
+    <p className="mt-1 text-stone-600">Total dihitung dari harga menu yang tersedia.</p>
+    <PosClient catalog={catalog} initialOrders={orders} />
+  </main>;
+}
