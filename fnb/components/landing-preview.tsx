@@ -37,3 +37,67 @@ export function RasaPreview() {
     </div>
   );
 }
+
+/* Layar dapur contoh: tiga kolom, tiket fiktif. */
+const BOARD = [
+  { name: "Baru", tone: "bg-saffron text-kitchen", tickets: [["Meja 4", "2 Nasi goreng, 1 Es teh"], ["Bungkus", "3 Mie ayam"]] },
+  { name: "Dimasak", tone: "bg-tomato text-white", tickets: [["Meja 7", "1 Mie kuah, 2 Kopi susu"]] },
+  { name: "Siap", tone: "bg-basil text-white", tickets: [["Ambil", "3 Roti bakar"]] },
+] as const;
+
+export function KitchenBoard() {
+  return (
+    <div className="rounded-[2rem] bg-night p-4 text-white ring-1 ring-white/10 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-display text-2xl font-bold">Tiket masuk</p>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-white/70">Contoh</span>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {BOARD.map((col) => (
+          <div key={col.name} className="rounded-[1.5rem] bg-kitchen-2 p-3">
+            <p className={`inline-block rounded-full px-3 py-1 text-sm font-extrabold ${col.tone}`}>{col.name}</p>
+            <ul className="mt-3 grid gap-2">
+              {col.tickets.map(([where, what]) => (
+                <li key={where + what} className="rounded-2xl bg-white p-3 text-kitchen">
+                  <p className="font-extrabold">{where}</p>
+                  <p className="text-sm text-kitchen/75">{what}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Stok contoh: bahan hampir habis ditandai. */
+const STOCK = [
+  ["Beras", 82, "bg-basil", "Aman"],
+  ["Telur", 38, "bg-saffron", "Menipis"],
+  ["Cabai", 9, "bg-tomato", "Hampir habis"],
+] as const;
+
+export function StockBoard() {
+  return (
+    <div className="rounded-[2rem] bg-white p-5 text-kitchen sm:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-display text-2xl font-bold">Stok bahan</p>
+        <span className="rounded-full bg-cream px-3 py-1 text-sm font-semibold">Contoh</span>
+      </div>
+      <ul className="mt-5 grid gap-4">
+        {STOCK.map(([name, pct, bar, state]) => (
+          <li key={name}>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="font-extrabold">{name}</p>
+              <p className={`text-sm font-bold ${pct < 15 ? "text-chili" : "text-kitchen/70"}`}>{state}</p>
+            </div>
+            <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-cream">
+              <div className={`grow-bar h-full origin-left rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

@@ -1,6 +1,10 @@
 @import "tailwindcss";
-@theme { --color-kitchen: #31251d; --color-plate: #fffaf4; --color-saffron: #f59e0b; --color-basil: #317159; --color-tomato: #dc5a3d; --color-ink: #231b16; --font-sans: var(--font-jakarta), ui-sans-serif, system-ui; }
-@layer base { body { background: var(--color-plate); color: var(--color-ink); font-family: var(--font-sans); }
+/*
+  SatuRoom Rasa: hangat dan menggugah selera. Krem sebagai dasar, mentega dan tomat sebagai aksen,
+  cokelat dapur untuk teks dan panel gelap. Judul memakai serif lembut seperti kartu menu.
+*/
+@theme { --color-kitchen: #3a2517; --color-plate: #fff4e2; --color-cream: #ffe9c4; --color-saffron: #f7cb45; --color-basil: #317159; --color-tomato: #e0452a; --color-chili: #bf2f17; --color-ink: #2a1a10; --font-display: var(--font-fraunces), ui-serif, Georgia, serif; --font-sans: var(--font-jakarta), ui-sans-serif, system-ui; }
+@layer base { h1 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; } body { background: var(--color-plate); color: var(--color-ink); font-family: var(--font-sans); }
   :focus-visible { outline: 3px solid var(--color-saffron); outline-offset: 2px; }
   ::selection { background: color-mix(in oklab, var(--color-saffron) 35%, white); color: var(--color-kitchen); } }
 
@@ -29,7 +33,7 @@
 @theme { --drop-shadow-maskot: 0 24px 30px rgb(0 0 0 / 0.3); }
 
 /* Halaman perkenalan: efek gulir, tampil normal tanpa dukungan browser. */
-@theme { --color-night: #120d0a; --color-kitchen-2: #3f3128; --drop-shadow-maskot: 0 24px 30px rgb(0 0 0 / 0.3); }
+@theme { --color-night: #1b110a; --color-kitchen-2: #4a3022; --drop-shadow-maskot: 0 24px 30px rgb(0 0 0 / 0.3); }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 @keyframes pop { from { opacity: 0; transform: scale(0.85); } }
 .rise { animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -49,3 +53,14 @@
   .scroll-page :is(.draw, .fade-in, .ring-fill, .grow-bar) { animation-timeline: view(); animation-range: entry 15% cover 40%; animation-delay: 0s; }
 }
 @media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } }
+
+/* Nota kasir: tepi bawah bergerigi seperti struk. */
+.nota::after { content: ""; position: absolute; inset-inline: 0; top: calc(100% - 1px); height: 10px; background: linear-gradient(135deg, var(--nota-bg, #fff) 50%, transparent 50%) 0 0 / 14px 10px repeat-x, linear-gradient(225deg, var(--nota-bg, #fff) 50%, transparent 50%) 0 0 / 14px 10px repeat-x; }
+/* Titik penuntun di menu: garis putus yang mengisi sisa baris. */
+.leader { flex: 1; min-width: 1rem; border-bottom: 3px dotted color-mix(in oklab, var(--color-kitchen) 35%, transparent); transform: translateY(-0.3em); }
+@keyframes tilt-in { from { opacity: 0; transform: translateY(30px) rotate(0deg); } }
+.tilt-in { animation: tilt-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) { .tilt-in { animation: none; } }
+/* Kanopi toko: belang tomat dan krem dengan tepi melengkung. */
+.awning { height: 2.4rem; background: repeating-linear-gradient(90deg, var(--color-tomato) 0 2.5rem, var(--color-plate) 2.5rem 5rem); }
+.awning-edge { height: 1.3rem; background-image: radial-gradient(circle at 1.25rem 0, var(--color-tomato) 1.25rem, transparent calc(1.25rem + 1px)), radial-gradient(circle at 3.75rem 0, var(--color-plate) 1.25rem, transparent calc(1.25rem + 1px)); background-size: 5rem 1.3rem; }
