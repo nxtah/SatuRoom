@@ -43,6 +43,8 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           <circle cx="200" cy="200" r="150" fill="none" stroke="currentColor" strokeWidth="10" />
           <path d="M0 200 H400" stroke="currentColor" strokeWidth="10" />
         </svg>
+        <span aria-hidden className="pointer-events-none absolute -top-10 left-[62%] hidden h-72 w-5 -rotate-[24deg] bg-ember/90 sm:block sm:w-7" />
+        <span aria-hidden className="pointer-events-none absolute -top-10 left-[calc(62%+3rem)] hidden h-72 w-2 -rotate-[24deg] bg-ember/50 sm:block" />
         <span aria-hidden className="pointer-events-none absolute right-6 bottom-0 size-56 rounded-full bg-pitch-2 sm:right-12 sm:size-80" />
         <div className="relative min-w-0 pb-4 sm:pb-12">
           <p className="font-semibold text-white/70">{justCreated ? "Akademi berhasil dibuat" : justJoined ? `Selamat bergabung, ${firstName}` : celebrate ? "Persiapan selesai" : `Halo, ${firstName}`}</p>
@@ -100,7 +102,7 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
                 <li key={step.id}>
                   <Link
                     href={`${step.href}?dari=persiapan`}
-                    className="group flex items-center gap-4 rounded-2xl border-2 border-line p-4 transition hover:border-ember hover:bg-ember-soft"
+                    className="group flex items-center gap-4 rounded-2xl border-2 border-line p-4 transition hover:border-pitch hover:bg-ember-soft"
                   >
                     <span className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-ink-soft/40 text-xs font-extrabold text-ink-soft">
                       {i + 1}

@@ -61,7 +61,7 @@ export function RegisterForm({ google }: { google: boolean }) {
 
       <p className="mt-8 text-center text-ink-soft">
         Sudah punya akun?{" "}
-        <Link href="/masuk" className="font-bold text-ink underline decoration-ember decoration-2 underline-offset-4">
+        <Link href="/masuk" className="font-bold text-ink underline decoration-pitch decoration-2 underline-offset-4">
           Masuk
         </Link>
       </p>

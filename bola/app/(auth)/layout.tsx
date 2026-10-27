@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <aside className="relative hidden overflow-hidden bg-pitch p-12 text-white lg:flex lg:flex-col">
         <Brand tone="white" />
         <div className="relative z-10 mt-auto max-w-md">
-          <p className="text-5xl leading-[1.05] font-extrabold tracking-[-0.03em]">
+          <p className="font-display text-7xl leading-[0.9] font-extrabold uppercase italic">
             Pelatih fokus di lapangan. Urusan data biar rapi di sini.
           </p>
           <p className="mt-5 text-lg text-white/70">Pemain, jadwal latihan, dan absensi akademi dalam satu tempat.</p>
@@ -24,8 +24,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       <div className="flex min-h-dvh flex-col px-5 py-6 sm:px-10">
-        <div className="lg:hidden">
-          <Brand />
+        <div className="relative -mx-5 -mt-6 overflow-hidden bg-pitch px-5 py-4 sm:-mx-10 sm:px-10 lg:hidden">
+          <Brand tone="white" />
+          <span aria-hidden className="absolute -top-4 right-10 h-24 w-5 -rotate-[24deg] bg-ember" />
+          <span aria-hidden className="absolute -top-4 right-4 h-24 w-2 -rotate-[24deg] bg-ember/50" />
         </div>
         <main className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-10">{children}</main>
       </div>

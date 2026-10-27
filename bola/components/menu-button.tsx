@@ -46,7 +46,7 @@ export function MenuButton({ label, buttonClassName, button, align, children }: 
       {open ? (
         <div
           role="menu"
-          className={`absolute z-40 mt-2 w-72 rounded-[1.5rem] border border-line bg-chalk p-2 shadow-[0_24px_60px_-24px_rgb(13_59_46/0.45)] ${
+          className={`absolute z-40 mt-2 w-72 rounded-[1.5rem] border border-line bg-chalk p-2 shadow-[0_24px_60px_-24px_rgb(11_26_58/0.45)] ${
             align === "left" ? "left-0" : "right-0"
           }`}
         >

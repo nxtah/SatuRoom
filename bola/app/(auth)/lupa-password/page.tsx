@@ -31,7 +31,7 @@ export default function LupaPasswordPage() {
           <Alert tone="success">
             Kalau email itu terdaftar, link sudah dikirim. Link berlaku 1 jam. Cek juga folder spam.
           </Alert>
-          <Link href="/masuk" className="font-bold underline decoration-ember decoration-2 underline-offset-4">
+          <Link href="/masuk" className="font-bold underline decoration-pitch decoration-2 underline-offset-4">
             Kembali ke halaman masuk
           </Link>
         </div>

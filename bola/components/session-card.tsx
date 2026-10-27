@@ -30,7 +30,7 @@ export function SessionCard({
   return (
     <Link
       href={`/jadwal/${s.id}`}
-      className={`group flex items-center gap-4 rounded-[1.5rem] p-4 transition ${withDate ? "bg-mist/70" : "bg-chalk"} hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(13_59_46/0.5)] ${
+      className={`group flex items-center gap-4 rounded-[1.5rem] p-4 transition ${withDate ? "bg-mist/70" : "bg-chalk"} hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(11_26_58/0.5)] ${
         cancelled ? "opacity-60" : ""
       }`}
     >
@@ -57,7 +57,7 @@ export function SessionCard({
         </span>
       </span>
       {action && !cancelled && !future ? (
-        <span className="shrink-0 rounded-full bg-ember px-4 py-2 text-sm font-extrabold text-ink transition group-hover:bg-[#ff7d24]">
+        <span className="shrink-0 rounded-full bg-ember px-4 py-2 text-sm font-extrabold text-ink transition group-hover:bg-[#d7ff55]">
           {recorded ? "Lihat" : "Absen"}
         </span>
       ) : (

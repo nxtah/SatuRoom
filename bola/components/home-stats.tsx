@@ -29,7 +29,7 @@ function Tile({
   return (
     <Link
       href={href}
-      className={`group relative flex min-h-36 flex-col justify-between gap-4 overflow-hidden rounded-[1.75rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-26px_rgb(13_59_46/0.6)] ${skin} ${className}`}
+      className={`group relative flex min-h-36 flex-col justify-between gap-4 overflow-hidden rounded-[1.75rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-26px_rgb(11_26_58/0.6)] ${skin} ${className}`}
     >
       <span className={`text-sm font-bold ${soft}`}>{label}</span>
       <span className="flex items-end justify-between gap-3">

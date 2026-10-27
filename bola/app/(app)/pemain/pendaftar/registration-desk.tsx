@@ -129,7 +129,7 @@ export function RegistrationDesk({ origin, link, pending, teams, academyName }: 
                 </div>
                 <p className="mt-3 text-sm">
                   Wali: <b>{r.guardianName}</b>,{" "}
-                  <a className="font-bold underline decoration-ember decoration-2 underline-offset-4" href={`https://wa.me/${waNumber(r.guardianPhone)}`} target="_blank" rel="noopener noreferrer">
+                  <a className="font-bold underline decoration-pitch decoration-2 underline-offset-4" href={`https://wa.me/${waNumber(r.guardianPhone)}`} target="_blank" rel="noopener noreferrer">
                     {r.guardianPhone}
                   </a>
                 </p>

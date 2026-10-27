@@ -45,7 +45,7 @@ export default async function PemainPage({ searchParams }: { searchParams: Promi
   const add = addButton || desk ? <div className="flex flex-wrap gap-2">{desk}{addButton}</div> : null;
   const download = (
     <p className="mt-4 text-sm">
-      <a href="/api/v1/export/players" className="font-bold underline decoration-ember decoration-2 underline-offset-4">
+      <a href="/api/v1/export/players" className="font-bold underline decoration-pitch decoration-2 underline-offset-4">
         Unduh daftar pemain (Excel)
       </a>
     </p>

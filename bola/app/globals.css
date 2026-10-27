@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 /*
-  SatuRoom Bola: premium, rounded, tenang. Hijau lapangan yang dalam sebagai dasar mewah,
-  oranye SatuRoom hanya untuk aksi utama. Tidak ada gradien dekoratif.
+  SatuRoom Bola: atletik dan berenergi. Biru malam sebagai dasar, hijau neon (lime) untuk aksi
+  utama, judul miring padat seperti papan skor. Oranye SatuRoom hanya untuk peringatan dan logo.
+  Hijau lapangan tetap menandai hadir dan lunas.
 */
 @theme {
-  --color-pitch: #0d3b2e;
-  --color-pitch-2: #124a3a;
+  --color-pitch: #0b1a3a;
+  --color-pitch-2: #15295a;
   --color-turf: #1f8a5b;
   --color-turf-soft: #e2f2e9;
-  --color-ember: #ff6a00;
+  --color-ember: #c8f53c;
   --color-ember-deep: #b84a00;
+  --color-flame: #ff6a00;
   --color-ember-soft: #fff0e5;
   --color-chalk: #ffffff;
-  --color-mist: #f1f4f0;
-  --color-line: #dfe5df;
-  --color-ink: #17201b;
-  --color-ink-soft: #4d5a52;
+  --color-mist: #eef1f8;
+  --color-line: #dbe1ee;
+  --color-ink: #0b1226;
+  --color-ink-soft: #465170;
   --color-sun: #ffc93c;
 
-  --font-display: var(--font-jakarta), ui-sans-serif, sans-serif;
+  --font-display: var(--font-barlow), "Arial Narrow", ui-sans-serif, sans-serif;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 
   --radius-panel: 2rem;
@@ -37,8 +39,12 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  h1 {
+    font-family: var(--font-display);
+    font-style: italic;
+  }
   :focus-visible {
-    outline: 3px solid var(--color-ember);
+    outline: 3px solid var(--color-pitch-2);
     outline-offset: 3px;
     border-radius: 12px;
   }
@@ -96,7 +102,7 @@
 @theme { --drop-shadow-maskot: 0 24px 30px rgb(0 0 0 / 0.3); }
 
 /* Halaman perkenalan: efek gulir, tampil normal tanpa dukungan browser. */
-@theme { --color-night: #0a0d0b; }
+@theme { --color-night: #060d1f; }
 @keyframes logo-sweep { to { transform: translateY(-120px) rotate(14deg) scale(1.08); } }
 @keyframes panel-rise { from { opacity: 0; transform: perspective(1400px) rotateX(14deg) translateY(70px) scale(0.94); } }
 @keyframes word-in { from { opacity: 0; transform: translateX(-8%); } }

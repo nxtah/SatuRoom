@@ -130,7 +130,7 @@ export function AttendanceSheet({ sessionId, roster, editable }: { sessionId: st
 
       {editable ? (
         <div className="sticky bottom-24 z-30 mt-4 md:bottom-4">
-          <div className="flex items-center gap-3 rounded-[1.75rem] bg-pitch p-2 pl-5 text-white shadow-[0_24px_50px_-20px_rgb(13_59_46/0.8)]">
+          <div className="flex items-center gap-3 rounded-[1.75rem] bg-pitch p-2 pl-5 text-white shadow-[0_24px_50px_-20px_rgb(11_26_58/0.8)]">
             {done && changed.length === 0 ? (
               <>
                 <span className="pop -my-6 w-14 shrink-0">

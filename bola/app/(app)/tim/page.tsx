@@ -43,7 +43,7 @@ export default async function TimPage() {
             <li key={t.id} className="rise min-w-0" style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}>
               <Link
                 href={`/tim/${t.id}`}
-                className="group flex items-center gap-4 rounded-[1.75rem] bg-chalk p-5 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(13_59_46/0.5)]"
+                className="group flex items-center gap-4 rounded-[1.75rem] bg-chalk p-5 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgb(11_26_58/0.5)]"
               >
                 <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-turf-soft text-lg font-extrabold text-pitch">
                   {t.playerCount}

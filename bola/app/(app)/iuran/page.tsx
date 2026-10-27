@@ -45,7 +45,7 @@ export default async function IuranPage({ searchParams }: { searchParams: Promis
 
       {summary.invoices.length ? (
         <p className="mb-3 text-right">
-          <a href={`/api/v1/export/invoices?month=${month}`} className="text-sm font-bold underline decoration-ember decoration-2 underline-offset-4">
+          <a href={`/api/v1/export/invoices?month=${month}`} className="text-sm font-bold underline decoration-pitch decoration-2 underline-offset-4">
             Unduh iuran {monthLabel(month)} (Excel)
           </a>
         </p>

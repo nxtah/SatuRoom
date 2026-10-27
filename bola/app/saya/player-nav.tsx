@@ -30,10 +30,10 @@ export function PlayerSideNav() {
                 aria-current={on ? "page" : undefined}
                 title={label}
                 className={`flex h-16 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-bold transition lg:h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:text-base ${
-                  on ? "bg-pitch text-white shadow-[0_12px_24px_-16px_rgb(13_59_46/0.8)]" : "text-ink-soft hover:bg-chalk hover:text-ink"
+                  on ? "bg-pitch text-white shadow-[0_12px_24px_-16px_rgb(11_26_58/0.8)]" : "text-ink-soft hover:bg-chalk hover:text-ink"
                 }`}
               >
-                <Icon aria-hidden className="size-5" />
+                <Icon aria-hidden className={`size-5 ${on ? "text-ember" : ""}`} />
                 {label}
               </Link>
             </li>
@@ -49,7 +49,7 @@ export function PlayerBottomNav() {
   return (
     <nav
       aria-label="Menu akun pemain"
-      className="fixed inset-x-3 bottom-3 z-30 rounded-[1.75rem] border border-line bg-chalk/95 p-1.5 shadow-[0_20px_40px_-20px_rgb(13_59_46/0.45)] backdrop-blur md:hidden"
+      className="fixed inset-x-3 bottom-3 z-30 rounded-[1.75rem] border border-line bg-chalk/95 p-1.5 shadow-[0_20px_40px_-20px_rgb(11_26_58/0.45)] backdrop-blur md:hidden"
     >
       <ul className="grid grid-cols-5">
         {NAV.map(({ href, label, icon: Icon }) => {
@@ -63,7 +63,7 @@ export function PlayerBottomNav() {
                   on ? "bg-pitch text-white" : "text-ink-soft"
                 }`}
               >
-                <Icon aria-hidden className="size-5" />
+                <Icon aria-hidden className={`size-5 ${on ? "text-ember" : ""}`} />
                 {label}
               </Link>
             </li>

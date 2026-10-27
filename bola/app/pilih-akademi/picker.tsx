@@ -34,7 +34,7 @@ export function AcademyPicker({ academies }: { academies: { id: string; name: st
           type="button"
           disabled={pending !== undefined}
           onClick={() => open(a.id)}
-          className="group flex items-center gap-4 rounded-[1.5rem] border border-line bg-chalk p-4 text-left transition hover:-translate-y-0.5 hover:border-pitch/30 hover:shadow-[0_18px_40px_-28px_rgb(13_59_46/0.5)] disabled:opacity-60"
+          className="group flex items-center gap-4 rounded-[1.5rem] border border-line bg-chalk p-4 text-left transition hover:-translate-y-0.5 hover:border-pitch/30 hover:shadow-[0_18px_40px_-28px_rgb(11_26_58/0.5)] disabled:opacity-60"
         >
           <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-turf-soft text-lg font-extrabold text-pitch">
             {a.name[0]?.toUpperCase()}
