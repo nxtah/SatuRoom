@@ -6,6 +6,7 @@ import type { z } from "zod";
 import type { OrderInput, OrderStatusInput } from "@/lib/schemas";
 import { db } from "./db";
 import type { FnbContext } from "./context";
+import { deductOrderStock, restoreOrderStock } from "./stock";
 
 export const ORDER_STATUSES = ["open", "confirmed", "preparing", "ready", "served", "completed", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -82,6 +83,7 @@ export async function createOrder(ctx: FnbContext, input: z.infer<typeof OrderIn
                 ${line.quantity}, ${line.notes ?? null}, 'confirmed')
       `);
     }
+    await deductOrderStock(tx, ctx, order!.id, input.lines);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.order.created",
       targetType: "order", targetId: order!.id, meta: { total: subtotal, lines: input.lines.length },
@@ -108,6 +110,7 @@ export async function updateOrderStatus(ctx: FnbContext, id: string, status: Ord
         cancelled_at = CASE WHEN ${status} = 'cancelled' THEN now() ELSE cancelled_at END
       WHERE id = ${id}::uuid
     `);
+    if (status === "cancelled") await restoreOrderStock(tx, ctx, id);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.order.status_changed",
       targetType: "order", targetId: id, meta: { from: current, to: status },

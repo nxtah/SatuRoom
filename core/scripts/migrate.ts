@@ -74,7 +74,7 @@ async function setupFnbRole(sql: postgres.Sql, password?: string): Promise<void>
     const [stmt] = await sql<{ q: string }[]>`SELECT format('ALTER ROLE fnb_app PASSWORD %L', ${password}::text) AS q`;
     await sql.unsafe(stmt!.q);
   } else if (!exists) {
-    log("fnb_app dibuat tanpa password; isi FNB_DB_PASSWORD untuk bisa login");
+    console.log("fnb_app dibuat tanpa password; isi FNB_DB_PASSWORD untuk bisa login");
   }
   await sql.unsafe(`
     GRANT USAGE ON SCHEMA core, fnb TO fnb_app;

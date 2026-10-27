@@ -8,3 +8,6 @@ next-env.d.ts
 
 # Catatan privat lokal (IP server, dll.)
 .local/
+
+# Skill pihak ketiga (22 MB), pasang ulang lokal
+.claude/skills/

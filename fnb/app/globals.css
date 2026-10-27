@@ -1,3 +1,5 @@
 @import "tailwindcss";
 @theme { --color-kitchen: #31251d; --color-plate: #fffaf4; --color-saffron: #f59e0b; --color-basil: #317159; --color-tomato: #dc5a3d; --color-ink: #231b16; --font-sans: var(--font-jakarta), ui-sans-serif, system-ui; }
-@layer base { body { background: var(--color-plate); color: var(--color-ink); font-family: var(--font-sans); } }
+@layer base { body { background: var(--color-plate); color: var(--color-ink); font-family: var(--font-sans); }
+  :focus-visible { outline: 3px solid var(--color-saffron); outline-offset: 2px; }
+  ::selection { background: color-mix(in oklab, var(--color-saffron) 35%, white); color: var(--color-kitchen); } }

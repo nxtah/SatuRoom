@@ -30,3 +30,18 @@ export const ShiftCloseInput=z.object({
   closingCash:z.coerce.number().int().min(0).max(100_000_000),
   notes:z.string().trim().max(300).optional(),
 });
+export const IngredientInput=z.object({
+  name:z.string().trim().min(1,"Nama wajib diisi.").max(100),
+  unit:z.string().trim().min(1,"Satuan wajib diisi.").max(20),
+  minimumStock:z.coerce.number().min(0).max(1_000_000).optional(),
+  averageCost:z.coerce.number().int().min(0).max(100_000_000).optional(),
+  openingStock:z.coerce.number().min(0).max(1_000_000).optional(),
+});
+export const StockAdjustInput=z.object({
+  quantity:z.coerce.number().refine((v)=>v!==0,"Jumlah tidak boleh nol."),
+  reason:z.string().trim().min(2,"Alasan wajib diisi.").max(120),
+});
+export const RecipeInput=z.object({
+  menuItemId:z.string().uuid(),
+  lines:z.array(z.object({ingredientId:z.string().uuid(),quantity:z.coerce.number().positive().max(1_000_000)})).max(50),
+});

@@ -11,6 +11,7 @@ const fail = (e: unknown) => {
     UNAUTHORIZED: ["Silakan masuk lagi.", 401],
     NOT_FOUND: ["Menu tidak ditemukan.", 404],
     ITEM_UNAVAILABLE: ["Ada menu yang sedang habis.", 422],
+    INSUFFICIENT_STOCK: ["Bahan tidak cukup untuk pesanan ini.", 409],
     NO_OUTLET: ["Outlet belum tersedia.", 422],
   };
   const [message, status] = map[code] ?? ["Pesanan belum dapat disimpan.", 422];
