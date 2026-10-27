@@ -9,6 +9,7 @@ import type { AttendanceStatus, NoticeInput } from "@/lib/schemas";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
 import { announcementsForPlayer } from "./announcements";
+import { evaluationsForPlayer } from "./evaluations";
 import { AppError, notFound } from "./errors";
 import { sendPlayerInvite } from "./mail";
 import { visiblePlayerIds } from "./players";
@@ -87,6 +88,7 @@ export interface PlayerHome {
   invoices: { id: string; period: string; amount: number; status: "unpaid" | "paid" | "waived"; paidOn: string | null }[];
   outstanding: number;
   announcements: { id: string; title: string; body: string; teamName: string | null; createdAt: string }[];
+  evaluations: Awaited<ReturnType<typeof evaluationsForPlayer>>;
 }
 
 /** Semua yang dilihat pemain di portalnya; null bila akun ini bukan akun pemain. */
@@ -107,7 +109,7 @@ async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
                       JOIN bola.teams t ON t.id = tp.team_id AND t.archived_at IS NULL
                       WHERE tp.player_id = p.id), '') AS "teamNames"
     FROM bola.players p JOIN core.businesses b ON b.id = p.business_id
-    WHERE p.id = ${playerId}::uuid`)) as unknown as Omit<PlayerHome, "playerId" | "upcoming" | "attendance" | "invoices" | "outstanding" | "announcements">[];
+    WHERE p.id = ${playerId}::uuid`)) as unknown as Omit<PlayerHome, "playerId" | "upcoming" | "attendance" | "invoices" | "outstanding" | "announcements" | "evaluations">[];
   if (!player) throw notFound("Pemain");
 
   const upcoming = (await tx.execute(sql`
@@ -165,6 +167,7 @@ async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
     invoices,
     outstanding: invoices.filter((i) => i.status === "unpaid").reduce((s, i) => s + i.amount, 0),
     announcements: await announcementsForPlayer(tx, playerId),
+    evaluations: await evaluationsForPlayer(tx, playerId),
   };
 }
 

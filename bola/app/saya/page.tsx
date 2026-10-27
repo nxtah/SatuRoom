@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { STATUS_STYLE } from "@/components/attendance-badge";
 import { Ruru } from "@/components/ruru";
 import { ageOf } from "@/lib/age";
+import { RatingDots } from "@/components/rating-dots";
 import { dayLabel } from "@/lib/dates";
 import { monthLabel, rupiah } from "@/lib/money";
 import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
@@ -81,6 +82,8 @@ export default async function SayaPage() {
           </Link>
         ))}
       </nav>
+
+      <Reports me={me} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-start">
         <Upcoming me={me} />
@@ -346,6 +349,51 @@ export function Announcements({ me }: { me: PlayerHome }) {
               {a.teamName ? `Tim ${a.teamName}` : "Seluruh akademi"}, {dayLabel(a.createdAt)}
             </p>
             <p className="mt-2 break-words whitespace-pre-line">{a.body}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const ASPECTS = [
+  ["technique", "Teknik"],
+  ["tactics", "Pemahaman bermain"],
+  ["fitness", "Fisik"],
+  ["attitude", "Sikap"],
+] as const;
+
+export function Reports({ me }: { me: PlayerHome }) {
+  if (me.evaluations.length === 0) return null;
+  return (
+    <section className="rise mt-4 rounded-[2rem] bg-chalk p-6" aria-labelledby="rapor">
+      <h2 id="rapor" className="text-lg font-extrabold">
+        Rapor dari pelatih
+      </h2>
+      <ul className="mt-3 grid gap-3">
+        {me.evaluations.map((r) => (
+          <li key={r.id} className="rounded-[1.5rem] bg-mist p-4">
+            <p className="font-extrabold">{r.period}</p>
+            <p className="text-sm text-ink-soft">
+              {dayLabel(r.date)}
+              {r.authorName ? `, dari ${r.authorName}` : ""}
+            </p>
+            <dl className="mt-3 grid gap-2">
+              {ASPECTS.map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between gap-3">
+                  <dt>{label}</dt>
+                  <dd>
+                    <RatingDots value={r[key]} label={label} />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-3 break-words whitespace-pre-line">
+              <b>Sudah bagus:</b> {r.strengths}
+            </p>
+            <p className="mt-2 break-words whitespace-pre-line">
+              <b>Yang perlu dilatih:</b> {r.focus}
+            </p>
           </li>
         ))}
       </ul>

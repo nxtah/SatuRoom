@@ -206,3 +206,22 @@ export const AcceptPlayerInvitationInput = z.object({
   invitationId: z.string().uuid(),
   consentBy: z.string().trim().min(2, "Isi nama yang memberi persetujuan.").max(120),
 });
+
+const rating = z.coerce.number({ message: "Beri nilai 1 sampai 5." }).int().min(1, "Beri nilai 1 sampai 5.").max(5, "Beri nilai 1 sampai 5.");
+export const EvaluationInput = z.object({
+  period: z.string().trim().min(2, "Isi periode, misalnya Semester 1 2026.").max(60, "Periode terlalu panjang."),
+  technique: rating,
+  tactics: rating,
+  fitness: rating,
+  attitude: rating,
+  strengths: z.string().trim().min(2, "Tulis hal yang sudah bagus.").max(500, "Terlalu panjang (maksimal 500 huruf)."),
+  focus: z.string().trim().min(2, "Tulis hal yang perlu dilatih.").max(500, "Terlalu panjang (maksimal 500 huruf)."),
+  /** Kirim langsung ke pemain, bukan simpan sebagai draf. */
+  send: z.boolean().optional(),
+});
+export const EVALUATION_ASPECTS = [
+  { id: "technique", label: "Teknik", hint: "Mengoper, menendang, mengontrol bola" },
+  { id: "tactics", label: "Pemahaman bermain", hint: "Posisi, kerja sama, membaca permainan" },
+  { id: "fitness", label: "Fisik", hint: "Stamina, kecepatan, kekuatan" },
+  { id: "attitude", label: "Sikap", hint: "Disiplin, semangat, sportivitas" },
+] as const;

@@ -14,8 +14,10 @@ import { SessionCard } from "@/components/session-card";
 import { monthLabel, rupiah } from "@/lib/money";
 import { inAcademy } from "@/server/context";
 import { playerInvoices } from "@/server/fees";
+import { listEvaluations } from "@/server/evaluations";
 import { playerAccount } from "@/server/player-account";
 import { academyToday, addDays, listSessions } from "@/server/schedule";
+import { EvaluationPanel } from "./evaluation-panel";
 import { PlayerAccount } from "./player-account";
 import { StatusToggle } from "./status-toggle";
 
@@ -38,13 +40,14 @@ export default async function PlayerPage({
   const canManage = ctx.can("players.manage");
   const today = await inAcademy(ctx, academyToday);
   const teamIds = new Set(p.teams.map((t) => t.id));
-  const [history, sessions, invoices, account] = await Promise.all([
+  const [history, sessions, invoices, account, evaluations] = await Promise.all([
     playerAttendance(ctx, id),
     p.status === "active" && teamIds.size
       ? listSessions(ctx, { from: today, to: addDays(today, 14) })
       : [],
     ctx.can("billing.read") ? playerInvoices(ctx, id) : null,
     canManage && p.status === "active" ? playerAccount(ctx, id) : null,
+    ctx.can("evaluations.write") ? listEvaluations(ctx, id) : null,
   ]);
   const upcoming = sessions
     .filter((s) => teamIds.has(s.teamId) && s.status === "scheduled")
@@ -148,6 +151,7 @@ export default async function PlayerPage({
           ) : null}
 
           {account ? <PlayerAccount playerId={id} info={account} /> : null}
+          {evaluations ? <EvaluationPanel playerId={id} firstName={p.fullName.split(" ")[0]!} items={evaluations} /> : null}
         </div>
         <div className="grid gap-4">
           <section
