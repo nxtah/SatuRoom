@@ -1,4 +1,5 @@
 packages:
   - web
   - bola
+  - fnb
   - core
