@@ -44,6 +44,14 @@ export default async function IuranPage({ searchParams }: { searchParams: Promis
       </div>
 
       {summary.invoices.length ? (
+        <p className="mb-3 text-right">
+          <a href={`/api/v1/export/invoices?month=${month}`} className="text-sm font-bold underline decoration-ember decoration-2 underline-offset-4">
+            Unduh iuran {monthLabel(month)} (Excel)
+          </a>
+        </p>
+      ) : null}
+
+      {summary.invoices.length ? (
         <section className="rise mb-4 rounded-[2rem] bg-pitch p-6 text-white sm:p-8" aria-label="Ringkasan bulan ini">
           <p className="font-semibold text-white/70">Belum terbayar</p>
           <p className="mt-1 text-4xl font-extrabold tracking-tight sm:text-5xl">{rupiah(summary.outstanding)}</p>
