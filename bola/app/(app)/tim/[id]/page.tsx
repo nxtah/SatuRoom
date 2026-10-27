@@ -62,7 +62,7 @@ export default async function TeamPage({
           ) : null
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr] lg:items-start">
         <section
           className="rise rounded-[2rem] bg-chalk p-6 sm:p-8"
           aria-labelledby="pemain-tim"
@@ -103,7 +103,7 @@ export default async function TeamPage({
           )}
         </section>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
           <div className="rise grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1">
             <Link
               href={`/jadwal?tim=${id}`}

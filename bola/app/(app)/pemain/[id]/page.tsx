@@ -79,8 +79,8 @@ export default async function PlayerPage({
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="grid grid-cols-1 gap-4">
           <section className="rise flex items-center gap-4 rounded-[2rem] bg-pitch p-6 text-white sm:p-8">
             <span className="grid size-18 shrink-0 place-items-center rounded-full bg-ember text-2xl font-extrabold text-ink">
               {p.shirtNumber ?? p.fullName[0]?.toUpperCase()}
@@ -153,7 +153,7 @@ export default async function PlayerPage({
           {account ? <PlayerAccount playerId={id} info={account} /> : null}
           {evaluations ? <EvaluationPanel playerId={id} firstName={p.fullName.split(" ")[0]!} items={evaluations} /> : null}
         </div>
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <section
             className="rise rounded-[2rem] bg-chalk p-6"
             aria-labelledby="kehadiran"

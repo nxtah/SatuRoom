@@ -42,12 +42,12 @@ export default function BolaLanding() {
             <span className="text-lg font-extrabold tracking-tight sm:text-xl">SatuRoom</span>
             <span className="hidden rounded-full bg-turf-soft px-2 py-0.5 text-xs font-bold text-pitch sm:inline">Bola</span>
           </Link>
-          <ul className="mx-auto hidden items-center gap-1 md:flex">
+          <ul className="mx-auto hidden items-center gap-1 lg:flex">
             {[["Fitur", "#fitur"], ["Tampilan", "#tampilan"], ["Cara mulai", "#mulai"], ["Tanya jawab", "#tanya"]].map(([l, h]) => (
               <li key={h}><a href={h} className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft transition hover:bg-mist hover:text-ink">{l}</a></li>
             ))}
           </ul>
-          <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <div className="ml-auto flex items-center gap-1 lg:ml-0">
             <Link href="/masuk" className="rounded-full px-3 py-2 text-sm font-bold transition hover:bg-mist sm:px-4">Masuk</Link>
             <Link href="/daftar" className="whitespace-nowrap rounded-full bg-pitch px-4 py-2.5 text-sm font-bold text-white transition hover:bg-pitch-2 active:scale-[0.97] sm:px-5">Coba gratis</Link>
           </div>
@@ -62,9 +62,9 @@ export default function BolaLanding() {
               <circle cx="200" cy="200" r="30" fill="none" stroke="currentColor" strokeWidth="6" />
               <path d="M0 200 H400" stroke="currentColor" strokeWidth="6" />
             </svg>
-            <div className="relative mx-auto grid max-w-6xl items-end gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="relative mx-auto grid max-w-6xl items-end gap-10 md:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <h1 className="rise font-extrabold text-[2.8rem] leading-[0.98] tracking-[-0.035em] text-balance sm:text-7xl lg:text-[5.4rem]">
+                <h1 className="rise font-extrabold text-[2.8rem] leading-[0.98] tracking-[-0.035em] text-balance sm:text-7xl md:text-6xl lg:text-[5.4rem]">
                   Akademi bola rapi, dari HP pelatih.
                 </h1>
                 <p className="rise mt-7 max-w-xl text-lg leading-relaxed text-white/75 sm:text-xl">
@@ -75,7 +75,7 @@ export default function BolaLanding() {
                   <Link href="/masuk" className="rounded-full bg-white/12 px-7 py-4 text-base font-bold text-white transition hover:bg-white/20">Sudah punya akun? Masuk</Link>
                 </div>
               </div>
-              <div aria-hidden className="pop relative mx-auto w-60 sm:w-80 lg:w-[24rem]">
+              <div aria-hidden className="pop relative mx-auto w-60 sm:w-80 md:w-72 lg:w-[24rem]">
                 <span className="absolute inset-x-6 bottom-0 top-10 rounded-full bg-pitch-2" />
                 <Maskot priority className="maskot-float relative drop-shadow-maskot" />
               </div>

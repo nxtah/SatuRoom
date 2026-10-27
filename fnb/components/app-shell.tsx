@@ -1,8 +1,9 @@
 "use client";
 
-import { BookOpen, ChefHat, ClipboardList, Home, Landmark, Package, ReceiptText, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
+import { Ellipsis, BookOpen, ChefHat, ClipboardList, Home, Landmark, Package, ReceiptText, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { Brand } from "./brand";
 import { LogoMark } from "./maskot";
 
@@ -17,10 +18,13 @@ const nav: readonly (readonly [string, string, LucideIcon])[] = [
   ["/menu", "Menu", BookOpen],
   ["/laporan", "Laporan", TrendingUp],
 ];
-const mobile = nav.filter(([href]) => ["/pos", "/pesanan", "/dapur", "/stok", "/menu"].includes(href));
+const MAIN = ["/", "/pos", "/pesanan", "/dapur"];
+const mobile = nav.filter(([href]) => MAIN.includes(href));
+const more = nav.filter(([href]) => !MAIN.includes(href));
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const [open, setOpen] = useState(false);
   const on = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[88px_minmax(0,1fr)] lg:grid-cols-[264px_minmax(0,1fr)]">
@@ -62,11 +66,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       <nav aria-label="Menu cepat" className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 rounded-[1.6rem] bg-kitchen p-1.5 shadow-xl md:hidden">
         {mobile.map(([href, label, Icon]) => (
-          <Link key={href} href={href} aria-current={on(href) ? "page" : undefined} className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-bold ${on(href) ? "bg-saffron text-kitchen" : "text-white/75"}`}>
+          <Link key={href} href={href} onClick={() => setOpen(false)} aria-current={on(href) ? "page" : undefined} className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-bold ${on(href) ? "bg-saffron text-kitchen" : "text-white/75"}`}>
             <Icon aria-hidden className="size-5" />
             {label}
           </Link>
         ))}
+        <button type="button" aria-expanded={open} aria-controls="menu-lainnya" onClick={() => setOpen((v) => !v)} className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-bold ${open || more.some(([h]) => on(h)) ? "bg-saffron text-kitchen" : "text-white/75"}`}>
+          <Ellipsis aria-hidden className="size-5" />
+          Lainnya
+        </button>
+        {open ? (
+          <div id="menu-lainnya" className="absolute right-0 bottom-full mb-2 grid w-56 gap-1 rounded-[1.5rem] bg-kitchen p-2 shadow-xl">
+            {more.map(([href, label, Icon]) => (
+              <Link key={href} href={href} onClick={() => setOpen(false)} aria-current={on(href) ? "page" : undefined} className={`flex items-center gap-3 rounded-2xl px-4 py-3 font-bold ${on(href) ? "bg-saffron text-kitchen" : "text-white/85 active:bg-white/10"}`}>
+                <Icon aria-hidden className="size-5" />
+                {label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </nav>
     </div>
   );

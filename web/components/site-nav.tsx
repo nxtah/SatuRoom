@@ -19,7 +19,7 @@ export function SiteNav() {
           <LogoMark className="h-8 sm:h-9" />
           <span className="font-display text-lg font-extrabold tracking-tight sm:text-xl">SatuRoom</span>
         </a>
-        <ul className="mx-auto hidden items-center gap-1 md:flex">
+        <ul className="mx-auto hidden items-center gap-1 lg:flex">
           {LINKS.map(([label, href]) => (
             <li key={href}>
               <a
@@ -31,7 +31,7 @@ export function SiteNav() {
             </li>
           ))}
         </ul>
-        <div className="ml-auto flex items-center gap-1 md:ml-0">
+        <div className="ml-auto flex items-center gap-1 lg:ml-0">
           {/* Menu masuk tanpa JavaScript: pilih aplikasi yang dipakai. */}
           <details className="group relative">
             <summary className="flex cursor-pointer list-none items-center rounded-full px-3 py-2 text-sm font-bold transition hover:bg-mist sm:px-4 [&::-webkit-details-marker]:hidden">

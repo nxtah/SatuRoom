@@ -38,12 +38,12 @@ export default function RasaLanding() {
             <span className="text-lg font-extrabold tracking-tight text-kitchen sm:text-xl">SatuRoom</span>
             <span className="hidden rounded-full bg-saffron/20 px-2 py-0.5 text-xs font-bold text-kitchen sm:inline">Rasa</span>
           </Link>
-          <ul className="mx-auto hidden items-center gap-1 md:flex">
+          <ul className="mx-auto hidden items-center gap-1 lg:flex">
             {[["Fitur", "#fitur"], ["Alur", "#alur"], ["Tampilan", "#tampilan"], ["Tanya jawab", "#tanya"]].map(([l, h]) => (
               <li key={h}><a href={h} className="rounded-full px-4 py-2 text-sm font-semibold text-stone-600 transition hover:bg-white hover:text-kitchen">{l}</a></li>
             ))}
           </ul>
-          <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <div className="ml-auto flex items-center gap-1 lg:ml-0">
             <Link href="/masuk" className="rounded-full px-3 py-2 text-sm font-bold text-kitchen transition hover:bg-white sm:px-4">Masuk</Link>
             <Link href="/daftar" className="whitespace-nowrap rounded-full bg-kitchen px-4 py-2.5 text-sm font-bold text-white transition hover:bg-kitchen-2 active:scale-[0.97] sm:px-5">Coba gratis</Link>
           </div>
@@ -57,16 +57,16 @@ export default function RasaLanding() {
               <LogoMark className="absolute inset-0 h-full w-full scale-110 opacity-60 blur-3xl" />
               <LogoMark className="relative h-auto w-full rotate-[-12deg] opacity-90" />
             </div>
-            <div className="relative mx-auto grid max-w-6xl items-end gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="relative mx-auto grid max-w-6xl items-end gap-10 md:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <h1 className="rise text-[2.8rem] leading-[0.98] font-extrabold tracking-[-0.035em] text-balance sm:text-7xl lg:text-[5.4rem]">Dari pesanan masuk sampai dapur siap, tetap rapi.</h1>
+                <h1 className="rise text-[2.8rem] leading-[0.98] font-extrabold tracking-[-0.035em] text-balance sm:text-7xl md:text-6xl lg:text-[5.4rem]">Dari pesanan masuk sampai dapur siap, tetap rapi.</h1>
                 <p className="rise mt-7 max-w-xl text-lg leading-relaxed text-white/75 sm:text-xl">Kasir, dapur, stok, dan laporan harian terhubung untuk kafe, warung, dan resto kecil.</p>
                 <div className="rise mt-10 flex flex-wrap items-center gap-3">
                   <Link href="/daftar" className="rounded-full bg-saffron px-8 py-4 text-base font-bold text-kitchen transition hover:-translate-y-0.5 hover:bg-white active:scale-[0.98]">Daftarkan usaha</Link>
                   <Link href="/masuk" className="rounded-full bg-white/12 px-7 py-4 text-base font-bold text-white transition hover:bg-white/20">Sudah punya akun? Masuk</Link>
                 </div>
               </div>
-              <div aria-hidden className="pop relative mx-auto w-60 sm:w-80 lg:w-[24rem]"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
+              <div aria-hidden className="pop relative mx-auto w-60 sm:w-80 md:w-72 lg:w-[24rem]"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
             </div>
           </div>
         </section>

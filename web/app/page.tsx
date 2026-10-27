@@ -48,9 +48,9 @@ export default function Home() {
               <LogoMark className="absolute inset-0 h-full w-full scale-110 opacity-70 blur-3xl" />
               <LogoMark className="relative h-auto w-full rotate-[-12deg]" />
             </div>
-            <div className="relative mx-auto grid max-w-6xl items-end gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="relative mx-auto grid max-w-6xl items-end gap-10 md:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <h1 className="rise rise-1 font-display text-[2.9rem] leading-[0.98] font-extrabold tracking-[-0.035em] text-balance sm:text-7xl lg:text-[5.6rem]">
+                <h1 className="rise rise-1 font-display text-[2.9rem] leading-[0.98] font-extrabold tracking-[-0.035em] text-balance sm:text-7xl md:text-6xl lg:text-[5.6rem]">
                   Urusan harian jadi rapi, tanpa ribet.
                 </h1>
                 <p className="rise rise-2 mt-7 max-w-xl text-lg leading-relaxed text-white/70 sm:text-xl">
@@ -70,7 +70,7 @@ export default function Home() {
                   </a>
                 </div>
               </div>
-              <div aria-hidden className="pop relative mx-auto w-64 sm:w-80 lg:mr-0 lg:w-[26rem]">
+              <div aria-hidden className="pop relative mx-auto w-64 sm:w-80 md:w-72 lg:mr-0 lg:w-[26rem]">
                 <Maskot priority className="maskot-float drop-shadow-maskot" />
               </div>
             </div>

@@ -55,7 +55,7 @@ export default async function FnbDashboard() {
           ))}
         </nav>
       </div>
-      <div className="relative mx-auto w-40 sm:mx-0 sm:w-64"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
+      <div className="relative mx-auto w-48 sm:mx-0 sm:w-64"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
     </section>
 
     <section aria-label="Ringkasan" className="rise mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
