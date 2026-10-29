@@ -1,11 +1,11 @@
 import Image from "next/image";
 
 /**
- * Maskot SatuRoom: naga oranye (versi umum). Belum ada versi khusus mahjong dari pemilik.
+ * Maskot SatuRoom: naga oranye berbaju cheongsam dengan ubin mahjong.
  * Dekoratif (alt kosong) kecuali diberi `alt`.
  */
 export function Maskot({ className = "", alt = "", priority = false }: { className?: string; alt?: string; priority?: boolean }) {
-  return <Image src="/brand/maskot.webp" alt={alt} width={697} height={720} priority={priority} unoptimized className={`h-auto w-full select-none ${className}`} />;
+  return <Image src="/brand/maskot.webp" alt={alt} width={885} height={900} priority={priority} unoptimized className={`h-auto w-full select-none ${className}`} />;
 }
 
 /** Logo SatuRoom (huruf S bergelombang). */
