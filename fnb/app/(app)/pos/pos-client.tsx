@@ -3,13 +3,14 @@ import { useMemo, useState } from "react";
 import { computeTotals } from "@/lib/pricing";
 import type { Catalog } from "@/server/catalog";
 import type { Order } from "@/server/orders";
+import type { DiningTable } from "@/server/tables";
 
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 const STATUS_LABEL: Record<string, string> = {
   confirmed: "Baru", preparing: "Dimasak", ready: "Siap", served: "Disajikan", completed: "Selesai", cancelled: "Batal", open: "Baru",
 };
 
-export function PosClient({ catalog, initialOrders, servicePercent, taxPercent, canDiscount }: { catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
+export function PosClient({ tables, catalog, initialOrders, servicePercent, taxPercent, canDiscount }: { tables: DiningTable[]; catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
   const [orders, setOrders] = useState(initialOrders);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [picking, setPicking] = useState<Catalog["items"][number] | null>(null);
@@ -19,6 +20,7 @@ export function PosClient({ catalog, initialOrders, servicePercent, taxPercent, 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tableId, setTableId] = useState("");
   const [discType, setDiscType] = useState<"amount" | "percent">("percent");
   const [discValue, setDiscValue] = useState("");
   const [discReason, setDiscReason] = useState("");
@@ -55,14 +57,14 @@ export function PosClient({ catalog, initialOrders, servicePercent, taxPercent, 
       const res = await fetch("/api/v1/orders", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          type, customerName: customerName || undefined, idempotencyKey: key,
+          type, tableId: type === "dine_in" && tableId ? tableId : undefined, customerName: customerName || undefined, idempotencyKey: key,
           discountType: wantsDiscount ? discType : undefined, discountValue: wantsDiscount ? Number(discValue) : undefined, discountReason: wantsDiscount ? discReason : undefined,
           lines: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.qty, notes: l.note || undefined, modifierIds: l.mods.map((m) => m.id) })),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Pesanan belum dapat disimpan.");
-      setCart([]); setCustomerName(""); setDiscValue(""); setDiscReason(""); setKey(crypto.randomUUID());
+      setCart([]); setCustomerName(""); setTableId(""); setDiscValue(""); setDiscReason(""); setKey(crypto.randomUUID());
       setMessage(`Pesanan ${data.receiptNo} masuk ke dapur.`);
       setOrders(await fetch("/api/v1/orders").then((r) => r.json()));
     } catch (e) {
@@ -106,6 +108,10 @@ export function PosClient({ catalog, initialOrders, servicePercent, taxPercent, 
         {([["dine_in", "Dine in"], ["takeaway", "Bungkus"], ["pickup", "Ambil"]] as const).map(([value, label]) =>
           <button key={value} onClick={() => setType(value)} className={`h-10 rounded-full text-sm font-bold ${type === value ? "bg-kitchen text-white" : "bg-stone-100 text-stone-600"}`}>{label}</button>)}
       </div>
+      {type === "dine_in" && tables.length ? <select aria-label="Meja" value={tableId} onChange={(e) => setTableId(e.target.value)} className="mt-3 h-11 w-full rounded-xl border border-stone-200 bg-white px-3">
+        <option value="">Pilih meja (opsional)</option>
+        {tables.map((t) => <option key={t.id} value={t.id} disabled={!!t.order}>{t.name}{t.capacity ? ` · ${t.capacity} kursi` : ""}{t.order ? " · terpakai" : ""}</option>)}
+      </select> : null}
       <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama pelanggan (opsional)" className="mt-3 h-11 w-full rounded-xl border border-stone-200 px-3" />
       <div className="mt-4 grid gap-2">
         {lines.map((l) => <div key={l.key} className="flex items-center gap-2 rounded-2xl border border-stone-200 p-3">

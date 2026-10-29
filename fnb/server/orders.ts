@@ -121,12 +121,12 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
       servicePercent: settings.servicePercent,
       taxPercent: settings.taxPercent,
     });
-    const ymd = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }).replaceAll("-", "").slice(2);
-    const [counter] = (await tx.execute(sql`
-      INSERT INTO fnb.counters (business_id, key, value) VALUES (${ctx.businessId}::uuid, ${`receipt:${ymd}`}, 1)
-      ON CONFLICT (business_id, key) DO UPDATE SET value = fnb.counters.value + 1 RETURNING value`)) as unknown as { value: string }[];
-    const receiptNo = `${settings.receiptPrefix}-${ymd}-${String(counter!.value).padStart(4, "0")}`;
-    const tableId = input.tableId ?? null;
+    const receiptNo = await nextReceiptNo(tx, ctx.businessId, settings.receiptPrefix);
+    const tableId = input.type === "dine_in" ? input.tableId ?? null : null;
+    if (tableId) {
+      const [busy] = (await tx.execute(sql`SELECT 1 AS x FROM fnb.orders WHERE table_id = ${tableId}::uuid AND status IN ('confirmed','preparing','ready','served') LIMIT 1`)) as unknown as { x: number }[];
+      if (busy) throw new AppError(409, "table_busy", "Meja sedang dipakai pesanan lain. Pilih meja lain atau gabungkan pesanannya.");
+    }
     const [order] = (await tx.execute(sql`
       INSERT INTO fnb.orders (business_id, outlet_id, table_id, type, status, customer_name, subtotal, discount, discount_reason, service_charge, tax,
                               service_percent, tax_percent, total, notes, opened_by, receipt_no, idempotency_key)
@@ -157,6 +157,28 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     });
     return { id: order!.id, receiptNo, total: totals.total };
   });
+}
+
+type Tx = Parameters<Parameters<typeof withContext>[2]>[0];
+
+/** Nomor struk berurutan per bisnis per hari (zona Jakarta), mis. INV-261030-0001. */
+export async function nextReceiptNo(tx: Tx, businessId: string, prefix: string) {
+  const ymd = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }).replaceAll("-", "").slice(2);
+  const [counter] = (await tx.execute(sql`
+    INSERT INTO fnb.counters (business_id, key, value) VALUES (${businessId}::uuid, ${`receipt:${ymd}`}, 1)
+    ON CONFLICT (business_id, key) DO UPDATE SET value = fnb.counters.value + 1 RETURNING value`)) as unknown as { value: string }[];
+  return `${prefix}-${ymd}-${String(counter!.value).padStart(4, "0")}`;
+}
+
+/** Hitung ulang total pesanan dari baris yang tersisa, memakai tarif yang tersimpan di pesanan itu. */
+export async function repriceOrder(tx: Tx, orderId: string) {
+  const [o] = (await tx.execute(sql`
+    SELECT o.service_percent::float8 AS "servicePercent", o.tax_percent::float8 AS "taxPercent",
+           coalesce((SELECT sum(l.unit_price * l.quantity) FROM fnb.order_lines l WHERE l.order_id = o.id), 0)::int AS subtotal
+    FROM fnb.orders o WHERE o.id = ${orderId}::uuid`)) as unknown as { servicePercent: number; taxPercent: number; subtotal: number }[];
+  const t = computeTotals({ gross: o!.subtotal, servicePercent: o!.servicePercent, taxPercent: o!.taxPercent });
+  await tx.execute(sql`UPDATE fnb.orders SET subtotal = ${t.gross}, discount = 0, service_charge = ${t.service}, tax = ${t.tax}, total = ${t.total} WHERE id = ${orderId}::uuid`);
+  return t.total;
 }
 
 const NEXT: Record<string, OrderStatus[]> = {

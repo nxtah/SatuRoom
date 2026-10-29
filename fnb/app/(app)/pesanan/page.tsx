@@ -2,6 +2,7 @@ import Link from "next/link";
 import { can } from "@/server/context";
 import { listOrders } from "@/server/orders";
 import { requireFnbPage } from "@/server/routing";
+import { listTables } from "@/server/tables";
 import { OrdersList } from "./orders-list";
 
 export default async function OrdersPage() {
@@ -13,6 +14,6 @@ export default async function OrdersPage() {
       <Link href="/kas" className="rounded-full bg-white px-4 py-2 text-sm font-bold text-stone-600">Kas & shift</Link>
     </div>
     <p className="mt-1 text-stone-600">Dine in, bungkus, dan ambil dalam satu antrean.</p>
-    <OrdersList initialOrders={await listOrders(ctx, "all")} canPay={canPay} />
+    <OrdersList initialOrders={await listOrders(ctx, "all")} tables={await listTables(ctx)} canPay={canPay} canArrange={can(ctx, "orders.sell")} />
   </main>;
 }

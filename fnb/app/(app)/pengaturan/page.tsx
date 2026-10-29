@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { can } from "@/server/context";
 import { requireFnbPage } from "@/server/routing";
 import { getSettings } from "@/server/settings";
+import { listTables } from "@/server/tables";
 import { SettingsForm } from "./settings-form";
+import { TableManager } from "./table-manager";
 
 export default async function SettingsPage() {
   const ctx = await requireFnbPage();
@@ -12,5 +14,6 @@ export default async function SettingsPage() {
     <h1 className="text-3xl font-extrabold">Pengaturan</h1>
     <p className="mt-1 text-stone-600">Pajak, service charge, dan tampilan struk. Perubahan hanya berlaku untuk pesanan berikutnya.</p>
     <SettingsForm initial={settings} />
+    <TableManager tables={await listTables(ctx)} />
   </main>;
 }

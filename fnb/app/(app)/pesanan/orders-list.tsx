@@ -1,6 +1,8 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Order } from "@/server/orders";
+import type { DiningTable } from "@/server/tables";
 
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 const LABEL: Record<string, string> = {
@@ -12,7 +14,8 @@ const TONE: Record<string, string> = {
 };
 const METHODS: [string, string][] = [["cash", "Tunai"], ["transfer", "Transfer"], ["qris", "QRIS"], ["card", "Kartu"]];
 
-export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; canPay: boolean }) {
+export function OrdersList({ initialOrders, tables, canPay, canArrange }: { initialOrders: Order[]; tables: DiningTable[]; canPay: boolean; canArrange: boolean }) {
+  const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -20,6 +23,20 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [busy, setBusy] = useState(false);
+  const [arrange, setArrange] = useState<{ id: string; mode: "move" | "merge" | "split" } | null>(null);
+  const [pick, setPick] = useState<string[]>([]);
+  const ACTIVE = ["confirmed", "preparing", "ready", "served"];
+
+  async function arrangeCall(path: string, body: unknown, done: string) {
+    setError(""); setMessage(""); setBusy(true);
+    const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    setBusy(false);
+    if (!res) return setError("Koneksi terputus. Coba lagi.");
+    if (!res.ok) return setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Belum dapat diproses.");
+    setArrange(null); setPick([]); setMessage(done);
+    await reload();
+    router.refresh();
+  }
   const [tendered, setTendered] = useState("");
   const [payKey, setPayKey] = useState("");
   const [cancelFor, setCancelFor] = useState<string | null>(null);
@@ -81,8 +98,30 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
             {o.status === "ready" ? <button onClick={() => setStatus(o.id, "served")} className="h-9 rounded-full bg-basil px-4 text-sm font-bold text-white">Sajikan</button> : null}
             {o.status === "served" && !paidOff ? <button onClick={() => setStatus(o.id, "completed")} className="h-9 rounded-full bg-kitchen px-4 text-sm font-bold text-white">Selesaikan</button> : null}
             {["confirmed", "preparing"].includes(o.status) ? <button onClick={() => { setCancelFor(cancelFor === o.id ? null : o.id); setCancelReason(""); }} className="h-9 rounded-full bg-red-50 px-4 text-sm font-bold text-red-700">Batalkan</button> : null}
+            {canArrange && ACTIVE.includes(o.status) && o.paid === 0 ? <>
+              <button onClick={() => { setArrange(arrange?.id === o.id && arrange.mode === "move" ? null : { id: o.id, mode: "move" }); setPick([]); }} className="h-9 rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700">Pindah meja</button>
+              <button onClick={() => { setArrange(arrange?.id === o.id && arrange.mode === "merge" ? null : { id: o.id, mode: "merge" }); setPick([]); }} className="h-9 rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700">Gabung</button>
+              {o.lines.length > 1 ? <button onClick={() => { setArrange(arrange?.id === o.id && arrange.mode === "split" ? null : { id: o.id, mode: "split" }); setPick([]); }} className="h-9 rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700">Pisah tagihan</button> : null}
+            </> : null}
             <a href={`/struk/${o.id}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700">Struk</a>
           </div>
+          {arrange?.id === o.id ? <div className="mt-3 rounded-2xl bg-plate p-4">
+            {arrange.mode === "move" ? <>
+              <p className="text-sm font-bold">Pindah ke meja kosong</p>
+              <div className="mt-2 flex flex-wrap gap-2">{tables.filter((t) => !t.order).map((t) => <button key={t.id} disabled={busy} onClick={() => arrangeCall(`/api/v1/orders/${o.id}/move`, { tableId: t.id }, `Pesanan dipindah ke ${t.name}.`)} className="h-10 rounded-full bg-white px-4 text-sm font-bold">{t.name}</button>)}
+                {!tables.some((t) => !t.order) ? <span className="text-sm text-stone-600">Tidak ada meja kosong.</span> : null}</div>
+            </> : null}
+            {arrange.mode === "merge" ? <>
+              <p className="text-sm font-bold">Gabungkan semua item ke pesanan:</p>
+              <div className="mt-2 flex flex-wrap gap-2">{orders.filter((x) => x.id !== o.id && ACTIVE.includes(x.status) && x.paid === 0).map((x) => <button key={x.id} disabled={busy} onClick={() => arrangeCall(`/api/v1/orders/${o.id}/merge`, { targetId: x.id }, `Pesanan digabung ke ${x.receiptNo}.`)} className="h-10 rounded-full bg-white px-4 text-sm font-bold">{x.receiptNo}{x.tableName ? ` · ${x.tableName}` : ""}</button>)}</div>
+              <p className="mt-2 text-xs text-stone-600">Pesanan ini ditutup setelah digabung. Pesanan ber-diskon atau yang sudah dibayar tidak bisa digabung.</p>
+            </> : null}
+            {arrange.mode === "split" ? <>
+              <p className="text-sm font-bold">Pilih item untuk tagihan baru</p>
+              <div className="mt-2 grid gap-1">{o.lines.map((l) => <label key={l.id} className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-kitchen" checked={pick.includes(l.id)} onChange={() => setPick(pick.includes(l.id) ? pick.filter((x) => x !== l.id) : [...pick, l.id])} />{l.qty}x {l.name}</label>)}</div>
+              <button disabled={busy || !pick.length || pick.length >= o.lines.length} onClick={() => arrangeCall(`/api/v1/orders/${o.id}/split`, { lineIds: pick }, "Tagihan dipisah jadi pesanan baru.")} className="mt-3 h-10 rounded-full bg-kitchen px-5 text-sm font-bold text-white disabled:opacity-40">Pisahkan</button>
+            </> : null}
+          </div> : null}
           {cancelFor === o.id ? <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-red-50 p-3 sm:flex-row">
             <input aria-label="Alasan pembatalan" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan" className="h-11 min-w-0 flex-1 rounded-xl border border-red-200 bg-white px-3" />
             <button disabled={cancelReason.trim().length < 3} onClick={() => setStatus(o.id, "cancelled", cancelReason.trim())} className="h-11 rounded-full bg-tomato px-6 font-extrabold text-white disabled:opacity-40">Batalkan pesanan</button>

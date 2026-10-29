@@ -142,3 +142,11 @@ export const RefundInput = z.object({
   amount: z.coerce.number().int().min(1, "Nominal minimal Rp 1.").max(100_000_000),
   reason: z.string().trim().min(3, "Alasan wajib diisi.").max(200),
 });
+
+export const TableInput=z.object({
+  name:z.string().trim().min(1,"Nama meja wajib diisi.").max(40),
+  capacity:z.coerce.number().int().min(1).max(500).nullish(),
+});
+export const MoveOrderInput=z.object({tableId:z.string().uuid()});
+export const MergeOrderInput=z.object({targetId:z.string().uuid()});
+export const SplitOrderInput=z.object({lineIds:z.array(z.string().uuid()).min(1).max(100)});
