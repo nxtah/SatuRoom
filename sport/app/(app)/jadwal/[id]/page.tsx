@@ -5,12 +5,14 @@ import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/ui/alert";
 import { longDate } from "@/lib/dates";
 import { getSessionSheet } from "@/server/attendance";
+import { getMatch } from "@/server/matches";
 import { AppError } from "@/server/errors";
 import { isUuid } from "@/server/ids";
 import { requireAcademyPage } from "@/server/routing";
 import { AttendanceSheet } from "./attendance-sheet";
 import { SessionActions } from "./session-actions";
 import { QrScanner } from "./qr-scanner";
+import { MatchPanel } from "./match-panel";
 
 export const metadata: Metadata = { title: "Absensi" };
 
@@ -23,6 +25,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     throw e;
   });
   const { session: s } = sheet;
+  const match = s.kind === "match" ? await getMatch(ctx, id) : null;
   const title = s.kind === "match" ? (s.title ?? "Pertandingan") : (s.title ?? `Latihan ${s.teamName}`);
 
   return (
@@ -48,6 +51,18 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         <div className="rise mb-4">
           <Alert tone="info">{sheet.blockedReason}</Alert>
         </div>
+      ) : null}
+
+      {match ? (
+        <MatchPanel
+          sessionId={s.id}
+          teamName={s.teamName}
+          sport={ctx.sport}
+          detail={match.detail}
+          roster={match.roster}
+          canEdit={match.canEdit}
+          cancelled={s.status === "cancelled"}
+        />
       ) : null}
 
       <section className="rise" aria-label="Absensi">

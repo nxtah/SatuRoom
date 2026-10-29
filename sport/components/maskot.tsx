@@ -1,13 +1,23 @@
 import Image from "next/image";
 
-/** Maskot SatuRoom: naga oranye bawa laptop. Dekoratif (alt kosong) kecuali diberi `alt`. */
-export function Maskot({ className = "", alt = "", priority = false }: { className?: string; alt?: string; priority?: boolean }) {
+const VARIANT = {
+  umum: { src: "/brand/maskot.webp", width: 697, height: 720 },
+  bola: { src: "/brand/maskot-bola.webp", width: 900, height: 891 },
+  basket: { src: "/brand/maskot-basket.webp", width: 874, height: 900 },
+} as const;
+
+/**
+ * Maskot SatuRoom: naga oranye. Varian `bola` dan `basket` berseragam cabangnya; cabang lain
+ * memakai maskot umum (bawa laptop). Dekoratif (alt kosong) kecuali diberi `alt`.
+ */
+export function Maskot({ className = "", alt = "", priority = false, variant = "umum" }: { className?: string; alt?: string; priority?: boolean; variant?: keyof typeof VARIANT }) {
+  const v = VARIANT[variant];
   return (
     <Image
-      src="/brand/maskot.webp"
+      src={v.src}
       alt={alt}
-      width={697}
-      height={720}
+      width={v.width}
+      height={v.height}
       priority={priority}
       unoptimized
       className={`h-auto w-full select-none ${className}`}

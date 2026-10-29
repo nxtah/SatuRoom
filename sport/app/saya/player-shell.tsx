@@ -3,9 +3,9 @@ import { LogoMark } from "@/components/maskot";
 import { LogoutButton } from "./logout-button";
 import { PlayerBottomNav, PlayerSideNav } from "./player-nav";
 
-export function PlayerShell({ children }: { children: React.ReactNode }) {
+export function PlayerShell({ accent, children }: { accent: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div style={{ "--color-ember": accent } as React.CSSProperties} className="min-h-dvh md:grid md:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
       <a href="#isi" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-pitch focus:px-4 focus:py-2 focus:text-white">
         Lewati ke isi
       </a>

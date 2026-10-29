@@ -7,7 +7,10 @@ import { ageOf } from "@/lib/age";
 import { RatingDots } from "@/components/rating-dots";
 import { dayLabel } from "@/lib/dates";
 import { monthLabel, rupiah } from "@/lib/money";
-import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
+import { ATTENDANCE } from "@/lib/schemas";
+import { resultOf } from "@/server/matches-shared";
+import { FormChip } from "@/components/scoreboard";
+import { positionLabel, sportOf } from "@/lib/sports";
 import { currentSession } from "@/server/context";
 import { playerHome, type PlayerHome } from "@/server/player-account";
 import { NoticeActions } from "./notice-actions";
@@ -83,6 +86,8 @@ export default async function SayaPage() {
         ))}
       </nav>
 
+      <Matches me={me} />
+
       <Reports me={me} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-start">
@@ -132,7 +137,7 @@ function Tile({
 }
 
 export function Hero({ me }: { me: PlayerHome }) {
-  const position = POSITIONS.find((p) => p.id === me.position)?.label;
+  const position = positionLabel(me.sport, me.position);
   return (
     <section className="rise relative overflow-hidden rounded-[2rem] bg-pitch p-6 text-white sm:p-8">
       <div
@@ -170,7 +175,7 @@ export function Hero({ me }: { me: PlayerHome }) {
           </div>
         </div>
         <div className="w-24 shrink-0 sm:w-36">
-          <Maskot />
+          <Maskot variant={sportOf(me.sport).mascot} />
         </div>
       </div>
     </section>
@@ -396,6 +401,41 @@ export function Reports({ me }: { me: PlayerHome }) {
             </p>
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+const HOME_AWAY = { home: "Kandang", away: "Tandang", neutral: "Netral" } as const;
+
+/** Pertandingan tim pemain: jadwal, susunan (inti atau cadangan), dan hasil. */
+export function Matches({ me }: { me: PlayerHome }) {
+  if (me.matches.length === 0) return null;
+  return (
+    <section className="rise mt-4 rounded-[2rem] bg-chalk p-5 sm:p-6" aria-labelledby="laga">
+      <h2 id="laga" className="text-xl font-extrabold">Pertandingan</h2>
+      <ul className="mt-4 grid gap-2">
+        {me.matches.map((m) => {
+          const result = resultOf(m.scoreUs, m.scoreThem);
+          return (
+            <li key={m.sessionId} className={`flex items-center gap-4 rounded-2xl bg-mist/70 p-4 ${m.cancelled ? "opacity-60" : ""}`}>
+              {result ? <FormChip result={result} className="size-10 shrink-0 !text-base" /> : <span aria-hidden className="h-10 w-1 shrink-0 rounded-full bg-ember" />}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-extrabold">{m.opponent ? `vs ${m.opponent}` : `Pertandingan ${m.teamName}`}</span>
+                <span className="block text-sm text-ink-soft">
+                  {dayLabel(m.date)}, {m.startTime}, {HOME_AWAY[m.homeAway]}, {m.locationName}
+                </span>
+                {m.cancelled ? <span className="block text-sm font-bold text-[#b42318]">Dibatalkan</span> : null}
+                {!m.cancelled && !result && m.lineupSet ? (
+                  <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-extrabold ${m.role === "starter" ? "bg-ember text-ink" : m.role === "bench" ? "bg-pitch text-white" : "bg-mist text-ink-soft"}`}>
+                    {m.role === "starter" ? "Kamu pemain inti" : m.role === "bench" ? "Kamu cadangan" : "Belum masuk susunan"}
+                  </span>
+                ) : null}
+              </span>
+              {result ? <span className="shrink-0 text-xl font-extrabold tabular-nums">{m.scoreUs}-{m.scoreThem}</span> : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

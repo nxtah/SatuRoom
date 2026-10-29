@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { ageOf } from "@/lib/age";
-import { POSITIONS } from "@/lib/schemas";
+import { positionLabel } from "@/lib/sports";
 import { listPlayers } from "@/server/players";
 import { pendingRegistrationCount } from "@/server/registrations";
 import { requireAcademyPage } from "@/server/routing";
@@ -133,7 +133,7 @@ export default async function PemainPage({ searchParams }: { searchParams: Promi
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-bold">{p.fullName}</span>
                   <span className="block truncate text-sm text-ink-soft">
-                    {[p.teams.map((t) => t.name).join(", ") || "Tanpa tim", POSITIONS.find((x) => x.id === p.position)?.label]
+                    {[p.teams.map((t) => t.name).join(", ") || "Tanpa tim", positionLabel(ctx.sport, p.position)]
                       .filter(Boolean)
                       .join(", ")}
                   </span>

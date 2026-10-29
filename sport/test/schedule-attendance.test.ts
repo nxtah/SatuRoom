@@ -30,10 +30,10 @@ async function setup() {
   return { a, team, players };
 }
 
-const oneOff = (teamId: string, date: string) => ({
+const oneOff = (teamId: string, date: string, startTime = "15:30") => ({
   teamId,
   date,
-  startTime: "15:30",
+  startTime,
   durationMin: 90,
   kind: "training" as const,
 });
@@ -138,7 +138,7 @@ describe("absensi", () => {
     const { a, team, players } = await setup();
     const other = await createTeam(a.ctx, { name: "KU 14-17", ageMin: null, ageMax: null });
     const mine = await createSession(a.ctx, oneOff(team, jakartaToday()));
-    const theirs = await createSession(a.ctx, oneOff(other, jakartaToday()));
+    const theirs = await createSession(a.ctx, oneOff(other, jakartaToday(), "18:00"));
     const coach = await staffOf(a, ["coach"], "Coach Tomi");
     await expect(getSessionSheet(coach, mine)).rejects.toMatchObject({ status: 404 });
     expect(await listSessions(coach, { from: jakartaToday(), to: jakartaToday() })).toEqual([]);
@@ -149,8 +149,8 @@ describe("absensi", () => {
     expect((await listSessions(coach, { from: jakartaToday(), to: jakartaToday() })).map((s) => s.id)).toEqual([mine]);
     await saveAttendance(coach, mine, { entries: [{ playerId: players[0]!, status: "present" }] });
     await expect(getSessionSheet(coach, theirs)).rejects.toMatchObject({ status: 404 });
-    await expect(createSession(coach, oneOff(other, jakartaToday()))).rejects.toMatchObject({ status: 404 });
-    await expect(createSession(coach, oneOff(team, jakartaToday()))).resolves.toBeTruthy();
+    await expect(createSession(coach, oneOff(other, jakartaToday(), "18:00"))).rejects.toMatchObject({ status: 404 });
+    await expect(createSession(coach, oneOff(team, jakartaToday(), "20:00"))).resolves.toBeTruthy();
   });
 
   it("akademi lain tidak bisa melihat atau mengisi absensi", async () => {

@@ -29,12 +29,12 @@ function Tile({
   return (
     <Link
       href={href}
-      className={`group relative flex min-h-36 flex-col justify-between gap-4 overflow-hidden rounded-[1.75rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-26px_rgb(11_26_58/0.6)] ${skin} ${className}`}
+      className={`group relative flex min-h-28 flex-col justify-between gap-3 sm:min-h-36 sm:gap-4 overflow-hidden rounded-[1.75rem] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-26px_rgb(11_26_58/0.6)] ${skin} ${className}`}
     >
       <span className={`text-sm font-bold ${soft}`}>{label}</span>
       <span className="flex items-end justify-between gap-3">
         <span className="min-w-0">
-          <span className="block text-4xl leading-none font-extrabold tracking-tight tabular-nums">{value}</span>
+          <span className="block text-3xl leading-none font-extrabold tracking-tight tabular-nums sm:text-4xl">{value}</span>
           <span className={`mt-2 block text-sm ${soft}`}>{note}</span>
         </span>
         {children}

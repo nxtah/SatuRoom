@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { dayOfMonth, shortDay } from "@/lib/dates";
+import { resultOf } from "@/server/matches-shared";
 import type { SessionRow } from "@/server/schedule";
 
 /** Kartu sesi di kalender dan Beranda: jam, tim, dan status absensinya. */
@@ -19,9 +20,12 @@ export function SessionCard({
   const cancelled = s.status === "cancelled";
   const future = s.date > today;
   const recorded = s.recordedCount > 0;
+  const result = s.kind === "match" ? resultOf(s.scoreUs, s.scoreThem) : null;
   const status = cancelled
     ? { text: "Dibatalkan", tone: "text-[#b42318]" }
-    : recorded
+    : result
+      ? { text: `${{ W: "Menang", D: "Seri", L: "Kalah" }[result]} ${s.scoreUs}-${s.scoreThem}`, tone: result === "L" ? "text-[#b42318]" : "text-turf" }
+      : recorded
       ? { text: `${s.presentCount} dari ${Math.max(s.rosterCount, s.recordedCount)} hadir`, tone: "text-turf" }
       : future
         ? { text: `${s.rosterCount} pemain`, tone: "text-ink-soft" }
@@ -48,7 +52,7 @@ export function SessionCard({
       <span aria-hidden className={`h-10 w-1 shrink-0 rounded-full ${s.kind === "match" ? "bg-ember" : "bg-turf"}`} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-extrabold">
-          {s.kind === "match" ? (s.title ?? "Pertandingan") : s.teamName}
+          {s.kind === "match" ? (s.opponent ? `vs ${s.opponent}` : (s.title ?? "Pertandingan")) : s.teamName}
         </span>
         <span className="block truncate text-sm">
           {withDate ? <span className="text-ink-soft">{s.startTime}–{s.endTime}, </span> : null}
@@ -57,7 +61,7 @@ export function SessionCard({
         </span>
       </span>
       {action && !cancelled && !future ? (
-        <span className="shrink-0 rounded-full bg-ember px-4 py-2 text-sm font-extrabold text-ink transition group-hover:bg-[#d7ff55]">
+        <span className="shrink-0 rounded-full bg-ember px-4 py-2 text-sm font-extrabold text-ink transition group-hover:brightness-110">
           {recorded ? "Lihat" : "Absen"}
         </span>
       ) : (

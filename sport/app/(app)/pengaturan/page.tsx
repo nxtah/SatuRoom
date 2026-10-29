@@ -13,12 +13,13 @@ export default async function PengaturanPage() {
   const academy = await getAcademy(ctx);
   const canEdit = ctx.can("academy.update");
   // Menu yang tidak muat di tab bawah HP dibuka dari sini.
-  const allowed = NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href);
-  const inTabs = new Set(mobileNav(allowed).map((i) => i.href));
+  const allowed: string[] = [...NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href), ...(ctx.can("locations.manage") ? ["/pengaturan/lokasi"] : [])];
+  const inTabs = new Set<string>(mobileNav(allowed).map((i) => i.href));
   const HINTS: Record<string, { title: string; hint: string }> = {
     "/tim": { title: "Tim", hint: "Kelompok umur, pemain, dan pelatihnya." },
     "/staf": { title: "Staf dan peran", hint: "Undang pelatih, atur peran dan tim yang dipegang." },
     "/pengumuman": { title: "Pengumuman", hint: "Kabar libur, ganti jam, dan info untuk pemain." },
+    "/pengaturan/lokasi": { title: "Lokasi", hint: "Lapangan atau cabang tempat latihan." },
     "/iuran": { title: "Iuran", hint: "Tarif, tagihan bulanan, dan pembayaran." },
   };
   const more = allowed.filter((h) => !inTabs.has(h) && HINTS[h]).map((h) => ({ href: h, ...HINTS[h]! }));
@@ -44,12 +45,22 @@ export default async function PengaturanPage() {
         </nav>
       ) : null}
 
+      {ctx.can("locations.manage") ? (
+        <Link href="/pengaturan/lokasi" className="rise group hidden items-center gap-4 rounded-[2rem] bg-chalk p-5 transition hover:-translate-y-0.5 md:flex">
+          <span className="flex-1">
+            <span className="block text-lg font-extrabold">Lokasi</span>
+            <span className="block text-sm text-ink-soft">Kelola lapangan atau cabang tempat latihan dan pertandingan.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-5" />
+        </Link>
+      ) : null}
+
       <section className="rise rounded-[2rem] bg-chalk p-6 sm:p-8" aria-labelledby="profil">
         <h2 id="profil" className="text-xl font-extrabold">
           Profil akademi
         </h2>
         {canEdit ? (
-          <AcademyForm name={academy.name} city={academy.city ?? ""} />
+          <AcademyForm name={academy.name} city={academy.city ?? ""} sport={academy.sport} sportLocked={academy.sportLocked} />
         ) : (
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             <div>

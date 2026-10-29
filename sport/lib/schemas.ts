@@ -1,5 +1,6 @@
 /** Aturan isian yang sama untuk form di browser dan API di server. */
 import { z } from "zod";
+import { SPORT_IDS } from "./sports";
 
 export const email = z.string().trim().email("Format email belum benar.").max(254);
 export const password = z
@@ -26,6 +27,7 @@ export const ResetInput = z.object({ token: z.string().min(10).max(200), passwor
 export const SwitchInput = z.object({ academyId: z.string().uuid() });
 
 export const AcademyInput = z.object({
+  sport: z.enum(SPORT_IDS, "Pilih cabang olahraga.").default("football"),
   name: z.string().trim().min(2, "Nama akademi minimal 2 huruf.").max(100, "Nama akademi terlalu panjang."),
   city: z.string().trim().min(2, "Isi kota akademi.").max(80, "Nama kota terlalu panjang."),
 });
@@ -47,13 +49,6 @@ export const TeamInput = z
     message: "Umur maksimal harus sama atau lebih besar dari umur minimal.",
   });
 
-export const POSITIONS = [
-  { id: "kiper", label: "Kiper" },
-  { id: "belakang", label: "Belakang" },
-  { id: "tengah", label: "Tengah" },
-  { id: "depan", label: "Depan" },
-] as const;
-
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
 
 /** Tanggal lahir wajar untuk pemain akademi: umur 3 sampai 25 tahun. */
@@ -71,7 +66,7 @@ export const PlayerInput = z.object({
   fullName: z.string().trim().min(2, "Isi nama lengkap pemain.").max(100, "Nama terlalu panjang."),
   birthDate,
   teamIds: z.array(z.string().uuid()).min(1, "Pilih minimal satu tim.").max(5),
-  position: z.preprocess(emptyToNull, z.enum(["kiper", "belakang", "tengah", "depan"]).nullable()).optional(),
+  position: z.preprocess(emptyToNull, z.string().trim().max(40).nullable()).optional(),
   shirtNumber: z.preprocess(
     emptyToNull,
     z.coerce.number().int().min(1, "Nomor 1-99.").max(99, "Nomor 1-99.").nullable(),
@@ -135,6 +130,8 @@ export const ScheduleInput = z.object({
   startTime: clock,
   durationMin: duration,
   startsOn: isoDate,
+  /** Kosong = lokasi utama. */
+  locationId: z.preprocess(emptyToNull, z.string().uuid("Lokasi tidak valid.").nullable()).optional(),
 });
 
 export const SessionInput = z.object({
@@ -143,7 +140,36 @@ export const SessionInput = z.object({
   startTime: clock,
   durationMin: duration,
   kind: z.enum(["training", "match"]),
+  locationId: z.preprocess(emptyToNull, z.string().uuid("Lokasi tidak valid.").nullable()).optional(),
   title: z.preprocess(emptyToNull, z.string().trim().max(80, "Maksimal 80 karakter.").nullable()).optional(),
+  /** Hanya dipakai untuk pertandingan; detail lain diisi di halaman sesi. */
+  opponent: z.preprocess(emptyToNull, z.string().trim().min(2, "Nama lawan minimal 2 huruf.").max(80, "Nama lawan terlalu panjang.").nullable()).optional(),
+});
+
+/** Detail pertandingan: lawan, skor, catatan, dan susunan pemain (starter atau cadangan). */
+const optionalScore = z.preprocess(
+  (v) => (v === "" || v === undefined || v === null ? null : v),
+  z.coerce.number().int("Skor berupa angka bulat.").min(0, "Skor tidak boleh minus.").max(999, "Skor terlalu besar.").nullable(),
+);
+export const MatchInput = z
+  .object({
+    opponent: z.preprocess(emptyToNull, z.string().trim().min(2, "Nama lawan minimal 2 huruf.").max(80, "Nama lawan terlalu panjang.").nullable()),
+    homeAway: z.enum(["home", "away", "neutral"]),
+    scoreUs: optionalScore,
+    scoreThem: optionalScore,
+    report: z.preprocess(emptyToNull, z.string().trim().max(500, "Maksimal 500 karakter.").nullable()),
+    lineup: z
+      .array(z.object({ playerId: z.string().uuid(), role: z.enum(["starter", "bench"]) }))
+      .max(40, "Susunan terlalu banyak."),
+  })
+  .refine((m) => (m.scoreUs === null) === (m.scoreThem === null), {
+    path: ["scoreThem"],
+    message: "Isi skor kedua tim, atau kosongkan keduanya.",
+  });
+
+export const LocationInput = z.object({
+  name: z.string().trim().min(2, "Nama lokasi minimal 2 huruf.").max(80, "Nama lokasi terlalu panjang."),
+  address: z.preprocess(emptyToNull, z.string().trim().max(200, "Alamat terlalu panjang.").nullable()).optional(),
 });
 
 export const CancelInput = z.object({

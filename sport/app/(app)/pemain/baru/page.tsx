@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { requireAcademyPage } from "@/server/routing";
 import { listTeams } from "@/server/teams";
+import { sportOf } from "@/lib/sports";
 import { PlayerForm } from "../player-form";
 
 export const metadata: Metadata = { title: "Tambah pemain" };
@@ -23,6 +24,7 @@ export default async function PemainBaruPage({ searchParams }: { searchParams: P
       />
       <div className="rise rounded-[2rem] bg-chalk p-6 sm:p-8">
         <PlayerForm
+          positions={sportOf(ctx.sport).positions}
           teams={teams}
           showGuardian={ctx.can("guardians.read")}
           defaultTeamId={defaultTeamId}

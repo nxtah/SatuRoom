@@ -9,7 +9,8 @@ import { db } from "./db";
 import { env } from "./env";
 import { AppError, forbidden, unauthorized } from "./errors";
 import { permissionsFor, type Permission, type Role } from "./permissions";
-import { staffRoles } from "./schema";
+import { academySettings, staffRoles } from "./schema";
+import type { SportId } from "@/lib/sports";
 
 export const PRODUCT = "bola";
 
@@ -34,6 +35,8 @@ export interface AcademyContext {
   userId: string;
   businessId: string;
   membershipId: string;
+  /** Cabang olahraga akademi aktif. */
+  sport: SportId;
   roles: Role[];
   can: (p: Permission) => boolean;
 }
@@ -60,7 +63,8 @@ export async function loadAcademyContext(session: SessionInfo): Promise<AcademyC
       );
     if (!m) return null;
     const rows = await tx.select({ role: staffRoles.role }).from(staffRoles).where(eq(staffRoles.membershipId, m.id));
-    return { membershipId: m.id, roles: rows.map((r) => r.role) };
+    const [settings] = await tx.select({ sport: academySettings.sport }).from(academySettings);
+    return { membershipId: m.id, roles: rows.map((r) => r.role), sport: settings?.sport ?? ("football" as SportId) };
   });
   if (!found) throw new AppError(409, "no_academy", "Pilih atau buat akademi dulu.");
   const perms = permissionsFor(found.roles);
@@ -69,6 +73,7 @@ export async function loadAcademyContext(session: SessionInfo): Promise<AcademyC
     userId: session.userId,
     businessId,
     membershipId: found.membershipId,
+    sport: found.sport,
     roles: found.roles,
     can: (p) => perms.has(p),
   };

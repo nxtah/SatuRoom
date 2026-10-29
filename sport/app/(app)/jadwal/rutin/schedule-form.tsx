@@ -15,7 +15,8 @@ export const DURATIONS = [
   { value: 120, label: "2 jam" },
 ];
 
-export function ScheduleForm({ teams, today, defaultTeamId, next }: {
+export function ScheduleForm({ teams, today, defaultTeamId, next, locations }: {
+  locations: { id: string; name: string; isPrimary: boolean }[];
   teams: { id: string; name: string }[];
   today: string;
   defaultTeamId?: string;
@@ -34,6 +35,7 @@ export function ScheduleForm({ teams, today, defaultTeamId, next }: {
         startTime: data.get("startTime"),
         durationMin: data.get("durationMin") ?? "",
         startsOn: data.get("startsOn"),
+        locationId: data.get("locationId"),
       },
       (input) => api<{ ids: string[] }>("/schedules", { body: input }),
     );
@@ -66,6 +68,9 @@ export function ScheduleForm({ teams, today, defaultTeamId, next }: {
         <Field label="Mulai berlaku" name="startsOn" type="date" defaultValue={today} error={form.fields.startsOn} />
       </div>
       <ChoiceChips legend="Lama latihan" name="durationMin" options={DURATIONS} defaultValue={[90]} error={form.fields.durationMin} />
+      {locations.length > 1 ? (
+        <ChoiceChips legend="Lokasi" name="locationId" options={locations.map((l) => ({ value: l.id, label: l.name }))} defaultValue={locations.filter((l) => l.isPrimary).map((l) => l.id)} error={form.fields.locationId} />
+      ) : null}
       <Button type="submit" disabled={form.pending} className="justify-self-start">
         {form.pending ? "Menyimpan…" : "Simpan jadwal"}
       </Button>

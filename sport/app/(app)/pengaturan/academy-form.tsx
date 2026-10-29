@@ -5,11 +5,13 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { SportPicker } from "@/components/sport-picker";
+import type { SportId } from "@/lib/sports";
 import { api } from "@/lib/api";
 import { AcademyInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-export function AcademyForm({ name, city }: { name: string; city: string }) {
+export function AcademyForm({ name, city, sport, sportLocked }: { name: string; city: string; sport: SportId; sportLocked: boolean }) {
   const router = useRouter();
   const form = useForm(AcademyInput);
   const [saved, setSaved] = useState(false);
@@ -39,6 +41,10 @@ export function AcademyForm({ name, city }: { name: string; city: string }) {
       ) : null}
       <Field label="Nama akademi" name="name" defaultValue={name} error={form.fields.name} onChange={() => setSaved(false)} />
       <Field label="Kota" name="city" defaultValue={city} error={form.fields.city} onChange={() => setSaved(false)} />
+      <div className="sm:col-span-2">
+        <SportPicker defaultValue={sport} disabled={sportLocked} error={form.fields.sport} />
+        {sportLocked ? <p className="mt-2 text-sm text-ink-soft">Cabang olahraga terkunci karena sudah ada pemain.</p> : null}
+      </div>
       <Button type="submit" disabled={form.pending} className="justify-self-start">
         {form.pending ? "Menyimpan…" : "Simpan perubahan"}
       </Button>

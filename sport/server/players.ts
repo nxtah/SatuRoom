@@ -4,6 +4,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { and, asc, eq, ilike, inArray, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import type { PlayerInput } from "@/lib/schemas";
+import { sportOf } from "@/lib/sports";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
 import { players, teamPlayers, teams } from "./schema";
@@ -13,7 +14,7 @@ export interface PlayerRow {
   id: string;
   fullName: string;
   birthDate: string;
-  position: "kiper" | "belakang" | "tengah" | "depan" | null;
+  position: string | null;
   shirtNumber: number | null;
   status: "active" | "inactive";
   teams: { id: string; name: string }[];
@@ -122,6 +123,13 @@ function guardianFields(ctx: AcademyContext, input: PlayerData) {
   return { guardianName: input.guardianName ?? null, guardianPhone: input.guardianPhone ?? null };
 }
 
+/** Posisi harus salah satu posisi cabang olahraga akademi. */
+function assertPosition(ctx: AcademyContext, position: string | null | undefined) {
+  if (position && !sportOf(ctx.sport).positions.some((p) => p.id === position)) {
+    throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { position: "Posisi tidak sesuai cabang olahraga akademi." });
+  }
+}
+
 /** Semua tim yang dipilih harus tim aktif milik akademi ini (RLS menyaring akademi lain). */
 async function assertTeams(tx: Tx, ids: string[]) {
   const found = await tx
@@ -140,6 +148,7 @@ export async function createPlayer(ctx: AcademyContext, input: PlayerData): Prom
 
 /** Isi createPlayer di dalam transaksi milik pemanggil, supaya bisa digabung dengan langkah lain. */
 export async function createPlayerIn(ctx: AcademyContext, tx: Tx, input: PlayerData): Promise<string> {
+  assertPosition(ctx, input.position);
   await assertTeams(tx, input.teamIds);
   const [row] = await tx
     .insert(players)
@@ -177,6 +186,7 @@ export async function updatePlayer(ctx: AcademyContext, id: string, input: Playe
   requirePermission(ctx, "players.manage");
   await inAcademy(ctx, async (tx) => {
     await assertInScope(ctx, tx, id);
+    assertPosition(ctx, input.position);
     await assertTeams(tx, input.teamIds);
     const updated = await tx
       .update(players)

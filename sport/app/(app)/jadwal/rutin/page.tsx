@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { WEEKDAYS } from "@/lib/schemas";
+import { listLocations } from "@/server/locations";
 import { inAcademy } from "@/server/context";
 import { requireAcademyPage } from "@/server/routing";
 import { academyToday, canPlan, listSchedules } from "@/server/schedule";
@@ -19,7 +20,7 @@ const addMinutes = (hhmm: string, min: number) => {
 
 export default async function JadwalRutinPage({ searchParams }: { searchParams: Promise<{ dari?: string; tim?: string }> }) {
   const ctx = await requireAcademyPage();
-  const [teams, schedules, today] = await Promise.all([listTeams(ctx), listSchedules(ctx), inAcademy(ctx, academyToday)]);
+  const [teams, schedules, today, locations] = await Promise.all([listTeams(ctx), listSchedules(ctx), inAcademy(ctx, academyToday), listLocations(ctx)]);
   if (!canPlan(ctx, teams.length)) redirect("/jadwal");
   const sp = await searchParams;
   const fromSetup = sp.dari === "persiapan";
@@ -62,6 +63,7 @@ export default async function JadwalRutinPage({ searchParams }: { searchParams: 
         </h2>
         <ScheduleForm
           teams={teams}
+          locations={locations}
           today={today}
           defaultTeamId={teams.some((t) => t.id === sp.tim) ? sp.tim : undefined}
           next={fromSetup ? "/?siap=1" : "/jadwal"}

@@ -6,10 +6,13 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { api } from "@/lib/api";
-import { PlayerInput, POSITIONS } from "@/lib/schemas";
+import { PlayerInput } from "@/lib/schemas";
+import type { Sport } from "@/lib/sports";
 import { useForm } from "@/lib/use-form";
 
 interface Props {
+  /** Posisi mengikuti cabang olahraga akademi; kosong bila cabang tak mengenal posisi. */
+  positions: Sport["positions"];
   teams: { id: string; name: string }[];
   /** Kolom kontak wali hanya tampil untuk peran yang berhak. */
   showGuardian: boolean;
@@ -29,7 +32,7 @@ interface Props {
   addAnother?: boolean;
 }
 
-export function PlayerForm({ teams, showGuardian, player, defaultTeamId, next, addAnother }: Props) {
+export function PlayerForm({ positions, teams, showGuardian, player, defaultTeamId, next, addAnother }: Props) {
   const router = useRouter();
   const form = useForm(PlayerInput);
   const selected = new Set(player?.teamIds ?? (defaultTeamId ? [defaultTeamId] : teams.length === 1 ? [teams[0]!.id] : []));
@@ -109,12 +112,13 @@ export function PlayerForm({ teams, showGuardian, player, defaultTeamId, next, a
       </div>
 
       <details className="group rounded-[1.5rem] bg-mist p-5" open={Boolean(player?.position || player?.shirtNumber)}>
-        <summary className="cursor-pointer font-extrabold marker:text-ink-soft">Posisi dan nomor punggung (boleh nanti)</summary>
+        <summary className="cursor-pointer font-extrabold marker:text-ink-soft">{positions.length ? "Posisi dan nomor punggung (boleh nanti)" : "Nomor punggung (boleh nanti)"}</summary>
         <div className="mt-4 grid gap-5">
+          {positions.length ? (
           <fieldset>
             <legend className="mb-2 text-sm font-bold">Posisi</legend>
             <div className="flex flex-wrap gap-2">
-              {POSITIONS.map((p) => (
+              {positions.map((p) => (
                 <label key={p.id} className="cursor-pointer">
                   <input type="radio" name="position" value={p.id} defaultChecked={player?.position === p.id} className="peer sr-only" />
                   <span className="flex h-10 items-center rounded-full border-2 border-line bg-chalk px-4 text-sm font-bold transition peer-checked:border-turf peer-checked:bg-turf-soft peer-checked:text-pitch peer-focus-visible:outline-2 peer-focus-visible:outline-pitch">
@@ -124,6 +128,7 @@ export function PlayerForm({ teams, showGuardian, player, defaultTeamId, next, a
               ))}
             </div>
           </fieldset>
+          ) : null}
           <Field
             label="Nomor punggung"
             name="shirtNumber"

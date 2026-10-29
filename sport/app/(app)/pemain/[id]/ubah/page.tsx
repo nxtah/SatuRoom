@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { requireAcademyPage } from "@/server/routing";
 import { listTeams } from "@/server/teams";
 import { loadPlayer } from "../../load";
+import { sportOf } from "@/lib/sports";
 import { PlayerForm } from "../../player-form";
 
 export const metadata: Metadata = { title: "Ubah pemain" };
@@ -18,6 +19,7 @@ export default async function UbahPemainPage({ params }: { params: Promise<{ id:
       <PageHeader title="Ubah pemain" back={{ href: `/pemain/${id}`, label: p.fullName }} />
       <div className="rise rounded-[2rem] bg-chalk p-6 sm:p-8">
         <PlayerForm
+          positions={sportOf(ctx.sport).positions}
           teams={teams}
           showGuardian={p.guardian !== null}
           player={{

@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { ageOf, formatDate } from "@/lib/age";
 import { dayLabel } from "@/lib/dates";
-import { ATTENDANCE, POSITIONS } from "@/lib/schemas";
+import { ATTENDANCE } from "@/lib/schemas";
+import { positionLabel } from "@/lib/sports";
 import { playerAttendance } from "@/server/attendance";
 import { requireAcademyPage } from "@/server/routing";
 import { loadPlayer } from "../load";
@@ -59,7 +60,7 @@ export default async function PlayerPage({
     ],
     [
       "Posisi",
-      POSITIONS.find((x) => x.id === p.position)?.label ?? "Belum diisi",
+      positionLabel(ctx.sport, p.position) ?? "Belum diisi",
     ],
     ["Nomor punggung", p.shirtNumber ?? "Belum diisi"],
   ];

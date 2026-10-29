@@ -20,7 +20,7 @@ describe("statistik beranda", () => {
     const p2 = await createPlayer(a.ctx, { fullName: "Bayu", birthDate: "2014-01-01", teamIds: [t1] });
     const p3 = await createPlayer(a.ctx, { fullName: "Cahya", birthDate: "2010-01-01", teamIds: [t2] });
     const s1 = await createSession(a.ctx, { teamId: t1, date: addDays(today(), -1), startTime: "15:30", durationMin: 90, kind: "training" });
-    const s2 = await createSession(a.ctx, { teamId: t2, date: addDays(today(), -1), startTime: "15:30", durationMin: 90, kind: "training" });
+    const s2 = await createSession(a.ctx, { teamId: t2, date: addDays(today(), -1), startTime: "18:00", durationMin: 90, kind: "training" });
     await saveAttendance(a.ctx, s1, { entries: [{ playerId: p1, status: "present" }, { playerId: p2, status: "absent" }] });
     await saveAttendance(a.ctx, s2, { entries: [{ playerId: p3, status: "present" }] });
 

@@ -15,6 +15,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 export const PERMISSIONS = [
   "academy.update",
+  "locations.manage",
   "staff.read",
   "staff.manage",
   "teams.read_all",
@@ -35,6 +36,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 const GRANTS: Record<Role, readonly Permission[]> = {
   owner: PERMISSIONS,
   admin: [
+    "locations.manage",
     "staff.read",
     "staff.manage",
     "teams.read_all",

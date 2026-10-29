@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 
 const VARIANT = {
   primary:
-    "bg-ember text-ink shadow-[0_10px_24px_-12px_rgb(120_160_0/0.6)] hover:bg-[#d7ff55] disabled:bg-line disabled:text-ink-soft disabled:shadow-none",
+    "bg-ember text-ink shadow-[0_10px_24px_-12px_rgb(120_160_0/0.6)] hover:brightness-110 disabled:bg-line disabled:text-ink-soft disabled:shadow-none",
   dark: "bg-pitch text-white hover:bg-pitch-2 disabled:opacity-50",
   outline: "border border-line bg-chalk text-ink hover:border-ink-soft/40 hover:bg-mist disabled:opacity-50",
   ghost: "text-ink hover:bg-chalk/70 disabled:opacity-50",

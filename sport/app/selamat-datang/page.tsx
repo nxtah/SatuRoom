@@ -49,7 +49,7 @@ export default function BolaLanding() {
           </ul>
           <div className="ml-auto flex items-center gap-1 lg:ml-0">
             <Link href="/masuk" className="rounded-full px-3 py-2 text-sm font-bold transition hover:bg-white/10 sm:px-4">Masuk</Link>
-            <Link href="/daftar" className="whitespace-nowrap rounded-full bg-ember px-4 py-2.5 text-sm font-extrabold text-ink transition hover:bg-[#d7ff55] active:scale-[0.97] sm:px-5">Coba gratis</Link>
+            <Link href="/daftar" className="whitespace-nowrap rounded-full bg-ember px-4 py-2.5 text-sm font-extrabold text-ink transition hover:brightness-110 active:scale-[0.97] sm:px-5">Coba gratis</Link>
           </div>
         </nav>
       </header>
@@ -73,7 +73,7 @@ export default function BolaLanding() {
                 Absensi, jadwal, iuran, dan rapor pemain dalam satu aplikasi di HP pelatih.
               </p>
               <div className="rise mt-9 flex flex-wrap items-center gap-3">
-                <Link href="/daftar" className="rounded-full bg-ember px-8 py-4 text-base font-extrabold text-ink transition hover:-translate-y-0.5 hover:bg-[#d7ff55] active:scale-[0.98]">Daftarkan akademi</Link>
+                <Link href="/daftar" className="rounded-full bg-ember px-8 py-4 text-base font-extrabold text-ink transition hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]">Daftarkan akademi</Link>
                 <Link href="/masuk" className="rounded-full bg-white/12 px-7 py-4 text-base font-bold transition hover:bg-white/20">Sudah punya akun? Masuk</Link>
               </div>
             </div>

@@ -4,25 +4,28 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Brand } from "@/components/brand";
-import { Maskot } from "@/components/maskot";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { SportPicker } from "@/components/sport-picker";
+import { Maskot } from "@/components/maskot";
+import { sportOf, type SportId } from "@/lib/sports";
 import { api } from "@/lib/api";
 import { AcademyInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-const STEPS = ["Selamat datang", "Data akademi"] as const;
+const STEPS = ["Selamat datang", "Cabang olahraga", "Data akademi"] as const;
 
 /** Onboarding satu langkah per layar, dengan progres. Langkah berikutnya ditambah tiap tahap. */
 export function Onboarding({ firstName, another }: { firstName: string; another: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState(another ? 1 : 0);
+  const [sport, setSport] = useState<SportId>("football");
   const form = useForm(AcademyInput);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const done = await form.submit(formValues(e.currentTarget), (input) => api("/academies", { body: input }));
+    const done = await form.submit({ ...formValues(e.currentTarget), sport }, (input) => api("/academies", { body: input }));
     if (done) {
       router.replace("/?selamat=1");
       router.refresh();
@@ -62,8 +65,8 @@ export function Onboarding({ firstName, another }: { firstName: string; another:
               Mulai
             </Button>
           </section>
-        ) : (
-          <section key="academy" className="rise">
+        ) : step === 1 ? (
+          <section key="sport" className="rise">
             {!another ? (
               <button
                 type="button"
@@ -73,7 +76,25 @@ export function Onboarding({ firstName, another }: { firstName: string; another:
                 <ArrowLeft aria-hidden className="size-4" /> Kembali
               </button>
             ) : null}
-            <h1 className="text-4xl font-extrabold tracking-tight">Akademimu namanya apa?</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight">Akademi cabang apa?</h1>
+            <p className="mt-3 text-lg text-ink-soft">Menu dan fitur sama untuk semua cabang. Pilihan ini mengatur istilah dan posisi pemain.</p>
+            <div className="mt-8">
+              <SportPicker value={sport} onChange={setSport} />
+            </div>
+            <Button size="lg" className="mt-8" onClick={() => setStep(2)}>
+              Lanjut
+            </Button>
+          </section>
+        ) : (
+          <section key="academy" className="rise">
+            <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="mb-6 inline-flex items-center gap-2 rounded-full py-2 pr-3 text-sm font-bold text-ink-soft hover:text-ink"
+              >
+                <ArrowLeft aria-hidden className="size-4" /> Kembali
+              </button>
+            <h1 className="text-4xl font-extrabold tracking-tight">Akademi {sportOf(sport).label.toLowerCase()} namanya apa?</h1>
             <p className="mt-3 text-lg text-ink-soft">
               Nama ini tampil untuk staf yang Anda undang. Kota dipakai untuk zona waktu jadwal.
             </p>

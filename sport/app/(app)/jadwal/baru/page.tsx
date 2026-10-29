@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { listLocations } from "@/server/locations";
 import { inAcademy } from "@/server/context";
 import { requireAcademyPage } from "@/server/routing";
 import { academyToday, canPlan } from "@/server/schedule";
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Tambah sesi" };
 
 export default async function SesiBaruPage() {
   const ctx = await requireAcademyPage();
-  const [teams, today] = await Promise.all([listTeams(ctx), inAcademy(ctx, academyToday)]);
+  const [teams, today, locations] = await Promise.all([listTeams(ctx), inAcademy(ctx, academyToday), listLocations(ctx)]);
   if (!canPlan(ctx, teams.length)) redirect("/jadwal");
   return (
     <div className="max-w-2xl">
@@ -21,7 +22,7 @@ export default async function SesiBaruPage() {
         back={{ href: "/jadwal", label: "Jadwal" }}
       />
       <div className="rise rounded-[2rem] bg-chalk p-6 sm:p-8">
-        <SessionForm teams={teams} today={today} />
+        <SessionForm teams={teams} today={today} locations={locations} />
       </div>
     </div>
   );

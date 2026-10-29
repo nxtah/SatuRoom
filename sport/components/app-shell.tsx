@@ -10,12 +10,14 @@ interface Props {
   user: { name: string; email: string };
   roleLabel: string;
   allowed: string[];
+  /** Warna aksen cabang olahraga (menimpa --color-ember di seluruh aplikasi). */
+  accent: string;
   children: React.ReactNode;
 }
 
-export function AppShell({ academyName, academies, activeAcademyId, user, roleLabel, allowed, children }: Props) {
+export function AppShell({ academyName, academies, activeAcademyId, user, roleLabel, allowed, accent, children }: Props) {
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div style={{ "--color-ember": accent } as React.CSSProperties} className="min-h-dvh md:grid md:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
       <a
         href="#isi"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-pitch focus:px-4 focus:py-2 focus:text-white"

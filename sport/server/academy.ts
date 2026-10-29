@@ -8,10 +8,11 @@ import type { z } from "zod";
 import { AcademyInput } from "@/lib/schemas";
 import { inAcademy, PRODUCT, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
-import { forbidden, notFound } from "./errors";
-import { locations, onboarding, staffRoles } from "./schema";
+import { AppError, forbidden, notFound } from "./errors";
+import { sportOf, type SportId } from "@/lib/sports";
+import { academySettings, locations, onboarding, players, staffRoles } from "./schema";
 
-export type AcademyInput = z.infer<typeof AcademyInput>;
+export type AcademyInput = z.input<typeof AcademyInput>;
 
 /**
  * Membuat akademi baru dengan pembuatnya sebagai Pemilik, satu lokasi utama, dan catatan onboarding.
@@ -32,7 +33,8 @@ export async function createAcademy(session: SessionInfo, input: AcademyInput): 
       .values({ businessId, userId: session.userId })
       .returning({ id: memberships.id });
     await tx.insert(staffRoles).values({ businessId, membershipId: m!.id, role: "owner" });
-    await tx.insert(locations).values({ businessId, name: "Lapangan utama", isPrimary: true });
+    await tx.insert(academySettings).values({ businessId, sport: input.sport ?? "football" });
+    await tx.insert(locations).values({ businessId, name: sportOf(input.sport ?? "football").venueDefault, isPrimary: true });
     await tx.insert(onboarding).values({ businessId });
     await tx.insert(auditEvents).values({
       businessId,
@@ -77,6 +79,9 @@ export async function switchAcademy(session: SessionInfo, businessId: string): P
 
 export interface AcademyProfile extends AcademySummary {
   timezone: string;
+  sport: SportId;
+  /** Cabang masih bisa diganti selama belum ada pemain (posisi pemain mengikuti cabang). */
+  sportLocked: boolean;
 }
 
 export function getAcademy(ctx: AcademyContext): Promise<AcademyProfile> {
@@ -86,7 +91,9 @@ export function getAcademy(ctx: AcademyContext): Promise<AcademyProfile> {
       .from(businesses)
       .where(eq(businesses.id, ctx.businessId));
     if (!row) throw notFound("Akademi");
-    return row;
+    const [anyPlayer] = await tx.select({ id: players.id }).from(players).limit(1);
+    const [settings] = await tx.select({ sport: academySettings.sport }).from(academySettings);
+    return { ...row, sport: settings?.sport ?? ctx.sport, sportLocked: Boolean(anyPlayer) };
   });
 }
 
@@ -99,6 +106,12 @@ export async function updateAcademy(ctx: AcademyContext, input: AcademyInput): P
       .where(eq(businesses.id, ctx.businessId))
       .returning({ id: businesses.id });
     if (updated.length === 0) throw forbidden();
+    if (input.sport && input.sport !== ctx.sport) {
+      // Posisi pemain mengikuti cabang, jadi cabang hanya bisa diganti selama belum ada pemain.
+      const [anyPlayer] = await tx.select({ id: players.id }).from(players).limit(1);
+      if (anyPlayer) throw new AppError(409, "sport_locked", "Cabang olahraga tidak bisa diganti setelah ada pemain.");
+      await tx.update(academySettings).set({ sport: input.sport, updatedAt: new Date() }).where(eq(academySettings.businessId, ctx.businessId));
+    }
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,

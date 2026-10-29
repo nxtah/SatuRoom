@@ -1,4 +1,5 @@
-/** Tabel schema `bola` untuk query bertipe. Struktur sebenarnya ada di bola/migrations/*.sql. */
+/** Tabel schema `bola` untuk query bertipe. Struktur sebenarnya ada di sport/migrations/*.sql. */
+import type { SportId } from "@/lib/sports";
 import { boolean, date, integer, pgSchema, primaryKey, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const bola = pgSchema("bola");
@@ -33,6 +34,12 @@ export const onboarding = bola.table("onboarding", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const academySettings = bola.table("academy_settings", {
+  businessId: uuid("business_id").primaryKey(),
+  sport: text("sport").$type<SportId>().notNull().default("football"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const teams = bola.table("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   businessId: uuid("business_id").notNull(),
@@ -62,7 +69,7 @@ export const players = bola.table("players", {
   businessId: uuid("business_id").notNull(),
   fullName: text("full_name").notNull(),
   birthDate: date("birth_date").notNull(),
-  position: text("position").$type<"kiper" | "belakang" | "tengah" | "depan">(),
+  position: text("position"),
   shirtNumber: smallint("shirt_number"),
   guardianName: text("guardian_name"),
   guardianPhone: text("guardian_phone"),

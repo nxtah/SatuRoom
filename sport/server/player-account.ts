@@ -6,6 +6,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { AttendanceStatus, NoticeInput } from "@/lib/schemas";
+import type { SportId } from "@/lib/sports";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
 import { announcementsForPlayer } from "./announcements";
@@ -26,6 +27,16 @@ async function playerLink(userId: string): Promise<PlayerLink | null> {
     tx.execute(sql`SELECT business_id AS "businessId", player_id AS "playerId" FROM bola.my_player()`),
   )) as unknown as PlayerLink[];
   return row ?? null;
+}
+
+/** Cabang olahraga akademi pemain; dipakai untuk warna aksen dan maskot di portal pemain. */
+export async function playerSport(session: SessionInfo): Promise<SportId> {
+  const link = await playerLink(session.userId);
+  if (!link) return "football";
+  return asPlayer(session, link, async (tx) => {
+    const [row] = (await tx.execute(sql`SELECT sport FROM bola.academy_settings WHERE business_id = ${link.businessId}::uuid`)) as unknown as { sport: SportId }[];
+    return row?.sport ?? "football";
+  });
 }
 
 export async function hasPlayerAccount(userId: string): Promise<boolean> {
@@ -78,6 +89,7 @@ export interface PlayerHome {
   birthDate: string;
   shirtNumber: number | null;
   position: string | null;
+  sport: SportId;
   teamNames: string;
   upcoming: PlayerSession[];
   attendance: {
@@ -89,6 +101,25 @@ export interface PlayerHome {
   outstanding: number;
   announcements: { id: string; title: string; body: string; teamName: string | null; createdAt: string }[];
   evaluations: Awaited<ReturnType<typeof evaluationsForPlayer>>;
+  /** Pertandingan tim pemain: yang akan datang dan hasil terbaru. */
+  matches: PlayerMatch[];
+}
+
+export interface PlayerMatch {
+  sessionId: string;
+  date: string;
+  startTime: string;
+  teamName: string;
+  opponent: string | null;
+  homeAway: "home" | "away" | "neutral";
+  locationName: string;
+  cancelled: boolean;
+  scoreUs: number | null;
+  scoreThem: number | null;
+  /** Peran pemain di susunan, bila pelatih sudah mengisi susunan. */
+  role: "starter" | "bench" | null;
+  /** Susunan sudah diisi, jadi "tidak masuk susunan" bermakna. */
+  lineupSet: boolean;
 }
 
 /** Semua yang dilihat pemain di portalnya; null bila akun ini bukan akun pemain. */
@@ -105,6 +136,7 @@ async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
   const [player] = (await tx.execute(sql`
     SELECT p.full_name AS "fullName", to_char(p.birth_date, 'YYYY-MM-DD') AS "birthDate",
            p.shirt_number AS "shirtNumber", p.position, b.name AS "academyName",
+           coalesce((SELECT s.sport FROM bola.academy_settings s WHERE s.business_id = p.business_id), 'football') AS sport,
            coalesce((SELECT string_agg(t.name, ', ' ORDER BY t.name) FROM bola.team_players tp
                       JOIN bola.teams t ON t.id = tp.team_id AND t.archived_at IS NULL
                       WHERE tp.player_id = p.id), '') AS "teamNames"
@@ -168,7 +200,28 @@ async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
     outstanding: invoices.filter((i) => i.status === "unpaid").reduce((s, i) => s + i.amount, 0),
     announcements: await announcementsForPlayer(tx, playerId),
     evaluations: await evaluationsForPlayer(tx, playerId),
+    matches: await matchesForPlayer(tx, playerId),
   };
+}
+
+async function matchesForPlayer(tx: Tx, playerId: string): Promise<PlayerMatch[]> {
+  return (await tx.execute(sql`
+    SELECT s.id AS "sessionId", to_char(s.starts_at AT TIME ZONE b.timezone, 'YYYY-MM-DD') AS date,
+           to_char(s.starts_at AT TIME ZONE b.timezone, 'HH24:MI') AS "startTime", t.name AS "teamName",
+           m.opponent, coalesce(m.home_away, 'home') AS "homeAway", l.name AS "locationName",
+           s.status = 'cancelled' AS cancelled, m.score_us AS "scoreUs", m.score_them AS "scoreThem",
+           ml.role, EXISTS (SELECT 1 FROM bola.match_lineup x WHERE x.session_id = s.id) AS "lineupSet"
+    FROM bola.sessions s
+    JOIN bola.team_players tp ON tp.team_id = s.team_id AND tp.player_id = ${playerId}::uuid
+    JOIN bola.teams t ON t.id = s.team_id AND t.archived_at IS NULL
+    JOIN bola.locations l ON l.id = s.location_id
+    JOIN core.businesses b ON b.id = s.business_id
+    LEFT JOIN bola.match_details m ON m.session_id = s.id
+    LEFT JOIN bola.match_lineup ml ON ml.session_id = s.id AND ml.player_id = ${playerId}::uuid
+    WHERE s.kind = 'match'
+      AND (s.ends_at > now() OR (m.score_us IS NOT NULL AND s.starts_at > now() - interval '120 days'))
+    ORDER BY (s.ends_at > now()) DESC, CASE WHEN s.ends_at > now() THEN s.starts_at END ASC, s.starts_at DESC
+    LIMIT 6`)) as unknown as PlayerMatch[];
 }
 
 /** Pemain memberi tahu izin/sakit untuk satu sesi yang belum mulai. */

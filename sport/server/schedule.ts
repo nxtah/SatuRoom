@@ -58,6 +58,42 @@ async function assertTeamAccess(ctx: AcademyContext, tx: Tx, teamId: string, nee
   if (!all && !scope) throw forbidden();
 }
 
+/** Lokasi yang dipilih, atau lokasi utama. Lokasi dari akademi lain atau yang diarsipkan ditolak. */
+async function pickLocation(tx: Tx, requested: string | null | undefined): Promise<string> {
+  if (!requested) return primaryLocation(tx);
+  const [loc] = await tx
+    .select({ id: locations.id })
+    .from(locations)
+    .where(and(eq(locations.id, requested), isNull(locations.archivedAt)));
+  if (!loc) throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { locationId: "Lokasi tidak ditemukan." });
+  return loc.id;
+}
+
+/**
+ * Sesi yang bertabrakan di lokasi yang sama (waktu tumpang tindih, belum dibatalkan) dengan sesi
+ * yang `ids`-nya diberikan. Dipakai setelah membuat sesi atau jadwal: bila ada, transaksi dibatalkan.
+ */
+async function assertNoClash(tx: Tx, where: SQL) {
+  const rows = (await tx.execute(sql`
+    SELECT l.name AS "locationName", t1.name AS "team", t2.name AS "otherTeam",
+           to_char(a.starts_at AT TIME ZONE b.timezone, 'DD/MM') AS day,
+           to_char(o.starts_at AT TIME ZONE b.timezone, 'HH24:MI') AS "otherStart",
+           to_char(o.ends_at AT TIME ZONE b.timezone, 'HH24:MI') AS "otherEnd"
+    FROM bola.sessions a
+    JOIN bola.sessions o ON o.location_id = a.location_id AND o.id <> a.id AND o.status = 'scheduled'
+         AND o.starts_at < a.ends_at AND o.ends_at > a.starts_at
+    JOIN bola.locations l ON l.id = a.location_id
+    JOIN bola.teams t1 ON t1.id = a.team_id
+    JOIN bola.teams t2 ON t2.id = o.team_id
+    JOIN core.businesses b ON b.id = a.business_id
+    WHERE a.status = 'scheduled' AND (${where})
+    ORDER BY a.starts_at LIMIT 1`)) as unknown as { locationName: string; team: string; otherTeam: string; day: string; otherStart: string; otherEnd: string }[];
+  const c = rows[0];
+  if (c) {
+    throw new AppError(409, "clash", `${c.locationName} sudah dipakai ${c.otherTeam} pada ${c.day}, ${c.otherStart}-${c.otherEnd}. Pilih jam atau lokasi lain.`);
+  }
+}
+
 async function primaryLocation(tx: Tx): Promise<string> {
   const [loc] = await tx
     .select({ id: locations.id })
@@ -105,7 +141,7 @@ export async function createSchedule(ctx: AcademyContext, input: z.infer<typeof 
         startsOn: "Tanggal mulai paling lambat 7 hari yang lalu.",
       });
     }
-    const locationId = await primaryLocation(tx);
+    const locationId = await pickLocation(tx, input.locationId);
     const rows = await tx
       .insert(schedules)
       .values(
@@ -122,6 +158,7 @@ export async function createSchedule(ctx: AcademyContext, input: z.infer<typeof 
       )
       .returning({ id: schedules.id });
     await generate(tx, input.startsOn, addDays(today, GENERATE_AHEAD_DAYS));
+    await assertNoClash(tx, sql`a.schedule_id IN (${uuidList(rows.map((r) => r.id))})`);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,
@@ -181,6 +218,10 @@ export interface SessionRow {
   rosterCount: number;
   recordedCount: number;
   presentCount: number;
+  /** Hanya untuk pertandingan. */
+  opponent: string | null;
+  scoreUs: number | null;
+  scoreThem: number | null;
 }
 
 function sessionQuery(where: SQL): SQL {
@@ -193,8 +234,10 @@ function sessionQuery(where: SQL): SQL {
            (SELECT count(*)::int FROM bola.team_players tp JOIN bola.players p ON p.id = tp.player_id
              WHERE tp.team_id = s.team_id AND p.status = 'active') AS "rosterCount",
            (SELECT count(*)::int FROM bola.attendance a WHERE a.session_id = s.id) AS "recordedCount",
-           (SELECT count(*)::int FROM bola.attendance a WHERE a.session_id = s.id AND a.status = 'present') AS "presentCount"
+           (SELECT count(*)::int FROM bola.attendance a WHERE a.session_id = s.id AND a.status = 'present') AS "presentCount",
+           m.opponent, m.score_us AS "scoreUs", m.score_them AS "scoreThem"
     FROM bola.sessions s
+    LEFT JOIN bola.match_details m ON m.session_id = s.id
     JOIN bola.teams t ON t.id = s.team_id
     JOIN bola.locations l ON l.id = s.location_id
     JOIN core.businesses b ON b.id = s.business_id
@@ -244,7 +287,7 @@ export async function getSession(ctx: AcademyContext, id: string, tx?: Tx): Prom
 export async function createSession(ctx: AcademyContext, input: z.infer<typeof SessionInput>): Promise<string> {
   return inAcademy(ctx, async (tx) => {
     await assertTeamAccess(ctx, tx, input.teamId, "manage");
-    const locationId = await primaryLocation(tx);
+    const locationId = await pickLocation(tx, input.locationId);
     const [row] = (await tx.execute(sql`
       INSERT INTO bola.sessions (business_id, team_id, location_id, kind, title, starts_at, ends_at)
       SELECT ${ctx.businessId}::uuid, ${input.teamId}::uuid, ${locationId}::uuid, ${input.kind}::bola.session_kind,
@@ -254,6 +297,12 @@ export async function createSession(ctx: AcademyContext, input: z.infer<typeof S
       FROM core.businesses b WHERE b.id = ${ctx.businessId}::uuid
       RETURNING id`)) as unknown as { id: string }[];
     if (!row) throw notFound("Akademi");
+    await assertNoClash(tx, sql`a.id = ${row.id}::uuid`);
+    if (input.kind === "match" && input.opponent) {
+      await tx.execute(sql`
+        INSERT INTO bola.match_details (session_id, business_id, opponent, updated_by)
+        VALUES (${row.id}::uuid, ${ctx.businessId}::uuid, ${input.opponent}, ${ctx.userId}::uuid)`);
+    }
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,
