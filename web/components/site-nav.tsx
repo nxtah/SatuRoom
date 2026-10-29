@@ -1,4 +1,4 @@
-import { BOLA_URL, RASA_URL } from "@/lib/site";
+import { BOLA_URL, MAHJONG_URL, RASA_URL } from "@/lib/site";
 import { LogoMark } from "./maskot";
 
 const LINKS = [
@@ -45,6 +45,10 @@ export function SiteNav() {
               <a href={`${RASA_URL}/masuk`} className="rounded-xl px-4 py-3 text-sm font-bold hover:bg-mist">
                 SatuRoom Rasa
                 <span className="block text-xs font-semibold text-ink-soft">Kafe dan warung</span>
+              </a>
+              <a href={`${MAHJONG_URL}/masuk`} className="rounded-xl px-4 py-3 text-sm font-bold hover:bg-mist">
+                SatuRoom Mahjong
+                <span className="block text-xs font-semibold text-ink-soft">Rumah dan klub mahjong</span>
               </a>
             </div>
           </details>

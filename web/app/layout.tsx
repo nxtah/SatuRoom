@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://saturoom.com"),
   title: "SatuRoom: aplikasi rapi untuk akademi bola dan usaha makanan",
   description:
-    "SatuRoom Sport mengurus pemain, jadwal, dan absensi akademi olahraga: sepak bola, basket, voli, tenis, dan lainnya. SatuRoom Rasa mengurus kasir, dapur, dan stok kafe atau warung. Mudah dipakai dari HP.",
+    "SatuRoom Sport mengurus pemain, jadwal, dan absensi akademi olahraga: sepak bola, basket, voli, tenis, dan lainnya. SatuRoom Rasa mengurus kasir, dapur, dan stok kafe atau warung. SatuRoom Mahjong mengurus meja, booking, member, dan liga rumah mahjong. Mudah dipakai dari HP.",
   openGraph: {
     title: "SatuRoom",
     description: "Aplikasi sederhana untuk akademi sepak bola dan usaha makanan.",

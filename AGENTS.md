@@ -42,6 +42,7 @@ baru **F&B/SatuRoom Rasa**. Aplikasi mobile native tidak dibangun sekarang.
 | Folder | Domain | Isi | Port dev |
 |---|---|---|---|
 | `web/` | saturoom.com | Website publik (landing). CTA "Coba gratis", tanpa harga. | 3100 |
+| `mahjong/` | mahjong.saturoom.com | Aplikasi rumah/klub mahjong: lantai meja dengan jam berjalan, booking (+link publik), member & saldo, menu kantin, turnamen/liga, laporan; 5 peran (owner, manager, host, server, referee). Tema felt hijau + ubin gading. Skema DB `mahjong`, role `mahjong_app`, cookie `sr_mahjong` | 3400 |
 | `sport/` | sport.saturoom.com | Aplikasi akademi multi-cabang (sepak bola, basket, voli, tenis, dll): UI Next.js + API `/api/v1` + `sport/server`. Nama internal `bola` (skema DB, role, cookie) sengaja dipertahankan | 3200 |
 | `fnb/` | belum diputuskan | Aplikasi restoran/kafe; schema dan domain terpisah dari Bola | 3300 |
 | `core/` | - | Schema bersama (akun, sesi, bisnis, keanggotaan), auth, runner migrasi | - |
@@ -148,6 +149,7 @@ MIGRATOR_DATABASE_URL=postgresql://saturoom:saturoom-dev-only@localhost:5434/sat
   BOLA_DB_PASSWORD=bola-dev-only pnpm db:migrate
 cp bola/.env.example bola/.env.local
 pnpm --filter @saturoom/bola dev          # http://localhost:3200
+pnpm --filter @saturoom/mahjong dev       # http://localhost:3400
 pnpm --filter saturoom-web dev            # http://localhost:3100
 pnpm --filter @saturoom/bola seed:demo    # data demo (hanya mau jalan di localhost)
 ```

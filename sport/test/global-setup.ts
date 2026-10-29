@@ -10,5 +10,6 @@ export default async function setup() {
   await admin.unsafe("DROP DATABASE IF EXISTS saturoom_test WITH (FORCE)");
   await admin.unsafe("CREATE DATABASE saturoom_test");
   await admin.end();
+  process.env.MAHJONG_DB_PASSWORD = "mahjong-dev-only";
   await migrate(TEST, "bola-dev-only", () => {});
 }

@@ -20,10 +20,10 @@ ssh $ssh_opts "$SATUROOM_HOST" bash -s <<REMOTE
 set -euo pipefail
 bash $base/app/server-setup.sh
 # Migrasi memakai image yang sama; kata sandi dibaca dari file rahasia di server, tidak dicetak.
-set -a; . $base/secrets/db.env; . $base/secrets/bola-db.env; . $base/secrets/fnb-db.env; set +a
+set -a; . $base/secrets/db.env; . $base/secrets/bola-db.env; . $base/secrets/fnb-db.env; . $base/secrets/mahjong-db.env; set +a
 docker run --rm --network saturoom-platform \
   -e MIGRATOR_DATABASE_URL="postgresql://saturoom:\${POSTGRES_PASSWORD}@db:5432/saturoom" \
-  -e BOLA_DB_PASSWORD -e FNB_DB_PASSWORD \
+  -e BOLA_DB_PASSWORD -e FNB_DB_PASSWORD -e MAHJONG_DB_PASSWORD \
   saturoom-app:latest pnpm --filter @saturoom/core migrate
 cd $base/app && docker compose up -d
 REMOTE

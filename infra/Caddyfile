@@ -26,3 +26,8 @@ rasa.saturoom.com {
 	import security
 	reverse_proxy fnb:3300
 }
+
+mahjong.saturoom.com {
+	import security
+	reverse_proxy mahjong:3400
+}

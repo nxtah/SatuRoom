@@ -11,5 +11,6 @@ export default async function setup() {
   await admin.unsafe("CREATE DATABASE saturoom_test");
   await admin.end();
   process.env.FNB_DB_PASSWORD = "fnb-dev-only";
+  process.env.MAHJONG_DB_PASSWORD = "mahjong-dev-only";
   await migrate(TEST, "bola-dev-only", () => {});
 }

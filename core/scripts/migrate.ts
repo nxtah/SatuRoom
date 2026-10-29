@@ -18,6 +18,7 @@ const SCOPES = [
   { scope: "core", dir: join(root, "core", "migrations") },
   { scope: "bola", dir: join(root, "sport", "migrations") },
   { scope: "fnb", dir: join(root, "fnb", "migrations") },
+  { scope: "mahjong", dir: join(root, "mahjong", "migrations") },
 ];
 
 function required(name: string): string {
@@ -56,6 +57,8 @@ export async function migrate(url: string, bolaPassword: string, log = console.l
     }
     await setupBolaRole(sql, bolaPassword);
     await setupFnbRole(sql, process.env.FNB_DB_PASSWORD);
+    await setupMahjongRole(sql, process.env.MAHJONG_DB_PASSWORD);
+    log("role mahjong_app siap");
     log("role fnb_app siap");
     log("role bola_app siap");
   } finally {
@@ -87,6 +90,42 @@ async function setupFnbRole(sql: postgres.Sql, password?: string): Promise<void>
     GRANT USAGE ON ALL SEQUENCES IN SCHEMA core, fnb TO fnb_app;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA fnb TO fnb_app;
   `);
+}
+
+/** Pola sama dengan F&B: password hanya diubah bila MAHJONG_DB_PASSWORD diisi. */
+async function setupMahjongRole(sql: postgres.Sql, password?: string): Promise<void> {
+  const [exists] = await sql`SELECT 1 FROM pg_roles WHERE rolname = 'mahjong_app'`;
+  if (!exists) await sql.unsafe(`CREATE ROLE mahjong_app LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`);
+  if (password) {
+    const [stmt] = await sql<{ q: string }[]>`SELECT format('ALTER ROLE mahjong_app PASSWORD %L', ${password}::text) AS q`;
+    await sql.unsafe(stmt!.q);
+  } else if (!exists) {
+    console.log("mahjong_app dibuat tanpa password; isi MAHJONG_DB_PASSWORD untuk bisa login");
+  }
+  await sql.unsafe(`
+    GRANT USAGE ON SCHEMA core, mahjong TO mahjong_app;
+    GRANT SELECT, INSERT ON core.users TO mahjong_app;
+    GRANT UPDATE (name, password_hash, email_verified_at, google_sub, updated_at) ON core.users TO mahjong_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON core.sessions, core.auth_tokens TO mahjong_app;
+    GRANT SELECT, INSERT, UPDATE ON core.businesses, core.memberships TO mahjong_app;
+    GRANT EXECUTE ON FUNCTION core.login_business(text, uuid, text), core.user_has_business(uuid, text) TO mahjong_app;
+    GRANT SELECT, INSERT ON core.audit_events TO mahjong_app;
+    GRANT USAGE ON ALL SEQUENCES IN SCHEMA core, mahjong TO mahjong_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA mahjong TO mahjong_app;
+  `);
+  // Catatan keuangan dan member tidak dihapus permanen oleh aplikasi.
+  for (const table of ["play_sessions", "payments", "member_ledger", "members", "session_orders"]) {
+    await sql.unsafe(`REVOKE DELETE ON mahjong.${table} FROM mahjong_app`);
+  }
+  for (const fn of [
+    "mahjong.my_invitations()",
+    "mahjong.accept_invitation(uuid)",
+    "mahjong.venue_public(text)",
+    "mahjong.submit_booking(text, text, text, timestamptz, integer, integer, text)",
+  ]) {
+    const [found] = await sql`SELECT to_regprocedure(${fn}) AS f`;
+    if (found?.f) await sql.unsafe(`GRANT EXECUTE ON FUNCTION ${fn} TO mahjong_app`);
+  }
 }
 
 /** Idempoten: aman dijalankan setelah setiap migrasi agar tabel baru ikut ter-grant. */

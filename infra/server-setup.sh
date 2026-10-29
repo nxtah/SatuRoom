@@ -11,9 +11,16 @@ if [ ! -f "$base/secrets/fnb-db.env" ]; then
   echo "FNB_DB_PASSWORD=$(openssl rand -hex 24)" > "$base/secrets/fnb-db.env"
 fi
 
+if [ ! -f "$base/secrets/mahjong-db.env" ]; then
+  umask 077
+  echo "MAHJONG_DB_PASSWORD=$(openssl rand -hex 24)" > "$base/secrets/mahjong-db.env"
+fi
+
 enc() { python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$1"; }
 bola_pw=$(enc "$(grep '^BOLA_DB_PASSWORD=' "$base/secrets/bola-db.env" | cut -d= -f2-)")
 fnb_pw=$(enc "$(grep '^FNB_DB_PASSWORD=' "$base/secrets/fnb-db.env" | cut -d= -f2-)")
+
+mahjong_pw=$(enc "$(grep '^MAHJONG_DB_PASSWORD=' "$base/secrets/mahjong-db.env" | cut -d= -f2-)")
 
 umask 077
 if [ ! -f "$base/apps/bola.env" ]; then
@@ -32,6 +39,18 @@ if [ ! -f "$base/apps/fnb.env" ]; then
   cat > "$base/apps/fnb.env" <<ENV
 DATABASE_URL=postgresql://fnb_app:${fnb_pw}@db:5432/saturoom
 APP_URL=https://rasa.saturoom.com
+COOKIE_SECURE=true
+ENV
+fi
+if [ ! -f "$base/apps/mahjong.env" ]; then
+  cat > "$base/apps/mahjong.env" <<ENV
+DATABASE_URL=postgresql://mahjong_app:${mahjong_pw}@db:5432/saturoom
+APP_URL=https://mahjong.saturoom.com
+SITE_URL=https://saturoom.com
+# SMTP belum diisi: email konfirmasi, lupa password, dan undangan belum terkirim sampai bagian ini diganti.
+SMTP_HOST=localhost
+SMTP_PORT=25
+MAIL_FROM="SatuRoom Mahjong <no-reply@saturoom.com>"
 COOKIE_SECURE=true
 ENV
 fi

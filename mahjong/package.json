@@ -1,0 +1,42 @@
+{
+  "name": "@saturoom/mahjong",
+  "version": "0.1.0",
+  "private": true,
+  "description": "mahjong.saturoom.com: aplikasi rumah mahjong (meja, booking, member, turnamen)",
+  "scripts": {
+    "dev": "next dev -p 3400",
+    "build": "next build",
+    "start": "next start -p 3400",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@saturoom/core": "workspace:*",
+    "drizzle-orm": "^0.45.0",
+    "lucide-react": "^1.61.0",
+    "next": "16.4.2",
+    "nodemailer": "^7.0.0",
+    "postgres": "^3.4.7",
+    "qrcode": "^1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/nodemailer": "^7.0.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "4.1.12"
+  }
+}

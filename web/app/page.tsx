@@ -5,7 +5,7 @@ import { Faq } from "@/components/faq";
 import { KitchenDemo } from "@/components/kitchen-demo";
 import { LogoMark, Maskot } from "@/components/maskot";
 import { SiteNav } from "@/components/site-nav";
-import { BOLA_URL, CONTACT_EMAIL, RASA_URL } from "@/lib/site";
+import { BOLA_URL, CONTACT_EMAIL, MAHJONG_URL, RASA_URL } from "@/lib/site";
 
 /* Hal yang memang dipakai bersama oleh semua aplikasi SatuRoom. */
 const FOUNDATION = [
@@ -224,6 +224,7 @@ export default function Home() {
             <a href="#tanya" className="hover:text-ember">Tanya jawab</a>
             <a href={`${BOLA_URL}/masuk`} className="hover:text-lime">Masuk Sport</a>
             <a href={`${RASA_URL}/masuk`} className="hover:text-saffron">Masuk Rasa</a>
+            <a href={`${MAHJONG_URL}/selamat-datang`} className="hover:text-ember">SatuRoom Mahjong</a>
           </nav>
         </div>
         <div aria-hidden className="word-in mx-auto mt-12 mb-4 flex max-w-6xl items-end gap-[2vw]">

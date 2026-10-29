@@ -26,6 +26,11 @@ services:
     working_dir: /app/fnb
     command: ["pnpm", "start"]
     env_file: /opt/saturoom-platform/apps/fnb.env
+  mahjong:
+    <<: *app
+    working_dir: /app/mahjong
+    command: ["pnpm", "start"]
+    env_file: /opt/saturoom-platform/apps/mahjong.env
   caddy:
     image: caddy:2
     restart: unless-stopped
@@ -34,7 +39,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     networks: [edge]
-    depends_on: [web, sport, fnb]
+    depends_on: [web, sport, fnb, mahjong]
 
 volumes:
   caddy-data:
