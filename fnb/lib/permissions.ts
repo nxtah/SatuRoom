@@ -14,6 +14,7 @@ export const PERMISSIONS = [
   "purchases.manage",
   "reports.read",
   "expenses.manage",
+  "promos.manage",
   "audit.read",
   "staff.manage",
   "roles.manage",
@@ -35,6 +36,7 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "staff.manage": { label: "Kelola staf", hint: "Undang, ubah peran, dan nonaktifkan staf." },
   "roles.manage": { label: "Kelola peran", hint: "Membuat dan mengubah peran custom." },
   "expenses.manage": { label: "Kelola pengeluaran", hint: "Mencatat dan membatalkan pengeluaran operasional." },
+  "promos.manage": { label: "Kelola voucher", hint: "Membuat dan menonaktifkan kode voucher." },
   "audit.read": { label: "Lihat jejak aktivitas", hint: "Membaca riwayat aksi sensitif seperti diskon, refund, dan perubahan harga." },
   "settings.manage": { label: "Kelola pengaturan", hint: "Pajak, service charge, struk, meja, dan cabang." },
 };
@@ -54,7 +56,7 @@ export const ROLE_LABEL: Record<BuiltinRole, string> = {
 
 const GRANTS: Record<BuiltinRole, readonly Permission[]> = {
   owner: PERMISSIONS,
-  manager: ["orders.sell", "kitchen.run", "cash.manage", "payments.void", "orders.discount", "orders.refund", "catalog.manage", "stock.manage", "purchases.manage", "reports.read", "expenses.manage", "settings.manage"],
+  manager: ["orders.sell", "kitchen.run", "cash.manage", "payments.void", "orders.discount", "orders.refund", "catalog.manage", "stock.manage", "purchases.manage", "reports.read", "expenses.manage", "promos.manage", "settings.manage"],
   cashier: ["orders.sell", "cash.manage"],
   server: ["orders.sell"],
   kitchen: ["kitchen.run"],

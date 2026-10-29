@@ -9,6 +9,7 @@ import { can, type FnbContext } from "./context";
 import { computeTotals } from "@/lib/pricing";
 import { AppError, forbidden } from "./errors";
 import { resolveModifiers } from "./modifiers";
+import { redeemVoucher, releaseVoucher } from "./promos";
 import { readSettings } from "./settings";
 import { deductOrderStock, restoreOrderStock } from "./stock";
 
@@ -114,10 +115,26 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     }
     const subtotal = priced.reduce((sum, p) => sum + p.unitPrice * p.line.quantity, 0);
     const settings = await readSettings(tx, ctx.businessId);
+    let discountType = wantsDiscount ? input.discountType : null;
+    let discountValue = wantsDiscount ? input.discountValue : 0;
+    let discountReason = wantsDiscount ? input.discountReason ?? null : null;
+    let voucher: { id: string; code: string } | null = null;
+    if (input.voucherCode) {
+      if (wantsDiscount) throw new AppError(422, "voucher_conflict", "Pilih salah satu: voucher atau diskon manual.");
+      const v = await redeemVoucher(tx, input.voucherCode, subtotal);
+      voucher = v;
+      discountType = v.kind; discountValue = v.value; discountReason = `Voucher ${v.code}`;
+    }
+    let customerName = input.customerName ?? null;
+    if (input.customerId) {
+      const [c] = (await tx.execute(sql`SELECT name FROM fnb.customers WHERE id = ${input.customerId}::uuid AND archived_at IS NULL`)) as unknown as { name: string }[];
+      if (!c) throw new AppError(404, "not_found", "Pelanggan tidak ditemukan.");
+      customerName = customerName || c.name;
+    }
     const totals = computeTotals({
       gross: subtotal,
-      discountType: wantsDiscount ? input.discountType : null,
-      discountValue: wantsDiscount ? input.discountValue : 0,
+      discountType,
+      discountValue,
       servicePercent: settings.servicePercent,
       taxPercent: settings.taxPercent,
     });
@@ -129,10 +146,11 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     }
     const [order] = (await tx.execute(sql`
       INSERT INTO fnb.orders (business_id, outlet_id, table_id, type, status, customer_name, subtotal, discount, discount_reason, service_charge, tax,
-                              service_percent, tax_percent, total, notes, opened_by, receipt_no, idempotency_key)
+                              service_percent, tax_percent, total, notes, opened_by, receipt_no, idempotency_key, customer_id, voucher_id, voucher_code)
       VALUES (${ctx.businessId}::uuid, ${outlet[0].id}::uuid, ${tableId}::uuid, ${input.type}::fnb.order_type, 'confirmed',
-              ${input.customerName ?? null}, ${subtotal}, ${totals.discount}, ${wantsDiscount ? input.discountReason ?? null : null}, ${totals.service}, ${totals.tax},
-              ${settings.servicePercent}, ${settings.taxPercent}, ${totals.total}, ${input.notes ?? null}, ${ctx.userId}::uuid, ${receiptNo}, ${input.idempotencyKey ?? null})
+              ${customerName}, ${subtotal}, ${totals.discount}, ${discountReason}, ${totals.service}, ${totals.tax},
+              ${settings.servicePercent}, ${settings.taxPercent}, ${totals.total}, ${input.notes ?? null}, ${ctx.userId}::uuid, ${receiptNo}, ${input.idempotencyKey ?? null},
+              ${input.customerId ?? null}::uuid, ${voucher?.id ?? null}::uuid, ${voucher?.code ?? null})
       RETURNING id
     `)) as unknown as { id: string }[];
     for (const { line, mods, unitPrice } of priced) {
@@ -205,7 +223,7 @@ export async function updateOrderStatus(ctx: FnbContext, id: string, status: Ord
         cancel_reason = CASE WHEN ${status} = 'cancelled' THEN ${reason?.trim() ?? null} ELSE cancel_reason END
       WHERE id = ${id}::uuid
     `);
-    if (status === "cancelled") await restoreOrderStock(tx, ctx, id);
+    if (status === "cancelled") { await restoreOrderStock(tx, ctx, id); await releaseVoucher(tx, id); }
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.order.status_changed",
       targetType: "order", targetId: id, meta: { from: current, to: status, ...(reason ? { reason } : {}) },

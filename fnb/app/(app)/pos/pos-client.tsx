@@ -10,7 +10,7 @@ const STATUS_LABEL: Record<string, string> = {
   confirmed: "Baru", preparing: "Dimasak", ready: "Siap", served: "Disajikan", completed: "Selesai", cancelled: "Batal", open: "Baru",
 };
 
-export function PosClient({ tables, catalog, initialOrders, servicePercent, taxPercent, canDiscount }: { tables: DiningTable[]; catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
+export function PosClient({ customers, tables, catalog, initialOrders, servicePercent, taxPercent, canDiscount }: { customers: { id: string; name: string; phone: string | null }[]; tables: DiningTable[]; catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
   const [orders, setOrders] = useState(initialOrders);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [picking, setPicking] = useState<Catalog["items"][number] | null>(null);
@@ -21,6 +21,10 @@ export function PosClient({ tables, catalog, initialOrders, servicePercent, taxP
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tableId, setTableId] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [voucherInput, setVoucherInput] = useState("");
+  const [voucher, setVoucher] = useState<{ code: string; discount: number; gross: number } | null>(null);
+  const [voucherError, setVoucherError] = useState("");
   const [discType, setDiscType] = useState<"amount" | "percent">("percent");
   const [discValue, setDiscValue] = useState("");
   const [discReason, setDiscReason] = useState("");
@@ -33,9 +37,18 @@ export function PosClient({ tables, catalog, initialOrders, servicePercent, taxP
   const lines = cart;
   const unit = (l: CartLine) => l.item.price + l.mods.reduce((s, m) => s + m.priceDelta, 0);
   const gross = lines.reduce((sum, l) => sum + unit(l) * l.qty, 0);
-  const wantsDiscount = canDiscount && Number(discValue) > 0;
-  const totals = computeTotals({ gross, discountType: wantsDiscount ? discType : null, discountValue: wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
+  const live = voucher && voucher.gross === gross ? voucher : null;
+  const wantsDiscount = canDiscount && !live && Number(discValue) > 0;
+  const totals = computeTotals({ gross, discountType: live ? "amount" : wantsDiscount ? discType : null, discountValue: live ? live.discount : wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
   const total = totals.total;
+
+  async function applyVoucher() {
+    setVoucherError("");
+    const res = await fetch("/api/v1/vouchers/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: voucherInput, subtotal: gross }) }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (res?.ok) setVoucher({ code: data.code, discount: data.discount, gross });
+    else setVoucherError(data.error ?? "Voucher belum dapat dicek.");
+  }
   const cartQty = (itemId: string) => cart.filter((l) => l.item.id === itemId).reduce((s, l) => s + l.qty, 0);
 
   /** Menu tanpa pilihan langsung masuk keranjang; menu dengan varian/add-on membuka pilihan dulu. */
@@ -57,14 +70,14 @@ export function PosClient({ tables, catalog, initialOrders, servicePercent, taxP
       const res = await fetch("/api/v1/orders", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          type, tableId: type === "dine_in" && tableId ? tableId : undefined, customerName: customerName || undefined, idempotencyKey: key,
+          type, tableId: type === "dine_in" && tableId ? tableId : undefined, customerName: customerName || undefined, customerId: customerId || undefined, voucherCode: live?.code, idempotencyKey: key,
           discountType: wantsDiscount ? discType : undefined, discountValue: wantsDiscount ? Number(discValue) : undefined, discountReason: wantsDiscount ? discReason : undefined,
           lines: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.qty, notes: l.note || undefined, modifierIds: l.mods.map((m) => m.id) })),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Pesanan belum dapat disimpan.");
-      setCart([]); setCustomerName(""); setTableId(""); setDiscValue(""); setDiscReason(""); setKey(crypto.randomUUID());
+      setCart([]); setCustomerName(""); setTableId(""); setCustomerId(""); setVoucher(null); setVoucherInput(""); setDiscValue(""); setDiscReason(""); setKey(crypto.randomUUID());
       setMessage(`Pesanan ${data.receiptNo} masuk ke dapur.`);
       setOrders(await fetch("/api/v1/orders").then((r) => r.json()));
     } catch (e) {
@@ -112,6 +125,10 @@ export function PosClient({ tables, catalog, initialOrders, servicePercent, taxP
         <option value="">Pilih meja (opsional)</option>
         {tables.map((t) => <option key={t.id} value={t.id} disabled={!!t.order}>{t.name}{t.capacity ? ` · ${t.capacity} kursi` : ""}{t.order ? " · terpakai" : ""}</option>)}
       </select> : null}
+      {customers.length ? <select aria-label="Pelanggan" value={customerId} onChange={(e) => { setCustomerId(e.target.value); if (e.target.value) setCustomerName(""); }} className="mt-3 h-11 w-full rounded-xl border border-stone-200 bg-white px-3">
+        <option value="">Pelanggan terdaftar (opsional)</option>
+        {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
+      </select> : null}
       <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama pelanggan (opsional)" className="mt-3 h-11 w-full rounded-xl border border-stone-200 px-3" />
       <div className="mt-4 grid gap-2">
         {lines.map((l) => <div key={l.key} className="flex items-center gap-2 rounded-2xl border border-stone-200 p-3">
@@ -129,7 +146,14 @@ export function PosClient({ tables, catalog, initialOrders, servicePercent, taxP
         </div>)}
         {!lines.length ? <p className="py-10 text-center text-stone-500">Pilih menu untuk mulai pesanan.</p> : null}
       </div>
-      {canDiscount && lines.length ? <div className="mt-4 grid gap-2 rounded-2xl bg-stone-50 p-3">
+      {lines.length ? <div className="mt-4 grid gap-2">
+        {voucher && !live ? <p className="text-xs font-bold text-tomato">Isi keranjang berubah. Pakai voucher {voucher.code} lagi.</p> : null}
+        {live
+          ? <p className="flex items-center justify-between rounded-2xl bg-basil/10 p-3 text-sm font-bold text-basil">Voucher {live.code}: -{rupiah(live.discount)}<button onClick={() => { setVoucher(null); setVoucherInput(""); }} className="rounded-full bg-white px-3 py-1 text-xs text-stone-700">Lepas</button></p>
+          : <div className="flex gap-2"><input aria-label="Kode voucher" value={voucherInput} onChange={(e) => setVoucherInput(e.target.value.toUpperCase())} placeholder="Kode voucher" className="h-10 min-w-0 flex-1 rounded-xl border border-stone-200 px-3 text-sm" /><button disabled={!voucherInput.trim()} onClick={applyVoucher} className="h-10 rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700 disabled:opacity-40">Pakai</button></div>}
+        <p role="alert" className="text-xs font-bold text-red-700 empty:hidden">{voucherError}</p>
+      </div> : null}
+      {canDiscount && !live && lines.length ? <div className="mt-4 grid gap-2 rounded-2xl bg-stone-50 p-3">
         <div className="grid grid-cols-[6.5rem_1fr] gap-2">
           <select aria-label="Jenis diskon" value={discType} onChange={(e) => setDiscType(e.target.value as "amount" | "percent")} className="h-10 rounded-xl border border-stone-200 bg-white px-2 text-sm"><option value="percent">Diskon %</option><option value="amount">Diskon Rp</option></select>
           <input aria-label="Nilai diskon" type="number" min="0" value={discValue} onChange={(e) => setDiscValue(e.target.value)} placeholder="0" className="h-10 min-w-0 rounded-xl border border-stone-200 px-3 text-sm" />

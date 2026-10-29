@@ -16,6 +16,8 @@ export const OrderInput=z.object({
   discountValue:z.number().min(0).max(100_000_000).optional(),
   discountReason:z.string().trim().max(200).optional(),
   idempotencyKey:z.string().trim().min(8).max(80).optional(),
+  customerId:z.string().uuid().nullish(),
+  voucherCode:z.string().trim().toUpperCase().max(20).optional(),
   lines:z.array(z.object({
     menuItemId:z.string().uuid(),
     quantity:z.number().int().min(1).max(99),
@@ -159,3 +161,20 @@ export const ExpenseInput=z.object({
   fromDrawer:z.boolean().default(false),
 });
 export const ExpenseVoidInput=z.object({reason:z.string().trim().min(3,"Alasan wajib diisi.").max(200)});
+
+export const CustomerInput=z.object({
+  name:z.string().trim().min(1,"Nama wajib diisi.").max(80),
+  phone:z.string().trim().regex(/^\+?[0-9 -]{8,20}$/,"Nomor telepon tidak valid.").nullish().or(z.literal("").transform(()=>null)),
+  notes:z.string().trim().max(200).nullish(),
+});
+export const VoucherInput=z.object({
+  code:z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]{3,20}$/,"Kode 3-20 huruf besar, angka, - atau _."),
+  kind:z.enum(["percent","amount"]),
+  value:z.coerce.number().int().min(1,"Nilai minimal 1."),
+  minSpend:z.coerce.number().int().min(0).default(0),
+  maxUses:z.coerce.number().int().min(1).nullish(),
+  startsOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish().or(z.literal("").transform(()=>null)),
+  endsOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish().or(z.literal("").transform(()=>null)),
+}).refine((v)=>v.kind!=="percent"||v.value<=100,{message:"Persen maksimal 100.",path:["value"]});
+export const VoucherActiveInput=z.object({active:z.boolean()});
+export const VoucherCheckInput=z.object({code:z.string().trim().toUpperCase().min(1).max(20),subtotal:z.number().int().min(0)});
