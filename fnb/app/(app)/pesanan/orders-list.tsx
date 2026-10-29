@@ -20,18 +20,23 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [busy, setBusy] = useState(false);
+  const [tendered, setTendered] = useState("");
+  const [payKey, setPayKey] = useState("");
+  const [cancelFor, setCancelFor] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   async function reload() {
     const fresh = await fetch("/api/v1/orders?scope=all");
     if (fresh.ok) setOrders(await fresh.json());
   }
 
-  async function setStatus(id: string, status: "served" | "completed" | "cancelled") {
+  async function setStatus(id: string, status: "served" | "completed" | "cancelled", reason?: string) {
     setError(""); setMessage("");
     const res = await fetch(`/api/v1/orders/${id}/status`, {
-      method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }),
+      method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status, reason }),
     });
     if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error ?? "Status belum dapat diubah."); return; }
+    setCancelFor(null); setCancelReason("");
     await reload();
   }
 
@@ -39,12 +44,12 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
     setBusy(true); setError(""); setMessage("");
     const res = await fetch("/api/v1/payments", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ orderId: order.id, amount: Number(amount || 0), method }),
+      body: JSON.stringify({ orderId: order.id, amount: Number(amount || 0), method, tendered: method === "cash" && tendered ? Number(tendered) : undefined, idempotencyKey: payKey }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      setPayFor(null); setAmount("");
-      setMessage(data.completed ? `Pesanan #${order.number} lunas.` : `Pembayaran diterima. Sisa ${rupiah(data.remaining)}.`);
+      setPayFor(null); setAmount(""); setTendered("");
+      setMessage(data.completed ? `Pesanan ${order.receiptNo} lunas.${data.change > 0 ? ` Kembalian ${rupiah(data.change)}.` : ""}` : `Pembayaran diterima. Sisa ${rupiah(data.remaining)}.`);
       await reload();
     } else setError(data.error ?? "Pembayaran belum dapat disimpan.");
     setBusy(false);
@@ -59,7 +64,7 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
         const paidOff = o.total > 0 && remaining === 0;
         return <article key={o.id} className="rounded-[1.5rem] bg-white p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <b className="text-lg">#{o.number}</b>
+            <b className="text-lg">{o.receiptNo}</b>
             <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${TONE[o.status] ?? "bg-stone-100 text-stone-600"}`}>{LABEL[o.status] ?? o.status}</span>
             {paidOff ? <span className="rounded-full bg-basil px-2.5 py-1 text-xs font-bold text-white">Lunas</span> : null}
             <span className="text-sm text-stone-500">{o.type === "dine_in" ? "Dine in" : o.type === "takeaway" ? "Bungkus" : "Ambil"}{o.tableName ? ` · ${o.tableName}` : ""}</span>
@@ -67,19 +72,28 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
             <b className="ml-auto">{rupiah(o.total)}</b>
           </div>
           <p className="mt-2 text-sm text-stone-500">{o.lines.map((l) => `${l.qty}x ${l.name}${l.modifiers.length ? ` (${l.modifiers.map((m) => m.name).join(", ")})` : ""}`).join(" · ")}</p>
+          {o.discount > 0 || o.serviceCharge > 0 || o.tax > 0 ? <p className="mt-1 text-xs text-stone-500">Subtotal {rupiah(o.subtotal)}{o.discount > 0 ? ` · diskon -${rupiah(o.discount)}` : ""}{o.serviceCharge > 0 ? ` · service ${rupiah(o.serviceCharge)}` : ""}{o.tax > 0 ? ` · pajak ${rupiah(o.tax)}` : ""}</p> : null}
+          {o.status === "cancelled" && o.cancelReason ? <p className="mt-1 text-xs text-red-700">Alasan batal: {o.cancelReason}</p> : null}
+          {o.refunded > 0 ? <p className="mt-1 text-xs font-bold text-tomato">Di-refund {rupiah(o.refunded)}</p> : null}
           {o.paid > 0 && !paidOff ? <p className="mt-1 text-sm text-basil">Dibayar {rupiah(o.paid)} · sisa {rupiah(remaining)}</p> : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            {canPay && !paidOff && ["ready", "served", "completed"].includes(o.status) ? <button onClick={() => { setPayFor(payFor === o.id ? null : o.id); setAmount(String(remaining)); setMethod("cash"); }} className="h-9 rounded-full bg-saffron px-4 text-sm font-extrabold text-kitchen">Terima bayar</button> : null}
+            {canPay && !paidOff && ["ready", "served", "completed"].includes(o.status) ? <button onClick={() => { setPayFor(payFor === o.id ? null : o.id); setAmount(String(remaining)); setMethod("cash"); setTendered(""); setPayKey(crypto.randomUUID()); }} className="h-9 rounded-full bg-saffron px-4 text-sm font-extrabold text-kitchen">Terima bayar</button> : null}
             {o.status === "ready" ? <button onClick={() => setStatus(o.id, "served")} className="h-9 rounded-full bg-basil px-4 text-sm font-bold text-white">Sajikan</button> : null}
             {o.status === "served" && !paidOff ? <button onClick={() => setStatus(o.id, "completed")} className="h-9 rounded-full bg-kitchen px-4 text-sm font-bold text-white">Selesaikan</button> : null}
-            {["confirmed", "preparing"].includes(o.status) ? <button onClick={() => setStatus(o.id, "cancelled")} className="h-9 rounded-full bg-red-50 px-4 text-sm font-bold text-red-700">Batalkan</button> : null}
+            {["confirmed", "preparing"].includes(o.status) ? <button onClick={() => { setCancelFor(cancelFor === o.id ? null : o.id); setCancelReason(""); }} className="h-9 rounded-full bg-red-50 px-4 text-sm font-bold text-red-700">Batalkan</button> : null}
+            <a href={`/struk/${o.id}`} target="_blank" rel="noopener" className="inline-flex h-9 items-center rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700">Struk</a>
           </div>
+          {cancelFor === o.id ? <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-red-50 p-3 sm:flex-row">
+            <input aria-label="Alasan pembatalan" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Alasan pembatalan" className="h-11 min-w-0 flex-1 rounded-xl border border-red-200 bg-white px-3" />
+            <button disabled={cancelReason.trim().length < 3} onClick={() => setStatus(o.id, "cancelled", cancelReason.trim())} className="h-11 rounded-full bg-tomato px-6 font-extrabold text-white disabled:opacity-40">Batalkan pesanan</button>
+          </div> : null}
           {payFor === o.id ? <div className="mt-3 rounded-2xl bg-plate p-4">
             <div className="flex flex-wrap gap-2">
               {METHODS.map(([value, label]) => <button key={value} onClick={() => setMethod(value)} className={`h-9 rounded-full px-4 text-sm font-bold ${method === value ? "bg-kitchen text-white" : "bg-white text-stone-600"}`}>{label}</button>)}
             </div>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min="1" placeholder="Nominal" className="h-11 min-w-0 flex-1 rounded-xl border border-stone-200 px-3" />
+              {method === "cash" ? <input value={tendered} onChange={(e) => setTendered(e.target.value)} type="number" min="0" placeholder="Uang diterima (opsional)" aria-label="Uang diterima" className="h-11 min-w-0 flex-1 rounded-xl border border-stone-200 px-3" /> : null}
               <button onClick={() => pay(o)} disabled={busy} className="h-11 rounded-full bg-basil px-6 font-extrabold text-white disabled:opacity-40">{busy ? "Menyimpan…" : "Simpan bayar"}</button>
             </div>
           </div> : null}

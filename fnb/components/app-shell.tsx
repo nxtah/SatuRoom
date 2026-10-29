@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, BookOpen, ChefHat, ClipboardList, Home, Landmark, Package, Users, ReceiptText, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
+import { Ellipsis, BookOpen, ChefHat, ClipboardList, Home, Landmark, Package, Settings, Users, ReceiptText, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -18,6 +18,7 @@ const nav: readonly (readonly [string, string, LucideIcon])[] = [
   ["/menu", "Menu", BookOpen],
   ["/laporan", "Laporan", TrendingUp],
   ["/staf", "Staf", Users],
+  ["/pengaturan", "Pengaturan", Settings],
 ];
 const MAIN = ["/", "/pos", "/pesanan", "/dapur"];
 

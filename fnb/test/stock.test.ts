@@ -24,7 +24,7 @@ describe("stok bahan", () => {
   it("mengembalikan stok saat pesanan dibatalkan", async () => {
     const { order, stock, biz } = await setup();
     const created = await order(2);
-    await updateOrderStatus(biz.ctx, created.id, "cancelled");
+    await updateOrderStatus(biz.ctx, created.id, "cancelled", "Batal dari tes");
     expect(await stock()).toBe(1);
   });
 

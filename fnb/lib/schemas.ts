@@ -12,6 +12,10 @@ export const OrderInput=z.object({
   tableId:z.string().uuid().nullish(),
   customerName:z.string().trim().max(80).optional(),
   notes:z.string().trim().max(300).optional(),
+  discountType:z.enum(["amount","percent"]).nullish(),
+  discountValue:z.number().min(0).max(100_000_000).optional(),
+  discountReason:z.string().trim().max(200).optional(),
+  idempotencyKey:z.string().trim().min(8).max(80).optional(),
   lines:z.array(z.object({
     menuItemId:z.string().uuid(),
     quantity:z.number().int().min(1).max(99),
@@ -19,12 +23,14 @@ export const OrderInput=z.object({
     modifierIds:z.array(z.string().uuid()).max(40).default([]),
   })).min(1,"Pilih minimal satu menu.").max(50),
 });
-export const OrderStatusInput=z.object({status:z.enum(["open","confirmed","preparing","ready","served","completed","cancelled"])});
+export const OrderStatusInput=z.object({status:z.enum(["open","confirmed","preparing","ready","served","completed","cancelled"]),reason:z.string().trim().max(200).optional()});
 export const LineStatusInput=z.object({status:z.enum(["preparing","ready"])});
 export const PaymentInput=z.object({
   orderId:z.string().uuid(),
   amount:z.coerce.number().int().min(1,"Nominal wajib diisi.").max(100_000_000),
   method:z.enum(["cash","transfer","qris","card","other"]),
+  tendered:z.coerce.number().int().min(0).max(100_000_000).optional(),
+  idempotencyKey:z.string().trim().min(8).max(80).optional(),
 });
 export const VoidPaymentInput=z.object({reason:z.string().trim().min(3,"Alasan wajib diisi.").max(200)});
 export const ShiftOpenInput=z.object({openingCash:z.coerce.number().int().min(0).max(100_000_000)});
@@ -110,3 +116,21 @@ export const ModifierGroupInput = z
   .refine((g) => g.maxSelect >= g.minSelect, { path: ["maxSelect"], message: "Maksimal pilihan tidak boleh lebih kecil dari minimal." })
   .refine((g) => g.minSelect <= g.modifiers.length, { path: ["minSelect"], message: "Minimal pilihan melebihi jumlah opsi." });
 export const ItemGroupsInput = z.object({ groupIds: z.array(uuid).max(20) });
+
+export const SettingsInput = z.object({
+  taxPercent: z.coerce.number().min(0, "Pajak tidak boleh minus.").max(100, "Maksimal 100%."),
+  servicePercent: z.coerce.number().min(0, "Service tidak boleh minus.").max(100, "Maksimal 100%."),
+  receiptPrefix: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,8}$/, "Awalan nomor struk 1 sampai 8 huruf atau angka."),
+  receiptHeader: z.string().trim().max(200).nullish(),
+  receiptFooter: z.string().trim().max(200).nullish(),
+});
+export const CashMovementInput = z.object({
+  kind: z.enum(["in", "out"]),
+  amount: z.coerce.number().int().min(1, "Nominal minimal Rp 1.").max(100_000_000),
+  category: z.string().trim().min(2, "Isi kategori.").max(40),
+  reason: z.string().trim().min(3, "Alasan wajib diisi.").max(200),
+});
+export const RefundInput = z.object({
+  amount: z.coerce.number().int().min(1, "Nominal minimal Rp 1.").max(100_000_000),
+  reason: z.string().trim().min(3, "Alasan wajib diisi.").max(200),
+});

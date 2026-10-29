@@ -7,12 +7,15 @@ export const PERMISSIONS = [
   "kitchen.run",
   "cash.manage",
   "payments.void",
+  "orders.discount",
+  "orders.refund",
   "catalog.manage",
   "stock.manage",
   "purchases.manage",
   "reports.read",
   "staff.manage",
   "roles.manage",
+  "settings.manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -20,13 +23,16 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "orders.sell": { label: "Jual di kasir", hint: "Buka pesanan, tambah menu, dan menerima pembayaran pesanan." },
   "kitchen.run": { label: "Jalankan dapur", hint: "Melihat antrean dan mengubah status masak." },
   "cash.manage": { label: "Kelola kas", hint: "Buka dan tutup shift, catat kas masuk dan keluar." },
-  "payments.void": { label: "Batalkan pembayaran", hint: "Membatalkan pembayaran dengan alasan." },
+  "payments.void": { label: "Batalkan pembayaran", hint: "Membatalkan pembayaran yang salah input, dengan alasan." },
+  "orders.discount": { label: "Beri diskon", hint: "Memberi potongan harga pada pesanan, dengan alasan." },
+  "orders.refund": { label: "Refund", hint: "Mengembalikan uang pelanggan setelah pesanan dibayar." },
   "catalog.manage": { label: "Kelola menu", hint: "Tambah kategori, stasiun, menu, dan ketersediaan." },
   "stock.manage": { label: "Kelola stok", hint: "Bahan, resep, stok masuk, dan penyesuaian." },
   "purchases.manage": { label: "Kelola pembelian", hint: "Supplier, pembelian, dan penerimaan barang." },
   "reports.read": { label: "Lihat laporan", hint: "Laporan penjualan, laba, dan kas." },
   "staff.manage": { label: "Kelola staf", hint: "Undang, ubah peran, dan nonaktifkan staf." },
   "roles.manage": { label: "Kelola peran", hint: "Membuat dan mengubah peran custom." },
+  "settings.manage": { label: "Kelola pengaturan", hint: "Pajak, service charge, struk, meja, dan cabang." },
 };
 
 export const BUILTIN_ROLES = ["owner", "manager", "cashier", "server", "kitchen", "inventory", "accounting"] as const;
@@ -44,7 +50,7 @@ export const ROLE_LABEL: Record<BuiltinRole, string> = {
 
 const GRANTS: Record<BuiltinRole, readonly Permission[]> = {
   owner: PERMISSIONS,
-  manager: ["orders.sell", "kitchen.run", "cash.manage", "payments.void", "catalog.manage", "stock.manage", "purchases.manage", "reports.read"],
+  manager: ["orders.sell", "kitchen.run", "cash.manage", "payments.void", "orders.discount", "orders.refund", "catalog.manage", "stock.manage", "purchases.manage", "reports.read", "settings.manage"],
   cashier: ["orders.sell", "cash.manage"],
   server: ["orders.sell"],
   kitchen: ["kitchen.run"],

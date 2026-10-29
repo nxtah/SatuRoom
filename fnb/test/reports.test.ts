@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createOrder, updateOrderStatus } from "@/server/orders";
-import { payOrder, voidPayment } from "@/server/payments";
+import { openShift, payOrder, voidPayment } from "@/server/payments";
 import { dailyReport, salesSeries, todayJakarta } from "@/server/reports";
 import { createIngredient, setRecipe } from "@/server/stock";
 import { businessOf, menuItemOf, staffOf } from "./helpers";
@@ -19,12 +19,13 @@ describe("laporan harian", () => {
       return id;
     };
     const a = await sell(3); // 30000, bahan 0.3 kg = 6000
+    await openShift(biz.ctx, { openingCash: 0 });
     await payOrder(biz.ctx, { orderId: a, amount: 30000, method: "cash" });
     const b = await sell(2); // 20000, bahan 0.2 kg = 4000
     const pay = await payOrder(biz.ctx, { orderId: b, amount: 20000, method: "qris" });
     await voidPayment(biz.ctx, pay.id, { reason: "Salah input" });
     const { id: c } = await createOrder(biz.ctx, { type: "takeaway", lines: [{ menuItemId: mie, quantity: 1 }] });
-    await updateOrderStatus(biz.ctx, c, "cancelled"); // stok kembali, food cost netral
+    await updateOrderStatus(biz.ctx, c, "cancelled", "Salah pesan"); // stok kembali, food cost netral
 
     const r = await dailyReport(biz.ctx, todayJakarta());
     expect(r.sales).toBe(30000);
@@ -41,6 +42,7 @@ describe("laporan harian", () => {
     const { id } = await createOrder(biz.ctx, { type: "takeaway", lines: [{ menuItemId: mie, quantity: 2 }] });
     await updateOrderStatus(biz.ctx, id, "preparing");
     await updateOrderStatus(biz.ctx, id, "ready");
+    await openShift(biz.ctx, { openingCash: 0 });
     await payOrder(biz.ctx, { orderId: id, amount: 20000, method: "cash" });
     const today = todayJakarta();
     const s = await salesSeries(biz.ctx, today);
@@ -65,6 +67,7 @@ describe("laporan harian", () => {
     const { id } = await createOrder(a.ctx, { type: "takeaway", lines: [{ menuItemId: mie, quantity: 1 }] });
     await updateOrderStatus(a.ctx, id, "preparing");
     await updateOrderStatus(a.ctx, id, "ready");
+    await openShift(a.ctx, { openingCash: 0 });
     await payOrder(a.ctx, { orderId: id, amount: 10000, method: "cash" });
     const cashier = await staffOf(a, ["cashier"]);
     await expect(dailyReport(cashier, todayJakarta())).rejects.toThrow("FORBIDDEN");

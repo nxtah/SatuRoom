@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { computeTotals } from "@/lib/pricing";
 import type { Catalog } from "@/server/catalog";
 import type { Order } from "@/server/orders";
 
@@ -8,7 +9,7 @@ const STATUS_LABEL: Record<string, string> = {
   confirmed: "Baru", preparing: "Dimasak", ready: "Siap", served: "Disajikan", completed: "Selesai", cancelled: "Batal", open: "Baru",
 };
 
-export function PosClient({ catalog, initialOrders }: { catalog: Catalog; initialOrders: Order[] }) {
+export function PosClient({ catalog, initialOrders, servicePercent, taxPercent, canDiscount }: { catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
   const [orders, setOrders] = useState(initialOrders);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [picking, setPicking] = useState<Catalog["items"][number] | null>(null);
@@ -18,6 +19,10 @@ export function PosClient({ catalog, initialOrders }: { catalog: Catalog; initia
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [discType, setDiscType] = useState<"amount" | "percent">("percent");
+  const [discValue, setDiscValue] = useState("");
+  const [discReason, setDiscReason] = useState("");
+  const [key, setKey] = useState(() => crypto.randomUUID());
 
   const items = useMemo(
     () => catalog.items.filter((i) => i.available && (category === "all" || i.categoryId === category)),
@@ -25,7 +30,10 @@ export function PosClient({ catalog, initialOrders }: { catalog: Catalog; initia
   );
   const lines = cart;
   const unit = (l: CartLine) => l.item.price + l.mods.reduce((s, m) => s + m.priceDelta, 0);
-  const total = lines.reduce((sum, l) => sum + unit(l) * l.qty, 0);
+  const gross = lines.reduce((sum, l) => sum + unit(l) * l.qty, 0);
+  const wantsDiscount = canDiscount && Number(discValue) > 0;
+  const totals = computeTotals({ gross, discountType: wantsDiscount ? discType : null, discountValue: wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
+  const total = totals.total;
   const cartQty = (itemId: string) => cart.filter((l) => l.item.id === itemId).reduce((s, l) => s + l.qty, 0);
 
   /** Menu tanpa pilihan langsung masuk keranjang; menu dengan varian/add-on membuka pilihan dulu. */
@@ -47,14 +55,15 @@ export function PosClient({ catalog, initialOrders }: { catalog: Catalog; initia
       const res = await fetch("/api/v1/orders", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          type, customerName: customerName || undefined,
+          type, customerName: customerName || undefined, idempotencyKey: key,
+          discountType: wantsDiscount ? discType : undefined, discountValue: wantsDiscount ? Number(discValue) : undefined, discountReason: wantsDiscount ? discReason : undefined,
           lines: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.qty, notes: l.note || undefined, modifierIds: l.mods.map((m) => m.id) })),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Pesanan belum dapat disimpan.");
-      setCart([]); setCustomerName("");
-      setMessage("Pesanan masuk ke dapur.");
+      setCart([]); setCustomerName(""); setDiscValue(""); setDiscReason(""); setKey(crypto.randomUUID());
+      setMessage(`Pesanan ${data.receiptNo} masuk ke dapur.`);
       setOrders(await fetch("/api/v1/orders").then((r) => r.json()));
     } catch (e) {
       setError((e as Error).message);
@@ -82,7 +91,7 @@ export function PosClient({ catalog, initialOrders }: { catalog: Catalog; initia
         <h2 className="font-extrabold">Pesanan aktif</h2>
         <div className="mt-3 grid gap-2">
           {orders.map((o) => <a key={o.id} href="/pesanan" className="flex items-center gap-3 rounded-2xl border border-stone-200 p-3">
-            <b>#{o.number}</b>
+            <b>{o.receiptNo}</b>
             <span className="text-sm text-stone-500">{o.type === "dine_in" ? "Dine in" : o.type === "takeaway" ? "Bungkus" : "Ambil"}{o.tableName ? ` · ${o.tableName}` : ""}</span>
             <span className="ml-auto rounded-full bg-basil/10 px-2.5 py-1 text-xs font-bold text-basil">{STATUS_LABEL[o.status] ?? o.status}</span>
             <b className="text-sm">{rupiah(o.total)}</b>
@@ -114,10 +123,23 @@ export function PosClient({ catalog, initialOrders }: { catalog: Catalog; initia
         </div>)}
         {!lines.length ? <p className="py-10 text-center text-stone-500">Pilih menu untuk mulai pesanan.</p> : null}
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-4"><span className="text-stone-600">Total</span><b className="text-2xl">{rupiah(total)}</b></div>
+      {canDiscount && lines.length ? <div className="mt-4 grid gap-2 rounded-2xl bg-stone-50 p-3">
+        <div className="grid grid-cols-[6.5rem_1fr] gap-2">
+          <select aria-label="Jenis diskon" value={discType} onChange={(e) => setDiscType(e.target.value as "amount" | "percent")} className="h-10 rounded-xl border border-stone-200 bg-white px-2 text-sm"><option value="percent">Diskon %</option><option value="amount">Diskon Rp</option></select>
+          <input aria-label="Nilai diskon" type="number" min="0" value={discValue} onChange={(e) => setDiscValue(e.target.value)} placeholder="0" className="h-10 min-w-0 rounded-xl border border-stone-200 px-3 text-sm" />
+        </div>
+        {wantsDiscount ? <input aria-label="Alasan diskon" value={discReason} onChange={(e) => setDiscReason(e.target.value)} placeholder="Alasan diskon (wajib)" className="h-10 rounded-xl border border-stone-200 px-3 text-sm" /> : null}
+      </div> : null}
+      <dl className="mt-4 grid gap-1 border-t border-stone-200 pt-4 text-sm text-stone-600">
+        <div className="flex justify-between"><dt>Subtotal</dt><dd>{rupiah(totals.gross)}</dd></div>
+        {totals.discount > 0 ? <div className="flex justify-between"><dt>Diskon</dt><dd>-{rupiah(totals.discount)}</dd></div> : null}
+        {totals.service > 0 ? <div className="flex justify-between"><dt>Service {servicePercent}%</dt><dd>{rupiah(totals.service)}</dd></div> : null}
+        {totals.tax > 0 ? <div className="flex justify-between"><dt>Pajak {taxPercent}%</dt><dd>{rupiah(totals.tax)}</dd></div> : null}
+      </dl>
+      <div className="mt-2 flex items-center justify-between"><span className="text-stone-600">Total</span><b className="text-2xl">{rupiah(total)}</b></div>
       {message ? <p className="mt-3 rounded-2xl bg-basil/10 p-3 text-sm font-bold text-basil">{message}</p> : null}
       {error ? <p className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p> : null}
-      <button onClick={submit} disabled={busy || !lines.length} className="mt-4 h-13 w-full rounded-full bg-saffron font-extrabold text-kitchen disabled:opacity-40">{busy ? "Menyimpan…" : "Simpan pesanan"}</button>
+      <button onClick={submit} disabled={busy || !lines.length || (wantsDiscount && discReason.trim().length < 3)} className="mt-4 h-13 w-full rounded-full bg-saffron font-extrabold text-kitchen disabled:opacity-40">{busy ? "Menyimpan…" : "Simpan pesanan"}</button>
     </aside>
     {picking ? <Picker item={picking} groups={catalog.groups.filter((g) => picking.groupIds.includes(g.id))} onClose={() => setPicking(null)} onAdd={(mods, note) => { addLine(picking, mods, note); setPicking(null); }} /> : null}
   </div>;
@@ -145,7 +167,7 @@ function Picker({ item, groups, onClose, onAdd }: { item: Catalog["items"][numbe
         <div className="mt-2 grid gap-2">{g.modifiers.map((m) => {
           const on = (picked[g.id] ?? []).includes(m.id);
           return <label key={m.id} className={`flex min-h-12 items-center gap-3 rounded-2xl bg-white p-3 ${m.available ? "cursor-pointer" : "opacity-50"} ${on ? "ring-2 ring-saffron" : ""}`}>
-            <input type={g.maxSelect === 1 ? "radio" : "checkbox"} name={g.id} disabled={!m.available} checked={on} onChange={() => toggle(g, m.id)} className="size-5" />
+            <input type={g.maxSelect === 1 ? "radio" : "checkbox"} name={g.id} disabled={!m.available} checked={on} onChange={() => toggle(g, m.id)} className="size-5 accent-kitchen" />
             <span className="flex-1 font-bold">{m.name}{m.available ? "" : " (habis)"}</span>
             <span className="text-sm text-stone-600">{m.priceDelta ? `+${rupiah(m.priceDelta)}` : "Gratis"}</span>
           </label>;

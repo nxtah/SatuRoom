@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import type { z } from "zod";
+import { ZodError, type z } from "zod";
 import type { SessionInfo } from "@saturoom/core/auth";
 import { currentSession, requireApiContext, type FnbContext } from "./context";
 import { env } from "./env";
@@ -8,6 +8,20 @@ import { AppError } from "./errors";
 import { withinLimit } from "./rate-limit";
 
 const fail = (status: number, error: string) => NextResponse.json({ error }, { status });
+
+/** Kode kesalahan lama (string) dari modul kasir/dapur/stok, dipetakan ke pesan yang ramah. */
+const LEGACY: Record<string, [number, string]> = {
+  FORBIDDEN: [403, "Anda belum punya izin untuk tindakan ini."],
+  NOT_FOUND: [404, "Data tidak ditemukan."],
+  ITEM_UNAVAILABLE: [422, "Ada menu yang sedang habis."],
+  INSUFFICIENT_STOCK: [409, "Bahan tidak cukup untuk pesanan ini."],
+  NO_OUTLET: [422, "Outlet belum tersedia."],
+  ORDER_NOT_READY: [422, "Pesanan ini belum siap dibayar."],
+  INVALID_TRANSITION: [409, "Status pesanan tidak bisa diubah ke tahap itu."],
+  SHIFT_OPEN: [409, "Masih ada shift kas yang belum ditutup."],
+  NO_SHIFT: [409, "Tidak ada shift kas yang terbuka."],
+  INVALID_DATE: [422, "Tanggal tidak valid."],
+};
 
 /**
  * Membungkus route handler: cek asal permintaan untuk method yang mengubah data, memuat konteks
@@ -20,9 +34,10 @@ export function route<P = Record<string, never>>(handler: (req: Request, ctx: Fn
       return await handler(req, await requireApiContext(), await params);
     } catch (error) {
       if (error instanceof AppError) return fail(error.status, error.message);
+      if (error instanceof ZodError) return fail(422, "Data yang dikirim tidak valid.");
       const code = error instanceof Error ? error.message : "";
       if (code === "UNAUTHORIZED") return fail(401, "Silakan masuk lagi.");
-      if (code === "FORBIDDEN") return fail(403, "Anda belum punya izin untuk tindakan ini.");
+      if (LEGACY[code]) return fail(...LEGACY[code]);
       console.error("[api]", req.method, new URL(req.url).pathname, code);
       return fail(500, "Terjadi gangguan di server. Data Anda aman; coba lagi sebentar lagi.");
     }

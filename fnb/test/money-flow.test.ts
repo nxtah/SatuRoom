@@ -32,6 +32,7 @@ describe("pesanan dan pembayaran", () => {
   it("pembayaran cicilan: selesai hanya saat lunas, void membuka lagi", async () => {
     const biz = await businessOf(`Kafe ${Math.random()}`);
     const item = await menuItemOf(biz.ctx, "Mie", 10000);
+    await openShift(biz.ctx, { openingCash: 0 });
     const id = await readyOrder(biz, item, 3); // total 30000
     const first = await payOrder(biz.ctx, { orderId: id, amount: 10000, method: "cash" });
     expect(first).toMatchObject({ remaining: 20000, completed: false });
@@ -52,6 +53,7 @@ describe("pesanan dan pembayaran", () => {
   it("izin: kasir tidak boleh void, dapur tidak boleh bayar atau buka kas", async () => {
     const biz = await businessOf(`Kafe ${Math.random()}`);
     const item = await menuItemOf(biz.ctx, "Mie", 10000);
+    await openShift(biz.ctx, { openingCash: 0 });
     const id = await readyOrder(biz, item, 1);
     const cashier = await staffOf(biz, ["cashier"]);
     const kitchen = await staffOf(biz, ["kitchen"]);
@@ -66,7 +68,7 @@ describe("pesanan dan pembayaran", () => {
     const b = await businessOf(`Kafe B ${Math.random()}`);
     const id = await readyOrder(a, await menuItemOf(a.ctx), 1);
     await expect(payOrder(b.ctx, { orderId: id, amount: 1000, method: "cash" })).rejects.toThrow("NOT_FOUND");
-    await expect(updateOrderStatus(b.ctx, id, "cancelled")).rejects.toThrow("NOT_FOUND");
+    await expect(updateOrderStatus(b.ctx, id, "cancelled", "Coba batalkan")).rejects.toThrow("NOT_FOUND");
     expect(await listOrders(b.ctx, "all")).toHaveLength(0);
   });
 });

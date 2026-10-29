@@ -36,6 +36,17 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Selisih penjualan dan bahan</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(margin)}</dd></div>
         <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Pembayaran dibatalkan</dt><dd className="mt-1 font-extrabold tabular-nums">{r.orders.voidedPayments ? `${r.orders.voidedPayments} · ${rupiah(r.orders.voidedAmount)}` : "Tidak ada"}</dd></div>
       </dl>
+      <p className="mt-4 text-xs text-white/60">Penjualan = uang pembayaran yang diterima hari ini dikurangi refund, sudah termasuk pajak dan service charge.</p>
+    </section>
+
+    <section className="mt-4 rounded-[2rem] bg-white p-6">
+      <h2 className="text-xl font-extrabold">Rincian tagihan</h2>
+      <dl className="mt-3 grid gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl bg-stone-50 p-3"><dt className="text-xs text-stone-600">Diskon diberikan</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(r.charges.discount)}</dd></div>
+        <div className="rounded-2xl bg-stone-50 p-3"><dt className="text-xs text-stone-600">Service charge</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(r.charges.service)}</dd></div>
+        <div className="rounded-2xl bg-stone-50 p-3"><dt className="text-xs text-stone-600">Pajak</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(r.charges.tax)}</dd></div>
+        <div className="rounded-2xl bg-stone-50 p-3"><dt className="text-xs text-stone-600">Refund</dt><dd className="mt-1 font-extrabold tabular-nums">{r.refunds.count ? `${rupiah(r.refunds.amount)} (${r.refunds.count}x)` : "Tidak ada"}</dd></div>
+      </dl>
     </section>
 
     <div className="mt-4 grid gap-4 md:grid-cols-2">

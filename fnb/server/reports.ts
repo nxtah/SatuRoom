@@ -11,6 +11,10 @@ export type DailyReport = {
   byMethod: { method: string; amount: number }[];
   orders: { total: number; cancelled: number; voidedPayments: number; voidedAmount: number };
   topItems: { name: string; quantity: number; revenue: number }[];
+  /** Refund pada hari itu; sudah dikurangkan dari `sales` dan `byMethod`. */
+  refunds: { count: number; amount: number };
+  /** Diskon, service charge, dan pajak dari pesanan yang tidak dibatalkan hari itu. */
+  charges: { discount: number; service: number; tax: number };
   foodCost: number;
   lowStock: { name: string; unit: string; stock: number; minimum: number }[];
 };
@@ -31,6 +35,14 @@ export async function dailyReport(ctx: FnbContext, date: string): Promise<DailyR
       SELECT method::text AS method, SUM(amount)::int AS amount, COUNT(*)::int AS count
       FROM fnb.payments WHERE voided_at IS NULL AND ${day(sql.raw("recorded_at"))} GROUP BY method ORDER BY amount DESC
     `)) as unknown as { method: string; amount: number; count: number }[];
+    const refundRows = (await tx.execute(sql`
+      SELECT method::text AS method, SUM(amount)::int AS amount, COUNT(*)::int AS count
+      FROM fnb.refunds WHERE ${day(sql.raw("refunded_at"))} GROUP BY method
+    `)) as unknown as { method: string; amount: number; count: number }[];
+    const [charges] = (await tx.execute(sql`
+      SELECT COALESCE(SUM(discount), 0)::int AS discount, COALESCE(SUM(service_charge), 0)::int AS service, COALESCE(SUM(tax), 0)::int AS tax
+      FROM fnb.orders WHERE status <> 'cancelled' AND ${day(sql.raw("opened_at"))}
+    `)) as unknown as { discount: number; service: number; tax: number }[];
     const [orders] = (await tx.execute(sql`
       SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
       FROM fnb.orders WHERE ${day(sql.raw("opened_at"))}
@@ -54,11 +66,15 @@ export async function dailyReport(ctx: FnbContext, date: string): Promise<DailyR
       SELECT name, unit, stock::float8 AS stock, minimum_stock::float8 AS minimum
       FROM fnb.ingredients WHERE archived_at IS NULL AND stock <= minimum_stock ORDER BY name
     `)) as unknown as DailyReport["lowStock"];
+    const net = methods.map(({ method, amount }) => ({ method, amount: amount - (refundRows.find((r) => r.method === method)?.amount ?? 0) }));
+    for (const r of refundRows) if (!net.some((m) => m.method === r.method)) net.push({ method: r.method, amount: -r.amount });
     return {
       date,
-      sales: methods.reduce((a, m) => a + m.amount, 0),
+      sales: net.reduce((a, m) => a + m.amount, 0),
       paymentCount: methods.reduce((a, m) => a + m.count, 0),
-      byMethod: methods.map(({ method, amount }) => ({ method, amount })),
+      byMethod: net.sort((a, b) => b.amount - a.amount),
+      refunds: { count: refundRows.reduce((a, r) => a + r.count, 0), amount: refundRows.reduce((a, r) => a + r.amount, 0) },
+      charges: charges ?? { discount: 0, service: 0, tax: 0 },
       orders: { total: orders?.total ?? 0, cancelled: orders?.cancelled ?? 0, voidedPayments: voided?.count ?? 0, voidedAmount: voided?.amount ?? 0 },
       topItems,
       foodCost: cost?.cost ?? 0,
@@ -80,10 +96,11 @@ export async function salesSeries(ctx: FnbContext, today: string): Promise<Sales
   if (!REPORT_DATE.test(today)) throw new Error("INVALID_DATE");
   return withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, async (tx) => {
     const days = (await tx.execute(sql`
-      SELECT to_char(d::date, 'YYYY-MM-DD') AS date, COALESCE(SUM(p.amount), 0)::int AS sales
+      SELECT to_char(d::date, 'YYYY-MM-DD') AS date,
+             (COALESCE((SELECT SUM(p.amount) FROM fnb.payments p WHERE p.voided_at IS NULL AND (p.recorded_at AT TIME ZONE 'Asia/Jakarta')::date = d::date), 0)
+            - COALESCE((SELECT SUM(r.amount) FROM fnb.refunds r WHERE (r.refunded_at AT TIME ZONE 'Asia/Jakarta')::date = d::date), 0))::int AS sales
       FROM generate_series(${today}::date - 6, ${today}::date, interval '1 day') d
-      LEFT JOIN fnb.payments p ON p.voided_at IS NULL AND (p.recorded_at AT TIME ZONE 'Asia/Jakarta')::date = d::date
-      GROUP BY d ORDER BY d
+      ORDER BY d
     `)) as unknown as SalesSeries["days"];
     const hours = (await tx.execute(sql`
       SELECT EXTRACT(HOUR FROM opened_at AT TIME ZONE 'Asia/Jakarta')::int AS hour, COUNT(*)::int AS orders
