@@ -15,6 +15,7 @@ const NEEDS: Record<string, Permission[]> = {
   "/pengeluaran": ["expenses.manage"],
   "/laporan": ["reports.read"],
   "/staf": ["staff.manage"],
+  "/audit": ["audit.read"],
   "/pengaturan": ["settings.manage"],
 };
 

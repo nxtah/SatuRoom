@@ -28,6 +28,11 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       </form>
     </div>
 
+    <div className="mt-4 flex flex-wrap gap-2">
+      <a href={`/api/v1/reports/export?dari=${date}&sampai=${date}`} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-stone-700">Unduh CSV tanggal ini</a>
+      <a href={`/api/v1/reports/export?dari=${date.slice(0, 8)}01&sampai=${date}`} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-stone-700">Unduh CSV sejak awal bulan</a>
+    </div>
+
     <section className="mt-6 rounded-[2rem] bg-kitchen p-6 text-white">
       <p className="text-sm font-bold text-saffron">Penjualan</p>
       <p className="mt-1 text-4xl font-extrabold tabular-nums">{rupiah(r.sales)}</p>
