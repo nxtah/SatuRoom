@@ -1,5 +1,5 @@
 /**
- * Menjalankan migrasi SQL secara berurutan: core/migrations lalu bola/migrations, lalu
+ * Menjalankan migrasi SQL secara berurutan: core/migrations lalu sport/migrations, lalu
  * menyiapkan user database runtime (`bola_app`) dengan izin minimum.
  *
  *   MIGRATOR_DATABASE_URL=... BOLA_DB_PASSWORD=... pnpm db:migrate
@@ -16,7 +16,7 @@ import postgres from "postgres";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCOPES = [
   { scope: "core", dir: join(root, "core", "migrations") },
-  { scope: "bola", dir: join(root, "bola", "migrations") },
+  { scope: "bola", dir: join(root, "sport", "migrations") },
   { scope: "fnb", dir: join(root, "fnb", "migrations") },
 ];
 
