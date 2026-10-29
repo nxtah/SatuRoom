@@ -55,7 +55,7 @@ export function KdsBoard({ initialOrders }: { initialOrders: Order[] }) {
               {o.customerName ? <p className="text-xs text-stone-500">{o.customerName}</p> : null}
               <ul className="mt-2 grid gap-1.5">
                 {o.lines.map((l) => <li key={l.id} className="flex items-center gap-2 rounded-xl bg-white p-2">
-                  <span className="min-w-0 flex-1 text-sm"><b>{l.qty}x</b> {l.name}{l.notes ? <em className="block text-xs text-stone-500">{l.notes}</em> : null}</span>
+                  <span className="min-w-0 flex-1 text-sm"><b>{l.qty}x</b> {l.name}{l.modifiers.length ? <span className="block text-xs font-bold text-kitchen">{l.modifiers.map((m) => m.name).join(", ")}</span> : null}{l.notes ? <em className="block text-xs font-bold text-tomato">Catatan: {l.notes}</em> : null}</span>
                   {l.status === "ready" ? <span className="rounded-full bg-basil/10 px-2 py-0.5 text-xs font-bold text-basil">siap</span>
                     : <button onClick={() => setLine(o.id, l.id, l.status === "confirmed" ? "preparing" : "ready")} className="rounded-full bg-kitchen px-3 py-1 text-xs font-bold text-white">
                         {l.status === "confirmed" ? "Mulai" : "Siap"}

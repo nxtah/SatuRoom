@@ -66,7 +66,7 @@ export function OrdersList({ initialOrders, canPay }: { initialOrders: Order[]; 
             {o.customerName ? <span className="text-sm text-stone-500">· {o.customerName}</span> : null}
             <b className="ml-auto">{rupiah(o.total)}</b>
           </div>
-          <p className="mt-2 text-sm text-stone-500">{o.lines.map((l) => `${l.qty}x ${l.name}`).join(" · ")}</p>
+          <p className="mt-2 text-sm text-stone-500">{o.lines.map((l) => `${l.qty}x ${l.name}${l.modifiers.length ? ` (${l.modifiers.map((m) => m.name).join(", ")})` : ""}`).join(" · ")}</p>
           {o.paid > 0 && !paidOff ? <p className="mt-1 text-sm text-basil">Dibayar {rupiah(o.paid)} · sisa {rupiah(remaining)}</p> : null}
           <div className="mt-3 flex flex-wrap gap-2">
             {canPay && !paidOff && ["ready", "served", "completed"].includes(o.status) ? <button onClick={() => { setPayFor(payFor === o.id ? null : o.id); setAmount(String(remaining)); setMethod("cash"); }} className="h-9 rounded-full bg-saffron px-4 text-sm font-extrabold text-kitchen">Terima bayar</button> : null}

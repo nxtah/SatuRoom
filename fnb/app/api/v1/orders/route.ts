@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { OrderInput } from "@/lib/schemas";
 import { requireApiContext } from "@/server/context";
 import { env } from "@/server/env";
+import { AppError } from "@/server/errors";
 import { createOrder, listOrders } from "@/server/orders";
 
 const fail = (e: unknown) => {
+  if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
   const code = e instanceof Error ? e.message : "";
   const map: Record<string, [string, number]> = {
     FORBIDDEN: ["Anda tidak punya izin membuat pesanan.", 403],

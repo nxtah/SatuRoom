@@ -16,6 +16,7 @@ export const OrderInput=z.object({
     menuItemId:z.string().uuid(),
     quantity:z.number().int().min(1).max(99),
     notes:z.string().trim().max(200).optional(),
+    modifierIds:z.array(z.string().uuid()).max(40).default([]),
   })).min(1,"Pilih minimal satu menu.").max(50),
 });
 export const OrderStatusInput=z.object({status:z.enum(["open","confirmed","preparing","ready","served","completed","cancelled"])});
@@ -86,3 +87,26 @@ export const InviteInput = z
   })
   .refine((v) => v.roles.length + v.customRoleIds.length > 0, "Pilih minimal satu peran.");
 export const InvitationIdInput = z.object({ invitationId: z.string().uuid() });
+
+const uuid = z.string().uuid();
+export const ItemUpdateInput = z.object({
+  name,
+  description: z.string().trim().max(300).nullish(),
+  categoryId: uuid,
+  stationId: uuid.nullable(),
+  price: z.coerce.number().int().min(0).max(100_000_000),
+});
+export const ModifierGroupInput = z
+  .object({
+    id: uuid.optional(),
+    name: name.max(60),
+    minSelect: z.coerce.number().int().min(0).max(20),
+    maxSelect: z.coerce.number().int().min(1).max(20),
+    modifiers: z
+      .array(z.object({ id: uuid.optional(), name: name.max(60), priceDelta: z.coerce.number().int().min(0).max(10_000_000), available: z.boolean().default(true) }))
+      .min(1, "Isi minimal satu opsi.")
+      .max(40),
+  })
+  .refine((g) => g.maxSelect >= g.minSelect, { path: ["maxSelect"], message: "Maksimal pilihan tidak boleh lebih kecil dari minimal." })
+  .refine((g) => g.minSelect <= g.modifiers.length, { path: ["minSelect"], message: "Minimal pilihan melebihi jumlah opsi." });
+export const ItemGroupsInput = z.object({ groupIds: z.array(uuid).max(20) });

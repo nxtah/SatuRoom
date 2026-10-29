@@ -6,6 +6,7 @@ import type { z } from "zod";
 import type { OrderInput, OrderStatusInput } from "@/lib/schemas";
 import { db } from "./db";
 import { can, type FnbContext } from "./context";
+import { resolveModifiers } from "./modifiers";
 import { deductOrderStock, restoreOrderStock } from "./stock";
 
 export const ORDER_STATUSES = ["open", "confirmed", "preparing", "ready", "served", "completed", "cancelled"] as const;
@@ -14,6 +15,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type OrderLine = {
   id: string; itemId: string; name: string; price: number; qty: number;
   notes: string | null; stationId: string | null; stationName: string | null; status: string;
+  modifiers: { name: string; priceDelta: number }[];
 };
 export type Order = {
   id: string; number: string; type: string; status: string; tableName: string | null;
@@ -46,13 +48,20 @@ export function listOrders(ctx: FnbContext, scope: "active" | "all" = "active"):
       FROM fnb.order_lines l LEFT JOIN fnb.kitchen_stations s ON s.id = l.station_id
       WHERE l.order_id IN (${sql.join(rows.map((r) => sql`${r.id}::uuid`), sql`, `)})
       ORDER BY l.created_at
-    `)) as unknown as (OrderLine & { orderId: string })[];
-    return rows.map((o) => ({ ...o, lines: lines.filter((l) => l.orderId === o.id).map(({ orderId, ...l }) => l) }));
+    `)) as unknown as (Omit<OrderLine, "modifiers"> & { orderId: string })[];
+    const mods = (await tx.execute(sql`
+      SELECT order_line_id AS "lineId", name, price_delta AS "priceDelta" FROM fnb.order_line_modifiers
+      WHERE order_line_id IN (${sql.join(lines.map((l) => sql`${l.id}::uuid`), sql`, `)}) ORDER BY name
+    `)) as unknown as { lineId: string; name: string; priceDelta: number }[];
+    return rows.map((o) => ({
+      ...o,
+      lines: lines.filter((l) => l.orderId === o.id).map(({ orderId, ...l }) => ({ ...l, modifiers: mods.filter((m) => m.lineId === l.id).map(({ name, priceDelta }) => ({ name, priceDelta })) })),
+    }));
   });
 }
 
 /** Total dihitung server dari harga menu, bukan dari angka yang dikirim layar. */
-export async function createOrder(ctx: FnbContext, input: z.infer<typeof OrderInput>) {
+export async function createOrder(ctx: FnbContext, input: z.input<typeof OrderInput>) {
   if (!canSell(ctx)) throw new Error("FORBIDDEN");
   return inBusiness(ctx, async (tx) => {
     const items = (await tx.execute(sql`
@@ -67,7 +76,12 @@ export async function createOrder(ctx: FnbContext, input: z.infer<typeof OrderIn
     }
     const outlet = (await tx.execute(sql`SELECT id FROM fnb.outlets WHERE is_primary AND archived_at IS NULL LIMIT 1`)) as unknown as { id: string }[];
     if (!outlet[0]) throw new Error("NO_OUTLET");
-    const subtotal = input.lines.reduce((sum, l) => sum + byId.get(l.menuItemId)!.price * l.quantity, 0);
+    const priced = [];
+    for (const line of input.lines) {
+      const mods = await resolveModifiers(tx, line.menuItemId, line.modifierIds ?? []);
+      priced.push({ line, mods, unitPrice: byId.get(line.menuItemId)!.price + mods.delta });
+    }
+    const subtotal = priced.reduce((sum, p) => sum + p.unitPrice * p.line.quantity, 0);
     const tableId = input.tableId ?? null;
     const [order] = (await tx.execute(sql`
       INSERT INTO fnb.orders (business_id, outlet_id, table_id, type, status, customer_name, subtotal, total, notes, opened_by)
@@ -75,13 +89,20 @@ export async function createOrder(ctx: FnbContext, input: z.infer<typeof OrderIn
               ${input.customerName ?? null}, ${subtotal}, ${subtotal}, ${input.notes ?? null}, ${ctx.userId}::uuid)
       RETURNING id
     `)) as unknown as { id: string }[];
-    for (const line of input.lines) {
+    for (const { line, mods, unitPrice } of priced) {
       const item = byId.get(line.menuItemId)!;
-      await tx.execute(sql`
+      const [created] = (await tx.execute(sql`
         INSERT INTO fnb.order_lines (business_id, order_id, menu_item_id, station_id, item_name, unit_price, quantity, notes, status)
-        VALUES (${ctx.businessId}::uuid, ${order!.id}::uuid, ${item.id}::uuid, ${item.stationId}::uuid, ${item.name}, ${item.price},
+        VALUES (${ctx.businessId}::uuid, ${order!.id}::uuid, ${item.id}::uuid, ${item.stationId}::uuid, ${item.name}, ${unitPrice},
                 ${line.quantity}, ${line.notes ?? null}, 'confirmed')
-      `);
+        RETURNING id
+      `)) as unknown as { id: string }[];
+      for (const m of mods.rows) {
+        await tx.execute(sql`
+          INSERT INTO fnb.order_line_modifiers (business_id, order_line_id, modifier_id, name, price_delta)
+          VALUES (${ctx.businessId}::uuid, ${created!.id}::uuid, ${m.id}::uuid, ${m.name}, ${m.priceDelta})
+        `);
+      }
     }
     await deductOrderStock(tx, ctx, order!.id, input.lines);
     await tx.insert(auditEvents).values({
