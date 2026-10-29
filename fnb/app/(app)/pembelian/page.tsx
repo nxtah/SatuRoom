@@ -1,4 +1,5 @@
 import { listPurchases, listSuppliers } from "@/server/purchases";
+import { can } from "@/server/context";
 import { requireFnbPage } from "@/server/routing";
 import { listStock } from "@/server/stock";
 import { PurchasePanel } from "./purchase-panel";
@@ -6,7 +7,7 @@ import { PurchasePanel } from "./purchase-panel";
 export default async function PurchasePage() {
   const ctx = await requireFnbPage();
   const [suppliers, purchases, stock] = await Promise.all([listSuppliers(ctx), listPurchases(ctx), listStock(ctx)]);
-  const canManage = ctx.roles.some((r) => ["owner", "manager", "inventory"].includes(r));
+  const canManage = can(ctx, "purchases.manage");
   return <main className="mx-auto max-w-5xl p-4 sm:p-8">
     <h1 className="text-3xl font-extrabold">Pembelian bahan</h1>
     <p className="mt-1 text-stone-600">Catat belanja dari supplier. Stok bertambah dan harga rata-rata bahan dihitung otomatis.</p>

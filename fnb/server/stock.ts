@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { IngredientInput, RecipeInput, StockAdjustInput } from "@/lib/schemas";
 import { db } from "./db";
-import type { FnbContext } from "./context";
+import { can, type FnbContext } from "./context";
 
 export type Ingredient = {
   id: string; name: string; unit: string; stock: number; minimum: number; averageCost: number; low: boolean;
@@ -17,7 +17,7 @@ export type Movement = {
 };
 export type StockData = { ingredients: Ingredient[]; items: StockItem[]; movements: Movement[] };
 
-const canManage = (ctx: FnbContext) => ctx.roles.some((r) => ["owner", "manager", "inventory"].includes(r));
+const canManage = (ctx: FnbContext) => can(ctx, "stock.manage");
 const inBusiness = <T>(ctx: FnbContext, work: Parameters<typeof withContext<T>>[2]) =>
   withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, work);
 

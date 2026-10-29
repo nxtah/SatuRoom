@@ -1,4 +1,5 @@
 import { AlertTriangle, ArrowRight } from "lucide-react";
+import { can } from "@/server/context";
 import Link from "next/link";
 import { AreaTrend, BarList, Sparkline } from "@/components/charts";
 import { Maskot } from "@/components/maskot";
@@ -20,8 +21,8 @@ const weekday = (iso: string) => new Date(`${iso}T12:00:00+07:00`).toLocaleDateS
 
 export default async function FnbDashboard() {
   const ctx = await requireFnbPage();
-  const canReport = ctx.roles.some((r) => ["owner", "manager", "accounting"].includes(r));
-  const canCash = ctx.roles.some((r) => ["owner", "manager", "cashier", "accounting"].includes(r));
+  const canReport = can(ctx, "reports.read");
+  const canCash = can(ctx, "cash.manage");
   const today = todayJakarta();
   const [code, orders, stock, report, series] = await Promise.all([
     getFnbBusinessCode(ctx),

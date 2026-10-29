@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BUILTIN_ROLES, PERMISSIONS } from "./permissions";
 const name=z.string().trim().min(1,"Nama wajib diisi.").max(100);
 export const CatalogInput=z.discriminatedUnion("type",[
   z.object({type:z.literal("category"),name}),
@@ -58,3 +59,17 @@ export const PurchaseInput=z.object({
     unitCost:z.coerce.number().int().min(0).max(100_000_000),
   })).min(1,"Isi minimal satu bahan.").max(50),
 });
+
+export const CustomRoleInput = z.object({
+  name: z.string().trim().min(2, "Nama peran minimal 2 huruf.").max(40, "Nama peran terlalu panjang."),
+  permissions: z.array(z.enum(PERMISSIONS)).min(1, "Pilih minimal satu izin.").max(PERMISSIONS.length),
+});
+
+export const StaffRolesInput = z
+  .object({
+    roles: z.array(z.enum(BUILTIN_ROLES)).max(BUILTIN_ROLES.length),
+    customRoleIds: z.array(z.string().uuid()).max(20),
+  })
+  .refine((v) => v.roles.length + v.customRoleIds.length > 0, "Pilih minimal satu peran.");
+
+export const StaffStatusInput = z.object({ status: z.enum(["active", "suspended"]) });

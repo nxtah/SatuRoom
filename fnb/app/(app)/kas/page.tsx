@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { can } from "@/server/context";
 import { currentShiftSummary, listRecentPayments } from "@/server/payments";
 import { requireFnbPage } from "@/server/routing";
 import { CashPanel } from "./cash-panel";
@@ -6,8 +7,8 @@ import { CashPanel } from "./cash-panel";
 export default async function CashPage() {
   const ctx = await requireFnbPage();
   const [summary, payments] = await Promise.all([currentShiftSummary(ctx), listRecentPayments(ctx)]);
-  const canCash = ctx.roles.some((r) => ["owner", "manager", "cashier", "accounting"].includes(r));
-  const canVoid = ctx.roles.some((r) => ["owner", "manager", "accounting"].includes(r));
+  const canCash = can(ctx, "cash.manage");
+  const canVoid = can(ctx, "payments.void");
   return <main className="mx-auto max-w-4xl p-4 sm:p-8">
     <div className="flex flex-wrap items-end justify-between gap-2">
       <div><p className="font-bold text-tomato">Kas</p><h1 className="text-3xl font-extrabold">Shift & pembayaran</h1></div>

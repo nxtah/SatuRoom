@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, BookOpen, ChefHat, ClipboardList, Home, Landmark, Package, ReceiptText, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
+import { Ellipsis, BookOpen, ChefHat, ClipboardList, Home, Landmark, Package, Users, ReceiptText, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -17,14 +17,16 @@ const nav: readonly (readonly [string, string, LucideIcon])[] = [
   ["/pembelian", "Pembelian", ShoppingBasket],
   ["/menu", "Menu", BookOpen],
   ["/laporan", "Laporan", TrendingUp],
+  ["/staf", "Staf", Users],
 ];
 const MAIN = ["/", "/pos", "/pesanan", "/dapur"];
-const mobile = nav.filter(([href]) => MAIN.includes(href));
-const more = nav.filter(([href]) => !MAIN.includes(href));
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, hidden = [] }: { children: React.ReactNode; hidden?: string[] }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const items = nav.filter(([href]) => !hidden.includes(href));
+  const mobile = items.filter(([href]) => MAIN.includes(href));
+  const more = items.filter(([href]) => !MAIN.includes(href));
   const on = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[88px_minmax(0,1fr)] lg:grid-cols-[264px_minmax(0,1fr)]">
@@ -39,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="hidden px-2 pt-1 lg:block"><Brand tone="white" /></div>
           <div className="mx-auto pt-3 lg:hidden"><LogoMark className="h-10" /></div>
           <nav aria-label="Menu utama" className="grid gap-1">
-            {nav.map(([href, label, Icon]) => (
+            {items.map(([href, label, Icon]) => (
               <Link
                 key={href}
                 href={href}

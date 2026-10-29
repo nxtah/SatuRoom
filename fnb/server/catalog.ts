@@ -5,10 +5,10 @@ import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { CatalogInput } from "@/lib/schemas";
 import { db } from "./db";
-import type { FnbContext } from "./context";
+import { can, type FnbContext } from "./context";
 
 export type Catalog={categories:{id:string;name:string}[];stations:{id:string;name:string;color:string}[];items:{id:string;name:string;description:string|null;price:number;available:boolean;categoryId:string;categoryName:string;stationId:string|null;stationName:string|null}[]};
-const manage=(ctx:FnbContext)=>{if(!ctx.roles.some(r=>r==="owner"||r==="manager"))throw new Error("FORBIDDEN")};
+const manage=(ctx:FnbContext)=>{if(!can(ctx,"catalog.manage"))throw new Error("FORBIDDEN")};
 const inBusiness=<T>(ctx:FnbContext,work:Parameters<typeof withContext<T>>[2])=>withContext(db(),{userId:ctx.userId,businessId:ctx.businessId},work);
 
 export function listCatalog(ctx:FnbContext):Promise<Catalog>{return inBusiness(ctx,async tx=>{

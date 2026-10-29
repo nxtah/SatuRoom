@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { OrderInput, OrderStatusInput } from "@/lib/schemas";
 import { db } from "./db";
-import type { FnbContext } from "./context";
+import { can, type FnbContext } from "./context";
 import { deductOrderStock, restoreOrderStock } from "./stock";
 
 export const ORDER_STATUSES = ["open", "confirmed", "preparing", "ready", "served", "completed", "cancelled"] as const;
@@ -20,8 +20,8 @@ export type Order = {
   customerName: string | null; total: number; paid: number; notes: string | null; openedAt: string; lines: OrderLine[];
 };
 
-const canSell = (ctx: FnbContext) => ctx.roles.some((r) => r === "owner" || r === "manager" || r === "cashier" || r === "server");
-const canKitchen = (ctx: FnbContext) => ctx.roles.some((r) => r === "owner" || r === "manager" || r === "kitchen");
+const canSell = (ctx: FnbContext) => can(ctx, "orders.sell");
+const canKitchen = (ctx: FnbContext) => can(ctx, "kitchen.run");
 const inBusiness = <T>(ctx: FnbContext, work: Parameters<typeof withContext<T>>[2]) =>
   withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, work);
 

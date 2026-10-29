@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { PaymentInput, ShiftCloseInput, ShiftOpenInput, VoidPaymentInput } from "@/lib/schemas";
 import { db } from "./db";
-import type { FnbContext } from "./context";
+import { can, type FnbContext } from "./context";
 
 export type Shift = {
   id: string; openedAt: string; openingCash: number; closedAt: string | null; closingCash: number | null; notes: string | null;
@@ -14,7 +14,7 @@ export type ShiftSummary = {
   shift: Shift | null; salesTotal: number; cashTotal: number; nonCashTotal: number; orderCount: number; expectedCash: number;
 };
 
-const canCash = (ctx: FnbContext) => ctx.roles.some((r) => ["owner", "manager", "cashier", "accounting"].includes(r));
+const canCash = (ctx: FnbContext) => can(ctx, "cash.manage");
 const inBusiness = <T>(ctx: FnbContext, work: Parameters<typeof withContext<T>>[2]) =>
   withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, work);
 
@@ -104,7 +104,7 @@ export async function payOrder(ctx: FnbContext, input: z.infer<typeof PaymentInp
 }
 
 export async function voidPayment(ctx: FnbContext, id: string, input: z.infer<typeof VoidPaymentInput>) {
-  if (!ctx.roles.some((r) => ["owner", "manager", "accounting"].includes(r))) throw new Error("FORBIDDEN");
+  if (!can(ctx, "payments.void")) throw new Error("FORBIDDEN");
   return inBusiness(ctx, async (tx) => {
     const rows = (await tx.execute(sql`
       UPDATE fnb.payments SET voided_at = now(), void_reason = ${input.reason}

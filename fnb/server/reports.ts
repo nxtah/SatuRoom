@@ -2,7 +2,7 @@ import "server-only";
 import { withContext } from "@saturoom/core/db";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import type { FnbContext } from "./context";
+import { can, type FnbContext } from "./context";
 
 export type DailyReport = {
   date: string;
@@ -15,7 +15,7 @@ export type DailyReport = {
   lowStock: { name: string; unit: string; stock: number; minimum: number }[];
 };
 
-const canView = (ctx: FnbContext) => ctx.roles.some((r) => ["owner", "manager", "accounting"].includes(r));
+const canView = (ctx: FnbContext) => can(ctx, "reports.read");
 export const REPORT_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Tanggal hari ini menurut waktu Jakarta, format YYYY-MM-DD. */

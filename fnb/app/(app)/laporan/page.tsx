@@ -1,4 +1,5 @@
 import { dailyReport, REPORT_DATE, todayJakarta } from "@/server/reports";
+import { can } from "@/server/context";
 import { requireFnbPage } from "@/server/routing";
 
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
@@ -7,7 +8,7 @@ const METHOD: Record<string, string> = { cash: "Tunai", transfer: "Transfer", qr
 
 export default async function ReportPage({ searchParams }: { searchParams: Promise<{ tanggal?: string }> }) {
   const ctx = await requireFnbPage();
-  if (!ctx.roles.some((r) => ["owner", "manager", "accounting"].includes(r))) {
+  if (!can(ctx, "reports.read")) {
     return <main className="mx-auto max-w-3xl p-4 sm:p-8"><h1 className="text-3xl font-extrabold">Laporan</h1>
       <p className="mt-4 rounded-2xl bg-stone-100 p-4 text-stone-600">Laporan hanya untuk pemilik, manajer, dan akuntan.</p></main>;
   }
