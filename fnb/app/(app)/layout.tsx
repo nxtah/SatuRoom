@@ -12,6 +12,7 @@ const NEEDS: Record<string, Permission[]> = {
   "/stok": ["stock.manage"],
   "/pembelian": ["purchases.manage"],
   "/menu": ["catalog.manage", "orders.sell"],
+  "/pengeluaran": ["expenses.manage"],
   "/laporan": ["reports.read"],
   "/staf": ["staff.manage"],
   "/pengaturan": ["settings.manage"],

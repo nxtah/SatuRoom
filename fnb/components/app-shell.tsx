@@ -16,6 +16,7 @@ const nav: readonly (readonly [string, string, LucideIcon])[] = [
   ["/stok", "Stok", Package],
   ["/pembelian", "Pembelian", ShoppingBasket],
   ["/menu", "Menu", BookOpen],
+  ["/pengeluaran", "Pengeluaran", ReceiptText],
   ["/laporan", "Laporan", TrendingUp],
   ["/staf", "Staf", Users],
   ["/pengaturan", "Pengaturan", Settings],

@@ -150,3 +150,12 @@ export const TableInput=z.object({
 export const MoveOrderInput=z.object({tableId:z.string().uuid()});
 export const MergeOrderInput=z.object({targetId:z.string().uuid()});
 export const SplitOrderInput=z.object({lineIds:z.array(z.string().uuid()).min(1).max(100)});
+
+export const ExpenseInput=z.object({
+  amount:z.coerce.number().int().min(1,"Nominal minimal Rp 1.").max(1_000_000_000),
+  category:z.string().trim().min(2,"Isi kategori.").max(40),
+  note:z.string().trim().max(200).nullish(),
+  spentOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/,"Tanggal tidak valid.").optional(),
+  fromDrawer:z.boolean().default(false),
+});
+export const ExpenseVoidInput=z.object({reason:z.string().trim().min(3,"Alasan wajib diisi.").max(200)});

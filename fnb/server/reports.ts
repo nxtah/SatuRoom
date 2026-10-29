@@ -15,6 +15,8 @@ export type DailyReport = {
   refunds: { count: number; amount: number };
   /** Diskon, service charge, dan pajak dari pesanan yang tidak dibatalkan hari itu. */
   charges: { discount: number; service: number; tax: number };
+  /** Pengeluaran operasional yang tidak dibatalkan pada tanggal itu. */
+  expenses: number;
   foodCost: number;
   lowStock: { name: string; unit: string; stock: number; minimum: number }[];
 };
@@ -43,6 +45,9 @@ export async function dailyReport(ctx: FnbContext, date: string): Promise<DailyR
       SELECT COALESCE(SUM(discount), 0)::int AS discount, COALESCE(SUM(service_charge), 0)::int AS service, COALESCE(SUM(tax), 0)::int AS tax
       FROM fnb.orders WHERE status <> 'cancelled' AND ${day(sql.raw("opened_at"))}
     `)) as unknown as { discount: number; service: number; tax: number }[];
+    const [expense] = (await tx.execute(sql`
+      SELECT COALESCE(SUM(amount), 0)::int AS total FROM fnb.expenses WHERE voided_at IS NULL AND spent_on = ${date}::date
+    `)) as unknown as { total: number }[];
     const [orders] = (await tx.execute(sql`
       SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
       FROM fnb.orders WHERE ${day(sql.raw("opened_at"))}
@@ -74,6 +79,7 @@ export async function dailyReport(ctx: FnbContext, date: string): Promise<DailyR
       paymentCount: methods.reduce((a, m) => a + m.count, 0),
       byMethod: net.sort((a, b) => b.amount - a.amount),
       refunds: { count: refundRows.reduce((a, r) => a + r.count, 0), amount: refundRows.reduce((a, r) => a + r.amount, 0) },
+      expenses: expense?.total ?? 0,
       charges: charges ?? { discount: 0, service: 0, tax: 0 },
       orders: { total: orders?.total ?? 0, cancelled: orders?.cancelled ?? 0, voidedPayments: voided?.count ?? 0, voidedAmount: voided?.amount ?? 0 },
       topItems,

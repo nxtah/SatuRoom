@@ -16,6 +16,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const date = tanggal && REPORT_DATE.test(tanggal) ? tanggal : todayJakarta();
   const r = await dailyReport(ctx, date);
   const margin = r.sales - r.foodCost;
+  const profit = margin - r.expenses;
   const label = new Date(`${date}T12:00:00+07:00`).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
   return <main className="mx-auto max-w-4xl p-4 sm:p-8">
     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -31,9 +32,11 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <p className="text-sm font-bold text-saffron">Penjualan</p>
       <p className="mt-1 text-4xl font-extrabold tabular-nums">{rupiah(r.sales)}</p>
       <p className="mt-1 text-sm text-white/70">{r.paymentCount} pembayaran · {r.orders.total} pesanan{r.orders.cancelled ? ` · ${r.orders.cancelled} dibatalkan` : ""}</p>
-      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+      <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Biaya bahan (food cost)</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(r.foodCost)}</dd></div>
         <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Selisih penjualan dan bahan</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(margin)}</dd></div>
+        <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Pengeluaran</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(r.expenses)}</dd></div>
+        <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Laba setelah pengeluaran</dt><dd className="mt-1 font-extrabold tabular-nums">{rupiah(profit)}</dd></div>
         <div className="rounded-2xl bg-white/10 p-3"><dt className="text-xs text-white/70">Pembayaran dibatalkan</dt><dd className="mt-1 font-extrabold tabular-nums">{r.orders.voidedPayments ? `${r.orders.voidedPayments} · ${rupiah(r.orders.voidedAmount)}` : "Tidak ada"}</dd></div>
       </dl>
       <p className="mt-4 text-xs text-white/60">Penjualan = uang pembayaran yang diterima hari ini dikurangi refund, sudah termasuk pajak dan service charge.</p>
