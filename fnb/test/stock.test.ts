@@ -63,3 +63,22 @@ describe("stok bahan", () => {
     await expect(adjustStock(b.ctx, a.rice, { quantity: 1, reason: "Curang" })).rejects.toThrow("NOT_FOUND");
   });
 });
+
+describe("waste dan opname", () => {
+  it("waste mengurangi stok dengan jejak, opname menyamakan stok dengan hitungan fisik", async () => {
+    const { countStock, recordWaste, listStock, createIngredient } = await import("@/server/stock");
+    const { businessOf, staffOf } = await import("./helpers");
+    const biz = await businessOf(`Kafe Opname ${Math.random()}`);
+    const { id } = await createIngredient(biz.ctx, { name: "Tepung", unit: "kg", openingStock: 10, minimumStock: 1, averageCost: 12000 });
+    expect(await recordWaste(biz.ctx, id, { quantity: 2, reason: "Tumpah" })).toEqual({ stock: 8 });
+    await expect(recordWaste(biz.ctx, id, { quantity: 99, reason: "Salah" })).rejects.toThrow("BELOW_ZERO");
+    expect(await countStock(biz.ctx, id, { counted: 7.5, note: "Hitung akhir bulan" })).toEqual({ stock: 7.5, difference: -0.5 });
+    expect(await countStock(biz.ctx, id, { counted: 7.5 })).toEqual({ stock: 7.5, difference: 0 });
+    const data = await listStock(biz.ctx);
+    expect(data.ingredients[0]!.stock).toBe(7.5);
+    expect(data.movements.map((m) => m.reason)).toEqual(expect.arrayContaining(["Tumpah", "Opname: Hitung akhir bulan"]));
+    const cashier = await staffOf(biz, ["cashier"]);
+    await expect(countStock(cashier, id, { counted: 1 })).rejects.toThrow("FORBIDDEN");
+    await expect(recordWaste(cashier, id, { quantity: 1, reason: "x1" })).rejects.toThrow("FORBIDDEN");
+  });
+});

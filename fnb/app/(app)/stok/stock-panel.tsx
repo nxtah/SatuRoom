@@ -45,6 +45,16 @@ export function StockPanel({ initial, canManage }: { initial: StockData; canMana
     "Stok diperbarui.", () => { setAdjustFor(null); setDelta(""); setReason(""); },
   );
 
+  const waste = (id: string) => run(
+    () => send(`/api/v1/stock/ingredients/${id}/waste`, "POST", { quantity: Number(delta || 0), reason }),
+    "Bahan terbuang dicatat.", () => { setAdjustFor(null); setDelta(""); setReason(""); },
+  );
+
+  const count = (id: string) => run(
+    () => send(`/api/v1/stock/ingredients/${id}/count`, "POST", { counted: Number(delta), note: reason || undefined }),
+    "Hasil hitung fisik disimpan.", () => { setAdjustFor(null); setDelta(""); setReason(""); },
+  );
+
   const saveRecipe = (menuItemId: string) => run(
     () => send("/api/v1/stock/recipes", "PUT", {
       menuItemId, lines: lines.filter((l) => l.ingredientId && Number(l.quantity) > 0).map((l) => ({ ingredientId: l.ingredientId, quantity: Number(l.quantity) })),
@@ -84,11 +94,14 @@ export function StockPanel({ initial, canManage }: { initial: StockData; canMana
             {canManage ? <button onClick={() => { setAdjustFor(adjustFor === i.id ? null : i.id); setDelta(""); setReason(""); }} className={chip}>Ubah stok</button> : null}
           </div>
           <p className="mt-0.5 text-xs text-stone-600">Minimum {num(i.minimum)} {i.unit}</p>
-          {adjustFor === i.id ? <div className="mt-2 grid gap-2 sm:grid-cols-[8rem_1fr_auto_auto]">
+          {adjustFor === i.id ? <div className="mt-2 grid gap-2 sm:grid-cols-[8rem_1fr] lg:grid-cols-[8rem_1fr_auto_auto_auto_auto]">
             <input className={field} type="number" min="0" step="any" aria-label="Jumlah" placeholder="Jumlah" value={delta} onChange={(e) => setDelta(e.target.value)} />
             <input className={field} aria-label="Alasan" placeholder="Alasan, mis. Belanja pasar" value={reason} onChange={(e) => setReason(e.target.value)} />
             <button onClick={() => adjust(i.id, 1)} disabled={busy || !Number(delta)} className="h-11 rounded-full bg-basil px-4 text-sm font-bold text-white disabled:opacity-40">Tambah</button>
             <button onClick={() => adjust(i.id, -1)} disabled={busy || !Number(delta)} className="h-11 rounded-full bg-tomato px-4 text-sm font-bold text-white disabled:opacity-40">Kurangi</button>
+            <button onClick={() => waste(i.id)} disabled={busy || !Number(delta) || reason.trim().length < 2} className="h-11 rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700 disabled:opacity-40">Terbuang</button>
+            <button onClick={() => count(i.id)} disabled={busy || delta === ""} className="h-11 rounded-full bg-kitchen px-4 text-sm font-bold text-white disabled:opacity-40">Hasil hitung fisik</button>
+            <p className="text-xs text-stone-500 sm:col-span-full">Tambah/Kurangi memakai jumlah perubahan. Terbuang butuh alasan. Hasil hitung fisik mengisi jumlah sebenarnya di rak, selisihnya dicatat sebagai opname.</p>
           </div> : null}
         </div>)}
         {!initial.ingredients.length ? <p className="py-10 text-center text-stone-500">Belum ada bahan baku.</p> : null}

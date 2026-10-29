@@ -3,7 +3,7 @@ import { withContext, type Tx } from "@saturoom/core/db";
 import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
-import type { IngredientInput, RecipeInput, StockAdjustInput } from "@/lib/schemas";
+import type { IngredientInput, RecipeInput, StockAdjustInput, StockCountInput, StockWasteInput } from "@/lib/schemas";
 import { db } from "./db";
 import { can, type FnbContext } from "./context";
 
@@ -93,6 +93,56 @@ export async function adjustStock(ctx: FnbContext, ingredientId: string, input: 
       targetType: "ingredient", targetId: ingredientId, meta: { quantity: input.quantity, reason: input.reason, after },
     });
     return { stock: after };
+  });
+}
+
+/** Bahan terbuang/rusak: tercatat sebagai pengurangan stok bertipe `waste`, terpisah dari penjualan. */
+export async function recordWaste(ctx: FnbContext, ingredientId: string, input: z.infer<typeof StockWasteInput>) {
+  if (!canManage(ctx)) throw new Error("FORBIDDEN");
+  return inBusiness(ctx, async (tx) => {
+    const rows = (await tx.execute(sql`
+      SELECT stock::float8 AS stock FROM fnb.ingredients WHERE id = ${ingredientId}::uuid AND archived_at IS NULL FOR UPDATE
+    `)) as unknown as { stock: number }[];
+    if (!rows[0]) throw new Error("NOT_FOUND");
+    const after = Math.round((rows[0].stock - input.quantity) * 1000) / 1000;
+    if (after < 0) throw new Error("BELOW_ZERO");
+    await tx.execute(sql`
+      INSERT INTO fnb.stock_movements (business_id, ingredient_id, quantity, reason, reference_type, recorded_by)
+      VALUES (${ctx.businessId}::uuid, ${ingredientId}::uuid, ${-input.quantity}, ${input.reason}, 'waste', ${ctx.userId}::uuid)
+    `);
+    await tx.execute(sql`UPDATE fnb.ingredients SET stock = ${after} WHERE id = ${ingredientId}::uuid`);
+    await tx.insert(auditEvents).values({
+      businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.stock.waste",
+      targetType: "ingredient", targetId: ingredientId, meta: { quantity: input.quantity, reason: input.reason, after },
+    });
+    return { stock: after };
+  });
+}
+
+/**
+ * Stok opname: hasil hitung fisik menggantikan angka sistem. Selisihnya dicatat sebagai
+ * pergerakan `opname` (riwayat tidak dihapus) dan masuk audit log.
+ */
+export async function countStock(ctx: FnbContext, ingredientId: string, input: z.infer<typeof StockCountInput>) {
+  if (!canManage(ctx)) throw new Error("FORBIDDEN");
+  return inBusiness(ctx, async (tx) => {
+    const rows = (await tx.execute(sql`
+      SELECT stock::float8 AS stock FROM fnb.ingredients WHERE id = ${ingredientId}::uuid AND archived_at IS NULL FOR UPDATE
+    `)) as unknown as { stock: number }[];
+    if (!rows[0]) throw new Error("NOT_FOUND");
+    const difference = Math.round((input.counted - rows[0].stock) * 1000) / 1000;
+    if (difference !== 0) {
+      await tx.execute(sql`
+        INSERT INTO fnb.stock_movements (business_id, ingredient_id, quantity, reason, reference_type, recorded_by)
+        VALUES (${ctx.businessId}::uuid, ${ingredientId}::uuid, ${difference}, ${input.note ? `Opname: ${input.note}` : "Opname"}, 'opname', ${ctx.userId}::uuid)
+      `);
+      await tx.execute(sql`UPDATE fnb.ingredients SET stock = ${input.counted} WHERE id = ${ingredientId}::uuid`);
+    }
+    await tx.insert(auditEvents).values({
+      businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.stock.counted",
+      targetType: "ingredient", targetId: ingredientId, meta: { before: rows[0].stock, counted: input.counted, difference },
+    });
+    return { stock: input.counted, difference };
   });
 }
 

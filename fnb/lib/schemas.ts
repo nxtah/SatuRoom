@@ -49,6 +49,14 @@ export const StockAdjustInput=z.object({
   quantity:z.coerce.number().refine((v)=>v!==0,"Jumlah tidak boleh nol."),
   reason:z.string().trim().min(2,"Alasan wajib diisi.").max(120),
 });
+export const StockWasteInput=z.object({
+  quantity:z.coerce.number().positive("Jumlah harus lebih dari nol.").max(1_000_000),
+  reason:z.string().trim().min(2,"Alasan wajib diisi.").max(120),
+});
+export const StockCountInput=z.object({
+  counted:z.coerce.number().min(0,"Hasil hitung tidak boleh negatif.").max(1_000_000),
+  note:z.string().trim().max(120).optional(),
+});
 export const RecipeInput=z.object({
   menuItemId:z.string().uuid(),
   lines:z.array(z.object({ingredientId:z.string().uuid(),quantity:z.coerce.number().positive().max(1_000_000)})).max(50),
