@@ -42,20 +42,20 @@ export default async function FnbDashboard() {
   ];
 
   return <main className="mx-auto max-w-6xl p-4 sm:p-8">
-    <section className="rise relative grid items-end overflow-hidden rounded-[2rem] bg-kitchen px-6 pt-8 text-white sm:grid-cols-[minmax(0,1fr)_auto] sm:px-10 sm:pt-10">
+    <section className="rise relative grid items-end overflow-hidden rounded-[2rem] bg-kitchen p-5 text-white sm:grid-cols-[minmax(0,1fr)_auto] sm:px-10 sm:pt-10 sm:pb-0">
       <span aria-hidden className="pointer-events-none absolute right-6 bottom-0 size-52 rounded-full bg-white/[0.06] sm:right-12 sm:size-72" />
-      <div className="relative pb-6 sm:pb-12">
+      <div className="relative pr-24 sm:pr-0 sm:pb-12">
         <p className="font-bold text-saffron">{todayLabel}</p>
-        <h1 className="mt-2 text-3xl leading-tight font-extrabold tracking-tight sm:text-5xl">Operasional hari ini</h1>
-        <p className="mt-2 max-w-md text-white/70">POS, dapur, stok, dan laporan terhubung dalam satu alur.</p>
-        <p className="mt-3 text-white/70">ID bisnis <span className="rounded-full bg-white/12 px-2.5 py-0.5 font-extrabold tracking-wider text-white select-all">{formatBusinessCode(code)}</span></p>
-        <nav aria-label="Pintasan" className="mt-6 flex flex-wrap gap-2">
+        <h1 className="mt-1 text-2xl leading-tight font-extrabold tracking-tight sm:mt-2 sm:text-5xl">Operasional hari ini</h1>
+        <p className="mt-2 hidden max-w-md text-white/70 sm:block">POS, dapur, stok, dan laporan terhubung dalam satu alur.</p>
+        <p className="mt-2 text-sm text-white/70 sm:mt-3 sm:text-base">ID bisnis <span className="rounded-full bg-white/12 px-2.5 py-0.5 font-extrabold tracking-wider text-white select-all">{formatBusinessCode(code)}</span></p>
+        <nav aria-label="Pintasan" className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&>a]:shrink-0">
           {links.filter(([, , show]) => show).map(([href, label], i) => (
             <Link key={href} href={href} className={`inline-flex h-11 items-center rounded-full px-5 font-extrabold transition hover:-translate-y-0.5 ${i === 0 ? "bg-saffron text-kitchen hover:bg-white" : "bg-white/12 text-white hover:bg-white/20"}`}>{label}</Link>
           ))}
         </nav>
       </div>
-      <div className="relative mx-auto w-48 sm:mx-0 sm:w-64"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
+      <div className="absolute top-4 right-4 w-20 sm:static sm:mx-0 sm:w-64"><Maskot variant="chef" priority className="maskot-float drop-shadow-maskot" /></div>
     </section>
 
     <section aria-label="Ringkasan" className="rise mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

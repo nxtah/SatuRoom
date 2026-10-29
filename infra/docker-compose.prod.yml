@@ -15,9 +15,10 @@ services:
     working_dir: /app/web
     command: ["pnpm", "start"]
     networks: [edge]
-  bola:
+  # Folder dan layanan bernama sport; file env di server tetap bola.env (nama lama).
+  sport:
     <<: *app
-    working_dir: /app/bola
+    working_dir: /app/sport
     command: ["pnpm", "start"]
     env_file: /opt/saturoom-platform/apps/bola.env
   fnb:
@@ -33,7 +34,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     networks: [edge]
-    depends_on: [web, bola, fnb]
+    depends_on: [web, sport, fnb]
 
 volumes:
   caddy-data:

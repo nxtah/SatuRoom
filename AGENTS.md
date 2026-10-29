@@ -42,7 +42,7 @@ baru **F&B/SatuRoom Rasa**. Aplikasi mobile native tidak dibangun sekarang.
 | Folder | Domain | Isi | Port dev |
 |---|---|---|---|
 | `web/` | saturoom.com | Website publik (landing). CTA "Coba gratis", tanpa harga. | 3100 |
-| `bola/` | bola.saturoom.com | Aplikasi akademi: UI Next.js + API `/api/v1` + `bola/server` | 3200 |
+| `sport/` | sport.saturoom.com | Aplikasi akademi multi-cabang (sepak bola, basket, voli, tenis, dll): UI Next.js + API `/api/v1` + `sport/server`. Nama internal `bola` (skema DB, role, cookie) sengaja dipertahankan | 3200 |
 | `fnb/` | belum diputuskan | Aplikasi restoran/kafe; schema dan domain terpisah dari Bola | 3300 |
 | `core/` | - | Schema bersama (akun, sesi, bisnis, keanggotaan), auth, runner migrasi | - |
 | `infra/` | - | `docker-compose.dev.yml` (Postgres :5434, Mailpit SMTP :1026 / UI :8026) | - |

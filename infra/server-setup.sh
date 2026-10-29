@@ -19,12 +19,12 @@ umask 077
 if [ ! -f "$base/apps/bola.env" ]; then
   cat > "$base/apps/bola.env" <<ENV
 DATABASE_URL=postgresql://bola_app:${bola_pw}@db:5432/saturoom
-APP_URL=https://bola.saturoom.com
+APP_URL=https://sport.saturoom.com
 SITE_URL=https://saturoom.com
 # SMTP belum diisi: email konfirmasi, lupa password, dan undangan belum terkirim sampai bagian ini diganti.
 SMTP_HOST=localhost
 SMTP_PORT=25
-MAIL_FROM="SatuRoom Bola <no-reply@saturoom.com>"
+MAIL_FROM="SatuRoom Sport <no-reply@saturoom.com>"
 COOKIE_SECURE=true
 ENV
 fi

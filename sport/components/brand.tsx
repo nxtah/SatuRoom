@@ -13,7 +13,7 @@ export function Brand({ tone = "ink", href = "/" }: { tone?: "ink" | "white"; hr
           tone === "white" ? "bg-white/15 text-white" : "bg-turf-soft text-pitch"
         }`}
       >
-        Bola
+        Sport
       </span>
     </Link>
   );

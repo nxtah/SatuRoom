@@ -78,7 +78,7 @@ export default function RasaLanding() {
             </div>
             <div aria-hidden className="relative mx-auto aspect-square w-full max-w-md md:max-w-none">
               <span className="absolute inset-[6%] rounded-full bg-saffron" />
-              <div className="pop absolute inset-x-[24%] bottom-[2%] w-[52%]"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
+              <div className="pop absolute inset-x-[24%] bottom-[2%] w-[52%]"><Maskot variant="chef" priority className="maskot-float drop-shadow-maskot" /></div>
               <div className="nota tilt-in absolute top-[2%] left-[0%] w-[46%] -rotate-[5deg] bg-white p-3 shadow-xl sm:p-4" style={NOTA_BG}>
                 <p className="font-display text-xl leading-none font-bold sm:text-2xl">Meja 4</p>
                 <p className="mt-2 text-xs leading-snug text-kitchen/75 sm:text-sm">2 Nasi goreng<br />1 Es teh</p>
@@ -195,7 +195,7 @@ export default function RasaLanding() {
               <h2 className="reveal font-display text-[3.4rem] leading-[0.95] font-bold text-balance sm:text-[5.6rem]">Buka kasir hari ini.</h2>
               <Link href="/daftar" className="mt-8 inline-block rounded-full bg-kitchen px-8 py-4 text-base font-bold text-white transition hover:-translate-y-0.5 hover:bg-kitchen-2">Daftarkan usaha gratis</Link>
             </div>
-            <div aria-hidden className="mx-auto w-52 self-end sm:w-72"><Maskot className="drop-shadow-maskot" /></div>
+            <div aria-hidden className="mx-auto w-52 self-end sm:w-72"><Maskot variant="chef" className="drop-shadow-maskot" /></div>
           </div>
         </section>
       </main>
@@ -207,7 +207,7 @@ export default function RasaLanding() {
             <Link href="/masuk" className="hover:text-saffron">Masuk</Link>
             <Link href="/daftar" className="hover:text-saffron">Daftar</Link>
             <a href="https://saturoom.com" className="hover:text-saffron">saturoom.com</a>
-            <a href="https://bola.saturoom.com" className="hover:text-saffron">SatuRoom Bola</a>
+            <a href="https://sport.saturoom.com" className="hover:text-saffron">SatuRoom Sport</a>
           </nav>
         </div>
         <p aria-hidden className="word-in mx-auto mt-10 max-w-6xl font-display text-[30vw] leading-[0.85] font-bold italic text-white/90 sm:text-[22rem]">Rasa</p>

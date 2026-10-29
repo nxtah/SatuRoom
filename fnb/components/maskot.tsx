@@ -1,13 +1,13 @@
 import Image from "next/image";
 
 /** Maskot SatuRoom: naga oranye bawa laptop. Dekoratif (alt kosong) kecuali diberi `alt`. */
-export function Maskot({ className = "", alt = "", priority = false }: { className?: string; alt?: string; priority?: boolean }) {
+export function Maskot({ className = "", alt = "", priority = false, variant = "naga" }: { className?: string; alt?: string; priority?: boolean; variant?: "naga" | "chef" }) {
   return (
     <Image
-      src="/brand/maskot.webp"
+      src={variant === "chef" ? "/brand/maskot-chef.webp" : "/brand/maskot.webp"}
       alt={alt}
-      width={697}
-      height={720}
+      width={variant === "chef" ? 900 : 697}
+      height={variant === "chef" ? 873 : 720}
       priority={priority}
       unoptimized
       className={`h-auto w-full select-none ${className}`}

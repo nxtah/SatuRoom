@@ -16,8 +16,8 @@ const display = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: { default: "SatuRoom Bola", template: "%s | SatuRoom Bola" },
-  description: "Aplikasi akademi sepak bola: pemain, tim, jadwal latihan, dan absensi.",
+  title: { default: "SatuRoom Sport", template: "%s | SatuRoom Sport" },
+  description: "Aplikasi akademi olahraga: pemain, tim, jadwal latihan, dan absensi.",
   robots: { index: false, follow: false },
 };
 

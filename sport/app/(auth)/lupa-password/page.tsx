@@ -23,7 +23,7 @@ export default function LupaPasswordPage() {
 
   return (
     <div className="rise">
-      <title>Lupa password | SatuRoom Bola</title>
+      <title>Lupa password | SatuRoom Sport</title>
       <h1 className="text-3xl font-extrabold tracking-tight">Lupa password</h1>
       <p className="mt-2 text-ink-soft">Masukkan email akun Anda. Kami kirim link untuk membuat password baru.</p>
       {sent ? (

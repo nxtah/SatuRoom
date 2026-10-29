@@ -3,7 +3,7 @@
  * jadwal, absensi, dan iuran. Akun langsung terverifikasi (tanpa email).
  *
  * HANYA untuk database dev. Menolak jalan bila DATABASE_URL bukan localhost.
- * Jalankan: pnpm --filter @saturoom/bola seed:demo
+ * Jalankan: pnpm --filter @saturoom/sport seed:demo
  */
 import { getSession, login, registerUser, verifyEmail } from "@saturoom/core/auth";
 import { withContext } from "@saturoom/core/db";

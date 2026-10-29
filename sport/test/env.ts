@@ -5,6 +5,6 @@ Object.assign(process.env, {
   SITE_URL: "http://localhost:3100",
   SMTP_HOST: "localhost",
   SMTP_PORT: "1026",
-  MAIL_FROM: "SatuRoom Bola <no-reply@saturoom.com>",
+  MAIL_FROM: "SatuRoom Sport <no-reply@saturoom.com>",
   COOKIE_SECURE: "false",
 });

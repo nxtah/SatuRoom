@@ -12,9 +12,14 @@ saturoom.com {
 	reverse_proxy web:3100
 }
 
-bola.saturoom.com {
+sport.saturoom.com {
 	import security
-	reverse_proxy bola:3200
+	reverse_proxy sport:3200
+}
+
+# Alamat lama SatuRoom Bola.
+bola.saturoom.com {
+	redir https://sport.saturoom.com{uri} permanent
 }
 
 rasa.saturoom.com {

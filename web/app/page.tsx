@@ -52,7 +52,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="pop relative mx-auto aspect-square w-full max-w-[32rem]" role="img" aria-label="SatuRoom di tengah, terhubung ke SatuRoom Bola, SatuRoom Rasa, dan usaha berikutnya.">
+            <div className="pop relative mx-auto aspect-square w-full max-w-[32rem]" role="img" aria-label="SatuRoom di tengah, terhubung ke SatuRoom Sport, SatuRoom Rasa, dan usaha berikutnya.">
               <svg aria-hidden viewBox="0 0 100 100" className="absolute inset-0 size-full">
                 <circle cx="50" cy="50" r="20" fill="none" stroke="var(--color-line)" strokeWidth="0.4" />
                 <circle cx="50" cy="50" r="38" fill="none" stroke="var(--color-line)" strokeWidth="0.4" />
@@ -68,7 +68,7 @@ export default function Home() {
                 <LogoMark className="h-12 sm:h-14" />
               </div>
               <div className="absolute top-[20%] left-[24%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl bg-navy px-3 py-2 sm:px-4 sm:py-3 text-lime shadow-lift">
-                <p className="font-display text-xl leading-none font-extrabold sm:text-2xl">Bola</p>
+                <p className="font-display text-xl leading-none font-extrabold sm:text-2xl">Sport</p>
                 <p className="mt-1 text-xs font-semibold text-white/70">Akademi olahraga</p>
               </div>
               <div className="absolute top-[34%] left-[74%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl bg-tomato px-3 py-2 sm:px-4 sm:py-3 text-white shadow-lift">
@@ -107,11 +107,11 @@ export default function Home() {
             <span aria-hidden className="absolute -top-10 right-[-2%] hidden h-[140%] w-3 -rotate-[24deg] bg-lime/40 sm:block" />
             <div className="relative max-w-md">
               <p className="font-semibold text-lime">Untuk akademi dan klub olahraga</p>
-              <h2 className="reveal mt-3 font-display text-6xl leading-[0.88] font-extrabold tracking-[-0.04em] italic sm:text-8xl">SatuRoom Bola</h2>
-              <p className="mt-6 text-lg leading-relaxed text-white/75">Pemain, jadwal latihan, absensi, iuran, dan rapor untuk akademi sepak bola. Pelatih absen dari HP dalam hitungan detik.</p>
+              <h2 className="reveal mt-3 font-display text-6xl leading-[0.88] font-extrabold tracking-[-0.04em] italic sm:text-8xl">SatuRoom Sport</h2>
+              <p className="mt-6 text-lg leading-relaxed text-white/75">Pemain, jadwal latihan, absensi, iuran, dan rapor untuk akademi sepak bola, basket, voli, tenis, dan cabang lain. Pelatih absen dari HP dalam hitungan detik. Pelatih absen dari HP dalam hitungan detik.</p>
               <div className="mt-9 flex flex-wrap gap-2">
                 <a href={`${BOLA_URL}/selamat-datang`} className="inline-flex items-center gap-2 rounded-full bg-lime px-7 py-4 text-base font-bold text-ink transition hover:-translate-y-0.5 hover:bg-[#d7ff55] active:scale-[0.98]">
-                  Lihat SatuRoom Bola<ArrowUpRight aria-hidden className="size-4" />
+                  Lihat SatuRoom Sport<ArrowUpRight aria-hidden className="size-4" />
                 </a>
                 <a href={`${BOLA_URL}/masuk`} className="rounded-full px-5 py-4 text-base font-bold transition hover:bg-white/10">Masuk</a>
               </div>
@@ -140,7 +140,7 @@ export default function Home() {
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">Dasbor menampilkan kehadiran, iuran, dan penjualan sebagai grafik, bukan tumpukan tabel. Contoh di bawah memakai data fiktif.</p>
             <div className="mt-12 grid items-start gap-5 lg:grid-cols-2">
               <div className="panel-rise">
-                <p className="mb-3 font-display text-lg font-extrabold">SatuRoom Bola</p>
+                <p className="mb-3 font-display text-lg font-extrabold">SatuRoom Sport</p>
                 <BolaPreview />
               </div>
               <div className="panel-rise lg:mt-16">
@@ -158,7 +158,7 @@ export default function Home() {
             <div className="mt-14 grid items-start gap-14 lg:grid-cols-2 lg:gap-8">
               <div>
                 <AttendanceDemo />
-                <p className="mt-5 text-center text-sm font-semibold text-ink-soft">Tandai kehadiran di layar contoh Bola.</p>
+                <p className="mt-5 text-center text-sm font-semibold text-ink-soft">Tandai kehadiran di layar contoh Sport.</p>
               </div>
               <div className="lg:mt-24">
                 <div className="rounded-[2rem] bg-kitchen p-4 sm:p-6"><KitchenDemo /></div>
@@ -205,7 +205,7 @@ export default function Home() {
             <div className="pb-16 lg:pb-28">
               <h2 className="reveal font-display text-[3.4rem] leading-[0.92] font-extrabold tracking-[-0.045em] text-balance sm:text-[5.6rem]">Pilih ruangmu, mulai hari ini.</h2>
               <div className="mt-9 flex flex-wrap gap-3">
-                <a href={`${BOLA_URL}/daftar`} className="rounded-full bg-lime px-8 py-4 text-base font-bold text-ink transition hover:-translate-y-0.5 hover:bg-[#d7ff55] active:scale-[0.98]">Coba Bola gratis</a>
+                <a href={`${BOLA_URL}/daftar`} className="rounded-full bg-lime px-8 py-4 text-base font-bold text-ink transition hover:-translate-y-0.5 hover:bg-[#d7ff55] active:scale-[0.98]">Coba Sport gratis</a>
                 <a href={`${RASA_URL}/daftar`} className="rounded-full bg-ember px-8 py-4 text-base font-bold text-ink transition hover:-translate-y-0.5 hover:bg-ember-bright active:scale-[0.98]">Coba Rasa gratis</a>
               </div>
             </div>
@@ -222,7 +222,7 @@ export default function Home() {
             <a href="#ruang" className="hover:text-ember">Aplikasi</a>
             <a href="#mulai" className="hover:text-ember">Cara mulai</a>
             <a href="#tanya" className="hover:text-ember">Tanya jawab</a>
-            <a href={`${BOLA_URL}/masuk`} className="hover:text-lime">Masuk Bola</a>
+            <a href={`${BOLA_URL}/masuk`} className="hover:text-lime">Masuk Sport</a>
             <a href={`${RASA_URL}/masuk`} className="hover:text-saffron">Masuk Rasa</a>
           </nav>
         </div>

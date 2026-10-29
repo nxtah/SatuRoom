@@ -3,19 +3,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BolaPreview } from "@/components/landing-preview";
 import { LogoMark, Maskot } from "@/components/maskot";
+import { SportIcon } from "@/components/sport-icons";
+import { SPORTS } from "@/lib/sports";
 
 export const metadata: Metadata = {
-  title: { absolute: "SatuRoom Bola: aplikasi akademi sepak bola" },
-  description: "Absensi, jadwal latihan, iuran, rapor pemain, dan pengumuman untuk akademi sepak bola. Dibuka dari HP, dipakai tanpa pelatihan.",
+  title: { absolute: "SatuRoom Sport: aplikasi akademi olahraga" },
+  description: "Absensi, jadwal latihan, iuran, rapor pemain, dan pengumuman untuk akademi sepak bola, basket, voli, tenis, dan cabang lain. Dibuka dari HP, dipakai tanpa pelatihan.",
   robots: { index: true, follow: true },
 };
 
 /* Satu hari latihan, dari jadwal sampai rapor. Isinya fitur yang memang ada di aplikasi. */
 const DAY = [
-  ["06.30", "Jadwal", "Pelatih membuka jadwal tim. Sesi hari ini, jam, dan lapangan sudah menunggu."],
+  ["06.30", "Jadwal", "Pelatih membuka jadwal tim. Sesi hari ini, jam, dan lokasinya sudah menunggu. Jam yang bentrok di lokasi sama dicegah otomatis."],
   ["07.00", "Absensi", "Tandai hadir, izin, sakit, atau alpa. Atau scan QR dari akun pemain."],
   ["09.00", "Iuran", "Orang tua membayar tunai atau transfer. Bendahara menandai lunas dan bisa mengingatkan lewat WhatsApp."],
   ["10.00", "Pengumuman", "Latihan digeser? Tulis sekali, kabarnya muncul di akun semua pemain."],
+  ["Akhir pekan", "Pertandingan", "Isi lawan, skor, dan susunan pemain inti. Hasilnya muncul di Beranda dan akun pemain."],
   ["Malam", "Rapor", "Pelatih menilai teknik, pemahaman, fisik, dan sikap. Rapor yang dikirim muncul di akun pemain."],
 ] as const;
 
@@ -32,7 +35,7 @@ const FAQ = [
   ["Bagaimana pemain dan orang tua masuk?", "Akademi mengundang lewat email, lalu mereka membuat akun dan masuk dengan ID bisnis akademi."],
 ] as const;
 
-export default function BolaLanding() {
+export default function SportLanding() {
   return (
     <div className="scroll-page overflow-x-clip bg-chalk">
       <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4">
@@ -40,10 +43,10 @@ export default function BolaLanding() {
           <Link href="/selamat-datang" className="flex items-center gap-2 rounded-full">
             <LogoMark className="h-8 sm:h-9" />
             <span className="text-lg font-extrabold tracking-tight sm:text-xl">SatuRoom</span>
-            <span className="hidden rounded-full bg-ember px-2 py-0.5 text-xs font-extrabold text-ink sm:inline">Bola</span>
+            <span className="hidden rounded-full bg-ember px-2 py-0.5 text-xs font-extrabold text-ink sm:inline">Sport</span>
           </Link>
           <ul className="mx-auto hidden items-center gap-1 lg:flex">
-            {[["Hari latihan", "#hari"], ["Peran", "#peran"], ["Tampilan", "#tampilan"], ["Tanya jawab", "#tanya"]].map(([l, h]) => (
+            {[["Cabang", "#cabang"], ["Hari latihan", "#hari"], ["Peran", "#peran"], ["Tampilan", "#tampilan"], ["Tanya jawab", "#tanya"]].map(([l, h]) => (
               <li key={h}><a href={h} className="rounded-full px-4 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white">{l}</a></li>
             ))}
           </ul>
@@ -86,6 +89,22 @@ export default function BolaLanding() {
                 </p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Pilihan cabang olahraga. */}
+        <section id="cabang" className="scroll-mt-20 px-4 pt-16 sm:px-6 lg:pt-24">
+          <div className="mx-auto max-w-6xl">
+            <h2 className="font-display italic reveal max-w-3xl text-5xl leading-[0.9] font-extrabold uppercase text-balance sm:text-7xl">Satu aplikasi, banyak cabang.</h2>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">Pilih cabang saat mendaftar. Posisi pemain, nama tempat, dan warna aplikasi menyesuaikan, menu intinya sama.</p>
+            <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {SPORTS.map((s) => (
+                <li key={s.id} className="reveal flex flex-col items-start gap-3 rounded-[1.5rem] bg-mist p-5">
+                  <span aria-hidden className="grid size-14 place-items-center rounded-2xl text-ink" style={{ background: s.accent }}><SportIcon sport={s.id} className="size-8" /></span>
+                  <span className="font-extrabold">{s.label}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -218,7 +237,7 @@ export default function BolaLanding() {
 
       <footer className="bg-night px-5 pt-14 text-white sm:px-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-8">
-          <p className="max-w-xs text-white/70">SatuRoom Bola, aplikasi akademi sepak bola dari SatuRoom.</p>
+          <p className="max-w-xs text-white/70">SatuRoom Sport, aplikasi akademi olahraga dari SatuRoom.</p>
           <nav aria-label="Pintasan" className="flex flex-wrap gap-x-6 gap-y-3 font-semibold">
             <Link href="/masuk" className="hover:text-ember">Masuk</Link>
             <Link href="/daftar" className="hover:text-ember">Daftar</Link>
@@ -226,7 +245,7 @@ export default function BolaLanding() {
             <a href="https://rasa.saturoom.com" className="hover:text-ember">SatuRoom Rasa</a>
           </nav>
         </div>
-        <p aria-hidden className="word-in mx-auto mt-10 max-w-6xl font-display text-[30vw] leading-[0.8] font-extrabold uppercase italic text-white/90 sm:text-[22rem]">Bola</p>
+        <p aria-hidden className="word-in mx-auto mt-10 max-w-6xl font-display text-[30vw] leading-[0.8] font-extrabold uppercase italic text-white/90 sm:text-[22rem]">Sport</p>
         <p className="mx-auto max-w-6xl py-6 text-sm text-white/50">© {new Date().getFullYear()} SatuRoom</p>
       </footer>
     </div>

@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Brand tone="white" />
         <span aria-hidden className="pointer-events-none absolute -right-24 bottom-12 size-[30rem] rounded-full bg-white/[0.05]" />
         <div className="relative mt-auto">
-          <div className="mx-auto w-72 xl:w-80"><Maskot priority className="maskot-float drop-shadow-maskot" /></div>
+          <div className="mx-auto w-72 xl:w-80"><Maskot variant="chef" priority className="maskot-float drop-shadow-maskot" /></div>
           <p className="mt-8 max-w-lg text-5xl leading-tight font-extrabold tracking-tight text-balance">Dari pesanan masuk sampai dapur siap, semua tetap rapi.</p>
           <p className="mt-5 max-w-md text-lg text-white/65">Satu alur untuk kasir, pelayan, dapur, stok, dan pemilik.</p>
         </div>

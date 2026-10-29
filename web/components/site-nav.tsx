@@ -39,7 +39,7 @@ export function SiteNav() {
             </summary>
             <div className="absolute right-0 mt-2 grid w-52 gap-1 rounded-[1.25rem] border border-line bg-chalk p-2 shadow-lift">
               <a href={`${BOLA_URL}/masuk`} className="rounded-xl px-4 py-3 text-sm font-bold hover:bg-mist">
-                SatuRoom Bola
+                SatuRoom Sport
                 <span className="block text-xs font-semibold text-ink-soft">Akademi sepak bola</span>
               </a>
               <a href={`${RASA_URL}/masuk`} className="rounded-xl px-4 py-3 text-sm font-bold hover:bg-mist">
