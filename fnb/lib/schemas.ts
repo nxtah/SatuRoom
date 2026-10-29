@@ -73,3 +73,16 @@ export const StaffRolesInput = z
   .refine((v) => v.roles.length + v.customRoleIds.length > 0, "Pilih minimal satu peran.");
 
 export const StaffStatusInput = z.object({ status: z.enum(["active", "suspended"]) });
+
+const email = z.string().trim().email("Format email belum benar.").max(254);
+export const EmailInput = z.object({ email });
+export const TokenInput = z.object({ token: z.string().min(10).max(200) });
+export const ResetInput = z.object({ token: z.string().min(10).max(200), password: z.string().min(8, "Password minimal 8 karakter.").max(128) });
+export const InviteInput = z
+  .object({
+    email,
+    roles: z.array(z.enum(BUILTIN_ROLES)).max(BUILTIN_ROLES.length),
+    customRoleIds: z.array(z.string().uuid()).max(20),
+  })
+  .refine((v) => v.roles.length + v.customRoleIds.length > 0, "Pilih minimal satu peran.");
+export const InvitationIdInput = z.object({ invitationId: z.string().uuid() });

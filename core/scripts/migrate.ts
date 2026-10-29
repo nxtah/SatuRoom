@@ -90,6 +90,10 @@ async function setupFnbRole(sql: postgres.Sql, password?: string): Promise<void>
     GRANT USAGE ON ALL SEQUENCES IN SCHEMA core, fnb TO fnb_app;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA fnb TO fnb_app;
   `);
+  for (const fn of ["fnb.my_invitations()", "fnb.accept_invitation(uuid)"]) {
+    const [found] = await sql`SELECT to_regprocedure(${fn}) AS f`;
+    if (found?.f) await sql.unsafe(`GRANT EXECUTE ON FUNCTION ${fn} TO fnb_app`);
+  }
 }
 
 /** Pola sama dengan F&B: password hanya diubah bila MAHJONG_DB_PASSWORD diisi. */

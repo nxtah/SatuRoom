@@ -5,6 +5,7 @@ import { PRODUCT } from "@/server/context";
 import { db } from "@/server/db";
 import { env } from "@/server/env";
 import { setSessionCookie } from "@/server/google";
+import { sendVerifyEmail } from "@/server/mail";
 import { clientIp, withinLimit } from "@/server/rate-limit";
 
 const Input = z.object({
@@ -26,6 +27,8 @@ export async function POST(req: Request) {
   if (result.status === "exists") {
     return NextResponse.json({ error: "Email ini sudah terdaftar. Silakan masuk." }, { status: 409 });
   }
+  // Langsung masuk tanpa menunggu konfirmasi. Email yang belum dikonfirmasi belum bisa membuka undangan staf.
+  await sendVerifyEmail(parsed.data.email, parsed.data.name, result.verifyToken).catch((e: unknown) => console.error("gagal kirim konfirmasi", e instanceof Error ? e.message : e));
   await setSessionCookie(await createSession(db(), result.userId, PRODUCT));
   return NextResponse.json({ ok: true }, { status: 201 });
 }

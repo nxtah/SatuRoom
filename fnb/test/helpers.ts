@@ -45,3 +45,6 @@ export async function menuItemOf(ctx: FnbContext, name = "Nasi goreng", price = 
   const { id } = await createCatalog(ctx, { type: "item", name, categoryId, stationId: null, price });
   return id;
 }
+
+/** Pengguna terdaftar dan terverifikasi tetapi belum jadi staf bisnis mana pun. */
+export const userOf = (name: string) => userWithSession(name);
