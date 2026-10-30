@@ -6,6 +6,7 @@ import { Maskot } from "@/components/maskot";
 import { formatBusinessCode } from "@/lib/business-code";
 import { getFnbBusinessCode } from "@/server/business";
 import { listOrders } from "@/server/orders";
+import { overview } from "@/server/overview";
 import { dailyReport, salesSeries, todayJakarta } from "@/server/reports";
 import { requireFnbPage } from "@/server/routing";
 import { listStock } from "@/server/stock";
@@ -17,6 +18,7 @@ const niceMax = (n: number) => {
   const step = 10 ** Math.floor(Math.log10(n));
   return Math.ceil(n / step) * step;
 };
+const delta = (now: number, before: number) => (before > 0 ? Math.round(((now - before) / before) * 100) : null);
 const weekday = (iso: string) => new Date(`${iso}T12:00:00+07:00`).toLocaleDateString("id-ID", { weekday: "short", timeZone: "Asia/Jakarta" });
 
 export default async function FnbDashboard() {
@@ -24,12 +26,13 @@ export default async function FnbDashboard() {
   const canReport = can(ctx, "reports.read");
   const canCash = can(ctx, "cash.manage");
   const today = todayJakarta();
-  const [code, orders, stock, report, series] = await Promise.all([
+  const [code, orders, stock, report, series, ov] = await Promise.all([
     getFnbBusinessCode(ctx),
     listOrders(ctx, "active"),
     listStock(ctx),
     canReport ? dailyReport(ctx, today) : null,
     canReport ? salesSeries(ctx, today) : null,
+    canReport ? overview(ctx, today) : null,
   ]);
   const low = stock.ingredients.filter((i) => i.low);
   const todayLabel = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Jakarta" });
@@ -83,6 +86,31 @@ export default async function FnbDashboard() {
         </Link>
       ))}
     </section>
+
+
+    {ov && report ? (
+      <section className="rise mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Rincian hari ini">
+        {([
+          ["Dibanding kemarin", ov.salesYesterday, delta(ov.salesToday, ov.salesYesterday), `Kemarin ${rupiah(ov.salesYesterday)}`],
+          ["Dibanding minggu lalu", ov.salesLastWeek, delta(ov.salesToday, ov.salesLastWeek), `Hari sama minggu lalu ${rupiah(ov.salesLastWeek)}`],
+        ] as const).map(([label, , pct, hint]) => (
+          <div key={label} className="rounded-[1.75rem] bg-white p-5">
+            <span className="text-sm font-bold text-stone-600">{label}</span>
+            <span className={`mt-2 block text-3xl leading-none font-extrabold tabular-nums ${pct === null ? "text-stone-400" : pct >= 0 ? "text-basil" : "text-chili"}`}>{pct === null ? "-" : `${pct > 0 ? "+" : ""}${pct}%`}</span>
+            <span className="mt-2 block text-xs text-stone-500">{hint}</span>
+          </div>
+        ))}
+        <div className="rounded-[1.75rem] bg-white p-5"><span className="text-sm font-bold text-stone-600">Laba kotor hari ini</span><span className="mt-2 block text-3xl leading-none font-extrabold tabular-nums">{rupiah(ov.grossProfit)}</span><span className="mt-2 block text-xs text-stone-500">Margin {ov.margin.toLocaleString("id-ID")}% setelah HPP menu</span></div>
+        <div className="rounded-[1.75rem] bg-white p-5"><span className="text-sm font-bold text-stone-600">Nota hari ini</span><span className="mt-2 block text-3xl leading-none font-extrabold tabular-nums">{ov.orders}</span><span className="mt-2 block text-xs text-stone-500">Rata-rata {rupiah(ov.avgTicket)} per nota</span></div>
+        <div className="rounded-[1.75rem] bg-white p-5"><span className="text-sm font-bold text-stone-600">Penjualan bulan ini</span><span className="mt-2 block text-3xl leading-none font-extrabold tabular-nums">{rupiah(ov.salesMonth)}</span><Link href="/laporan/penjualan" className="mt-2 inline-block text-xs font-bold text-tomato">Lihat rincian</Link></div>
+        <div className="rounded-[1.75rem] bg-white p-5"><span className="text-sm font-bold text-stone-600">Pengeluaran hari ini</span><span className="mt-2 block text-3xl leading-none font-extrabold tabular-nums">{rupiah(report.expenses)}</span><span className="mt-2 block text-xs text-stone-500">Diskon {rupiah(report.charges.discount)} · refund {rupiah(report.refunds.amount)}</span></div>
+        <Link href="/kas" className="rounded-[1.75rem] bg-white p-5"><span className="text-sm font-bold text-stone-600">Shift kasir</span>{ov.shift ? <><span className="mt-2 block text-lg leading-tight font-extrabold text-basil">Sedang berjalan</span><span className="mt-1 block text-xs text-stone-500">Dibuka {new Date(ov.shift.openedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}{ov.shift.cashier ? ` oleh ${ov.shift.cashier}` : ""} · kas awal {rupiah(ov.shift.openingCash)}</span></> : <><span className="mt-2 block text-lg leading-tight font-extrabold text-chili">Belum dibuka</span><span className="mt-1 block text-xs text-stone-500">Buka shift sebelum menerima pembayaran.</span></>}</Link>
+        <figure className="rounded-[1.75rem] bg-white p-5 sm:col-span-2"><figcaption className="text-sm font-bold text-stone-600">Penjualan per tipe pesanan hari ini</figcaption>
+          {ov.byType.length ? <BarList className="mt-4" barClassName="bg-tomato" rows={ov.byType.map((t) => ({ label: t.name, value: t.total, hint: `${t.orders} nota` }))} format={rupiah} /> : <p className="mt-3 rounded-2xl bg-plate p-4 text-sm text-stone-600">Belum ada pesanan hari ini.</p>}</figure>
+        <figure className="rounded-[1.75rem] bg-white p-5 sm:col-span-2"><figcaption className="text-sm font-bold text-stone-600">Menu paling sepi 30 hari <span className="font-normal text-stone-500">(pertimbangkan promo atau hapus)</span></figcaption>
+          {ov.slowItems.length ? <ul className="mt-3 divide-y divide-stone-100 text-sm">{ov.slowItems.map((i) => <li key={i.name} className="flex justify-between py-1.5"><span>{i.name}</span><b className="tabular-nums">{i.quantity} terjual</b></li>)}</ul> : <p className="mt-3 rounded-2xl bg-plate p-4 text-sm text-stone-600">Belum ada menu yang cukup lama untuk dinilai.</p>}</figure>
+      </section>
+    ) : null}
 
     {low.length ? (
       <Link href="/stok" className="rise group mt-4 flex items-center gap-3 rounded-[1.5rem] bg-saffron/20 p-4 font-bold text-kitchen">

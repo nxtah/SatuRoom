@@ -1,8 +1,10 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { thumb } from "@/lib/images";
 import { computeTotals } from "@/lib/pricing";
 import type { Catalog } from "@/server/catalog";
+import type { Applicable } from "@/server/discounts";
+import type { OrderType } from "@/server/order-types";
 import type { Order } from "@/server/orders";
 import type { DiningTable } from "@/server/tables";
 
@@ -11,13 +13,19 @@ const STATUS_LABEL: Record<string, string> = {
   confirmed: "Baru", preparing: "Dimasak", ready: "Siap", served: "Disajikan", completed: "Selesai", cancelled: "Batal", open: "Baru",
 };
 
-export function PosClient({ customers, tables, catalog, initialOrders, servicePercent, taxPercent, canDiscount }: { customers: { id: string; name: string; phone: string | null }[]; tables: DiningTable[]; catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
+export function PosClient({ customers, tables, catalog, initialOrders, orderTypes, servicePercent: baseService, taxPercent: baseTax, canDiscount }: { orderTypes: OrderType[]; customers: { id: string; name: string; phone: string | null }[]; tables: DiningTable[]; catalog: Catalog; initialOrders: Order[]; servicePercent: number; taxPercent: number; canDiscount: boolean }) {
   const [orders, setOrders] = useState(initialOrders);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [picking, setPicking] = useState<Catalog["items"][number] | null>(null);
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [type, setType] = useState<"dine_in" | "takeaway" | "pickup">("dine_in");
+  const [typeId, setTypeId] = useState(orderTypes[0]?.id ?? "");
+  const [discountId, setDiscountId] = useState("");
+  const [quotes, setQuotes] = useState<Applicable[]>([]);
+  const ot = orderTypes.find((t) => t.id === typeId);
+  const type = ot?.kind ?? "dine_in";
+  const servicePercent = ot?.servicePercent ?? baseService;
+  const taxPercent = ot?.taxPercent ?? baseTax;
   const [customerName, setCustomerName] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -45,8 +53,23 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
   const gross = lines.reduce((sum, l) => sum + unit(l) * l.qty, 0);
   const live = voucher && voucher.gross === gross ? voucher : null;
   const wantsDiscount = canDiscount && !live && Number(discValue) > 0;
+  const quoteKey = JSON.stringify([typeId, lines.map((l) => [l.item.id, l.qty, l.mods.map((m) => m.id)])]);
+  // Diskon bernama yang berlaku untuk isi keranjang; dihitung server supaya jadwal dan aturannya sama dengan saat disimpan.
+  useEffect(() => {
+    if (!lines.length) return;
+    let stale = false;
+    const t = setTimeout(async () => {
+      const res = await fetch("/api/v1/discounts/quote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderTypeId: typeId || null, lines: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.qty, modifierIds: l.mods.map((m) => m.id) })) }) }).catch(() => null);
+      const data = res?.ok ? await res.json().catch(() => []) : [];
+      if (!stale) setQuotes(Array.isArray(data) ? data : []);
+    }, 250);
+    return () => { stale = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteKey]);
+  const shown = lines.length ? quotes : [];
+  const named = !live && !wantsDiscount ? shown.find((q) => q.id === discountId) ?? shown.find((q) => q.autoApply) ?? null : null;
   const nonTaxable = lines.reduce((sum, l) => (l.item.taxable ? sum : sum + unit(l) * l.qty), 0);
-  const totals = computeTotals({ gross, nonTaxable, discountType: live ? "amount" : wantsDiscount ? discType : null, discountValue: live ? live.discount : wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
+  const totals = computeTotals({ gross, nonTaxable, discountType: live || named ? "amount" : wantsDiscount ? discType : null, discountValue: live ? live.discount : named ? named.amount : wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
   const total = totals.total;
 
   async function applyVoucher() {
@@ -77,14 +100,14 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
       const res = await fetch("/api/v1/orders", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          type, tableId: type === "dine_in" && tableId ? tableId : undefined, customerName: customerName || undefined, customerId: customerId || undefined, voucherCode: live?.code, idempotencyKey: key,
+          type, orderTypeId: typeId || undefined, discountId: named && discountId ? discountId : undefined, tableId: (type === "dine_in" || ot?.requireTable) && tableId ? tableId : undefined, customerName: customerName || undefined, customerId: customerId || undefined, voucherCode: live?.code, idempotencyKey: key,
           discountType: wantsDiscount ? discType : undefined, discountValue: wantsDiscount ? Number(discValue) : undefined, discountReason: wantsDiscount ? discReason : undefined,
           lines: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.qty, notes: l.note || undefined, modifierIds: l.mods.map((m) => m.id) })),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Pesanan belum dapat disimpan.");
-      setCart([]); setCustomerName(""); setTableId(""); setCustomerId(""); setVoucher(null); setVoucherInput(""); setDiscValue(""); setDiscReason(""); setKey(crypto.randomUUID());
+      setCart([]); setCustomerName(""); setTableId(""); setCustomerId(""); setVoucher(null); setVoucherInput(""); setDiscValue(""); setDiscReason(""); setDiscountId(""); setKey(crypto.randomUUID());
       setMessage(`Pesanan ${data.receiptNo} masuk ke dapur.`);
       setOrders(await fetch("/api/v1/orders").then((r) => r.json()));
     } catch (e) {
@@ -101,7 +124,7 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
           if (e.key !== "Enter") return;
           const hit = catalog.items.find((i) => i.available && i.barcode === search.trim());
           if (hit) { e.preventDefault(); choose(hit); setSearch(""); }
-        }} placeholder="Cari menu, SKU, atau scan barcode" aria-label="Cari menu" className="h-11 w-64 shrink-0 rounded-full border border-stone-200 bg-white px-4" />
+        }} placeholder="Cari menu / scan barcode" aria-label="Cari menu" className="h-11 w-64 shrink-0 rounded-full border border-stone-200 bg-white px-4" />
         <Chip active={category === "all"} onClick={() => setCategory("all")}>Semua</Chip>
         {catalog.categories.map((c) => <Chip key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>{c.name}</Chip>)}
       </div>
@@ -125,7 +148,7 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
         <div className="mt-3 grid gap-2">
           {orders.map((o) => <a key={o.id} href="/pesanan" className="flex items-center gap-3 rounded-2xl border border-stone-200 p-3">
             <b>{o.receiptNo}</b>
-            <span className="text-sm text-stone-500">{o.type === "dine_in" ? "Dine in" : o.type === "takeaway" ? "Bungkus" : "Ambil"}{o.tableName ? ` · ${o.tableName}` : ""}</span>
+            <span className="text-sm text-stone-500">{o.typeName ?? (o.type === "dine_in" ? "Makan di tempat" : o.type === "takeaway" ? "Bungkus" : "Ambil sendiri")}{o.tableName ? ` · ${o.tableName}` : ""}</span>
             <span className="ml-auto rounded-full bg-basil/10 px-2.5 py-1 text-xs font-bold text-basil">{STATUS_LABEL[o.status] ?? o.status}</span>
             <b className="text-sm">{rupiah(o.total)}</b>
           </a>)}
@@ -135,13 +158,12 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
 
     <aside className="h-fit rounded-[2rem] bg-white p-5 lg:sticky lg:top-4">
       <h2 className="text-xl font-extrabold">Keranjang</h2>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {([["dine_in", "Dine in"], ["takeaway", "Bungkus"], ["pickup", "Ambil"]] as const).map(([value, label]) =>
-          <button key={value} onClick={() => setType(value)} className={`h-10 rounded-full text-sm font-bold ${type === value ? "bg-kitchen text-white" : "bg-stone-100 text-stone-600"}`}>{label}</button>)}
+      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Tipe pesanan">
+        {orderTypes.map((t) => <button key={t.id} aria-pressed={t.id === typeId} onClick={() => { setTypeId(t.id); setTableId(""); }} className={`h-10 rounded-full px-4 text-sm font-bold ${t.id === typeId ? "bg-kitchen text-white" : "bg-stone-100 text-stone-600"}`}>{t.name}</button>)}
       </div>
-      {type === "dine_in" && tables.length ? <select aria-label="Meja" value={tableId} onChange={(e) => setTableId(e.target.value)} className="mt-3 h-11 w-full rounded-xl border border-stone-200 bg-white px-3">
-        <option value="">Pilih meja (opsional)</option>
-        {tables.map((t) => <option key={t.id} value={t.id} disabled={!!t.order}>{t.name}{t.capacity ? ` · ${t.capacity} kursi` : ""}{t.order ? " · terpakai" : ""}</option>)}
+      {(type === "dine_in" || ot?.requireTable) && tables.length ? <select aria-label="Meja" required={ot?.requireTable} value={tableId} onChange={(e) => setTableId(e.target.value)} className="mt-3 h-11 w-full rounded-xl border border-stone-200 bg-white px-3">
+        <option value="">{ot?.requireTable ? "Pilih meja (wajib)" : "Pilih meja (opsional)"}</option>
+        {[...new Set(tables.map((t) => t.groupName ?? ""))].map((gn) => <optgroup key={gn} label={gn || "Tanpa grup"}>{tables.filter((t) => (t.groupName ?? "") === gn).map((t) => <option key={t.id} value={t.id} disabled={!!t.order}>{t.name}{t.capacity ? ` · ${t.capacity} kursi` : ""}{t.order ? " · terpakai" : ""}</option>)}</optgroup>)}
       </select> : null}
       {customers.length ? <select aria-label="Pelanggan" value={customerId} onChange={(e) => { setCustomerId(e.target.value); if (e.target.value) setCustomerName(""); }} className="mt-3 h-11 w-full rounded-xl border border-stone-200 bg-white px-3">
         <option value="">Pelanggan terdaftar (opsional)</option>
@@ -171,6 +193,10 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
           : <div className="flex gap-2"><input aria-label="Kode voucher" value={voucherInput} onChange={(e) => setVoucherInput(e.target.value.toUpperCase())} placeholder="Kode voucher" className="h-10 min-w-0 flex-1 rounded-xl border border-stone-200 px-3 text-sm" /><button disabled={!voucherInput.trim()} onClick={applyVoucher} className="h-10 rounded-full bg-stone-100 px-4 text-sm font-bold text-stone-700 disabled:opacity-40">Pakai</button></div>}
         <p role="alert" className="text-xs font-bold text-red-700 empty:hidden">{voucherError}</p>
       </div> : null}
+      {shown.length && !live && !wantsDiscount ? <div className="mt-4 grid gap-1.5" role="group" aria-label="Diskon">
+        <p className="text-xs font-bold text-stone-500">Diskon yang berlaku</p>
+        {shown.map((q) => { const on = named?.id === q.id; return <button key={q.id} aria-pressed={on} disabled={q.autoApply && on} onClick={() => setDiscountId(on ? "" : q.id)} className={`flex items-center justify-between rounded-2xl border px-3 py-2 text-left text-sm font-bold ${on ? "border-basil bg-basil/10 text-basil" : "border-stone-200"}`}><span>{q.name}{q.autoApply ? " (otomatis)" : ""}</span><span>-{rupiah(q.amount)}</span></button>; })}
+      </div> : null}
       {canDiscount && !live && lines.length ? <div className="mt-4 grid gap-2 rounded-2xl bg-stone-50 p-3">
         <div className="grid grid-cols-[6.5rem_1fr] gap-2">
           <select aria-label="Jenis diskon" value={discType} onChange={(e) => setDiscType(e.target.value as "amount" | "percent")} className="h-10 rounded-xl border border-stone-200 bg-white px-2 text-sm"><option value="percent">Diskon %</option><option value="amount">Diskon Rp</option></select>
@@ -187,7 +213,7 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
       <div className="mt-2 flex items-center justify-between"><span className="text-stone-600">Total</span><b className="text-2xl">{rupiah(total)}</b></div>
       {message ? <p className="mt-3 rounded-2xl bg-basil/10 p-3 text-sm font-bold text-basil">{message}</p> : null}
       {error ? <p className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p> : null}
-      <button onClick={submit} disabled={busy || !lines.length || (wantsDiscount && discReason.trim().length < 3)} className="mt-4 h-13 w-full rounded-full bg-saffron font-extrabold text-kitchen disabled:opacity-40">{busy ? "Menyimpan…" : "Simpan pesanan"}</button>
+      <button onClick={submit} disabled={busy || !lines.length || (!!ot?.requireTable && !tableId) || (wantsDiscount && discReason.trim().length < 3)} className="mt-4 h-13 w-full rounded-full bg-saffron font-extrabold text-kitchen disabled:opacity-40">{busy ? "Menyimpan…" : "Simpan pesanan"}</button>
     </aside>
     {picking ? <Picker item={picking} groups={catalog.groups.filter((g) => picking.groupIds.includes(g.id))} onClose={() => setPicking(null)} onAdd={(mods, note) => { addLine(picking, mods, note); setPicking(null); }} /> : null}
   </div>;

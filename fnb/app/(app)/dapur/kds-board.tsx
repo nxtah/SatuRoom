@@ -61,7 +61,7 @@ export function KdsBoard({ initialOrders }: { initialOrders: Order[] }) {
             {list.map((o) => <article key={o.id} className="rounded-2xl bg-plate p-4 text-ink">
               <div className="flex items-center justify-between">
                 <b>{o.receiptNo}</b>
-                <span className="text-xs font-bold text-stone-500">{o.type === "dine_in" ? "Dine in" : o.type === "takeaway" ? "Bungkus" : "Ambil"}{o.tableName ? ` · ${o.tableName}` : ""}</span>
+                <span className="text-xs font-bold text-stone-500">{o.typeName ?? (o.type === "dine_in" ? "Makan di tempat" : o.type === "takeaway" ? "Bungkus" : "Ambil sendiri")}{o.tableName ? ` · ${o.tableName}` : ""}</span>
               </div>
               <p className="text-xs text-stone-500"><span className={minutes(o.openedAt) >= 15 ? "font-bold text-tomato" : ""}>{minutes(o.openedAt)} menit</span>{o.customerName ? ` · ${o.customerName}` : ""}</p>
               <ul className="mt-2 grid gap-1.5">

@@ -19,6 +19,8 @@ export const PERMISSIONS = [
   "staff.manage",
   "roles.manage",
   "settings.manage",
+  "payouts.manage",
+  "branches.manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -38,7 +40,9 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "expenses.manage": { label: "Kelola pengeluaran", hint: "Mencatat dan membatalkan pengeluaran operasional." },
   "promos.manage": { label: "Kelola voucher", hint: "Membuat dan menonaktifkan kode voucher." },
   "audit.read": { label: "Lihat jejak aktivitas", hint: "Membaca riwayat aksi sensitif seperti diskon, refund, dan perubahan harga." },
-  "settings.manage": { label: "Kelola pengaturan", hint: "Pajak, service charge, struk, meja, dan cabang." },
+  "settings.manage": { label: "Kelola pengaturan", hint: "Pajak, service charge, struk, printer, meja, dan tipe pesanan." },
+  "payouts.manage": { label: "Kelola payout", hint: "Mengajukan dan mencatat penarikan saldo non-tunai ke rekening." },
+  "branches.manage": { label: "Kelola cabang", hint: "Menambah cabang, mengatur harga dan stok per cabang, dan transfer stok." },
 };
 
 export const BUILTIN_ROLES = ["owner", "manager", "cashier", "server", "kitchen", "inventory", "accounting"] as const;
@@ -61,7 +65,7 @@ const GRANTS: Record<BuiltinRole, readonly Permission[]> = {
   server: ["orders.sell"],
   kitchen: ["kitchen.run"],
   inventory: ["stock.manage", "purchases.manage"],
-  accounting: ["cash.manage", "payments.void", "reports.read", "expenses.manage"],
+  accounting: ["cash.manage", "payments.void", "reports.read", "expenses.manage", "payouts.manage"],
 };
 
 export function permissionsFor(roles: readonly string[], custom: readonly (readonly string[])[] = []): Set<Permission> {

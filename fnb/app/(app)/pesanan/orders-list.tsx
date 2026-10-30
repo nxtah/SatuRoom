@@ -84,7 +84,7 @@ export function OrdersList({ initialOrders, tables, canPay, canArrange }: { init
             <b className="text-lg">{o.receiptNo}</b>
             <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${TONE[o.status] ?? "bg-stone-100 text-stone-600"}`}>{LABEL[o.status] ?? o.status}</span>
             {paidOff ? <span className="rounded-full bg-basil px-2.5 py-1 text-xs font-bold text-white">Lunas</span> : null}
-            <span className="text-sm text-stone-500">{o.type === "dine_in" ? "Dine in" : o.type === "takeaway" ? "Bungkus" : "Ambil"}{o.tableName ? ` · ${o.tableName}` : ""}</span>
+            <span className="text-sm text-stone-500">{o.typeName ?? (o.type === "dine_in" ? "Makan di tempat" : o.type === "takeaway" ? "Bungkus" : "Ambil sendiri")}{o.tableName ? ` · ${o.tableName}` : ""}</span>
             {o.customerName ? <span className="text-sm text-stone-500">· {o.customerName}</span> : null}
             <b className="ml-auto">{rupiah(o.total)}</b>
           </div>

@@ -28,7 +28,9 @@ export const ItemStockInput=z.object({
 });
 export const AvailabilityInput=z.object({available:z.boolean()});
 export const OrderInput=z.object({
-  type:z.enum(["dine_in","takeaway","pickup"]),
+  type:z.enum(["dine_in","takeaway","pickup"]).default("dine_in"),
+  orderTypeId:z.string().uuid().nullish(),
+  discountId:z.string().uuid().nullish(),
   tableId:z.string().uuid().nullish(),
   customerName:z.string().trim().max(80).optional(),
   notes:z.string().trim().max(300).optional(),
@@ -174,7 +176,9 @@ export const RefundInput = z.object({
 export const TableInput=z.object({
   name:z.string().trim().min(1,"Nama meja wajib diisi.").max(40),
   capacity:z.coerce.number().int().min(1).max(500).nullish(),
+  groupId:z.string().uuid().nullish(),
 });
+export const TableGroupInput=z.object({name:z.string().trim().min(1,"Nama grup wajib diisi.").max(40),sortOrder:z.coerce.number().int().min(0).max(1000).default(0)});
 export const MoveOrderInput=z.object({tableId:z.string().uuid()});
 export const MergeOrderInput=z.object({targetId:z.string().uuid()});
 export const SplitOrderInput=z.object({lineIds:z.array(z.string().uuid()).min(1).max(100)});
@@ -204,3 +208,81 @@ export const VoucherInput=z.object({
 }).refine((v)=>v.kind!=="percent"||v.value<=100,{message:"Persen maksimal 100.",path:["value"]});
 export const VoucherActiveInput=z.object({active:z.boolean()});
 export const VoucherCheckInput=z.object({code:z.string().trim().toUpperCase().min(1).max(20),subtotal:z.number().int().min(0)});
+
+export const OrderTypeInput = z.object({
+  name: z.string().trim().min(1, "Nama wajib diisi.").max(40),
+  kind: z.enum(["dine_in", "takeaway", "pickup"]),
+  servicePercent: z.coerce.number().min(0).max(100).nullish(),
+  taxPercent: z.coerce.number().min(0).max(100).nullish(),
+  requireTable: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0).max(1000).default(0),
+});
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Jam harus berformat 00:00 sampai 23:59.");
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid.");
+export const DiscountInput = z
+  .object({
+    name: z.string().trim().min(1, "Nama diskon wajib diisi.").max(60),
+    kind: z.enum(["percent", "amount"]),
+    value: z.coerce.number().int().min(1, "Nilai diskon wajib diisi.").max(100_000_000),
+    scope: z.enum(["order", "category", "item"]).default("order"),
+    categoryId: z.string().uuid().nullish(),
+    menuItemId: z.string().uuid().nullish(),
+    minSpend: z.coerce.number().int().min(0).max(100_000_000).default(0),
+    days: z.array(z.number().int().min(0).max(6)).min(1, "Pilih minimal satu hari.").max(7).default([0, 1, 2, 3, 4, 5, 6]),
+    startTime: hhmm.nullish().or(z.literal("")),
+    endTime: hhmm.nullish().or(z.literal("")),
+    startsOn: day.nullish().or(z.literal("")),
+    endsOn: day.nullish().or(z.literal("")),
+    orderTypeIds: z.array(z.string().uuid()).max(20).default([]),
+    autoApply: z.boolean().default(false),
+    active: z.boolean().default(true),
+  })
+  .refine((d) => d.kind !== "percent" || d.value <= 100, { path: ["value"], message: "Diskon persen maksimal 100." })
+  .refine((d) => d.scope !== "category" || !!d.categoryId, { path: ["categoryId"], message: "Pilih kategorinya." })
+  .refine((d) => d.scope !== "item" || !!d.menuItemId, { path: ["menuItemId"], message: "Pilih menunya." })
+  .refine((d) => !!d.startTime === !!d.endTime, { path: ["endTime"], message: "Isi jam mulai dan jam selesai bersamaan." });
+export const DiscountQuoteInput = z.object({
+  orderTypeId: z.string().uuid().nullish(),
+  lines: z.array(z.object({ menuItemId: z.string().uuid(), quantity: z.number().int().min(1).max(99), modifierIds: z.array(z.string().uuid()).max(40).default([]) })).min(1).max(50),
+});
+
+export const PayoutAccountInput = z.object({
+  bankName: z.string().trim().min(2, "Isi nama bank atau e-wallet.").max(40),
+  accountName: z.string().trim().min(2, "Isi nama pemilik rekening.").max(60),
+  accountNo: z.string().trim().regex(/^[0-9]{5,20}$/, "Nomor rekening 5 sampai 20 angka."),
+});
+export const PayoutInput = z.object({
+  accountId: z.string().uuid("Pilih rekening tujuan."),
+  amount: z.coerce.number().int().min(10_000, "Penarikan minimal Rp10.000.").max(1_000_000_000),
+  note: z.string().trim().max(200).nullish(),
+});
+export const PayoutPaidInput = z.object({
+  reference: z.string().trim().min(3, "Isi nomor referensi transfer.").max(60),
+  fee: z.coerce.number().int().min(0).max(10_000_000).default(0),
+});
+export const PayoutCancelInput = z.object({ reason: z.string().trim().min(3, "Alasan wajib diisi.").max(200) });
+
+export const BranchInput = z.object({
+  name: z.string().trim().min(2, "Isi nama cabang.").max(100),
+  address: z.string().trim().max(300).nullish(),
+});
+export const BranchRequestInput = z.object({
+  name: z.string().trim().min(2, "Isi nama cabang yang diinginkan.").max(100),
+  note: z.string().trim().max(300).nullish(),
+});
+export const OutletItemInput = z.object({
+  price: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+  cost: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+  isAvailable: z.boolean(),
+  minStock: z.coerce.number().int().min(0).max(1_000_000).nullable(),
+});
+export const TransferInput = z.object({
+  fromOutletId: z.string().uuid("Pilih cabang asal."),
+  toOutletId: z.string().uuid("Pilih cabang tujuan."),
+  note: z.string().trim().max(200).nullish(),
+  lines: z.array(z.object({ menuItemId: z.string().uuid(), quantity: z.coerce.number().int().min(1, "Jumlah minimal 1.").max(1_000_000) })).min(1, "Tambah minimal satu barang.").max(100),
+});
+export const TransferReceiveInput = z.object({
+  lines: z.array(z.object({ menuItemId: z.string().uuid(), quantity: z.coerce.number().int().min(0).max(1_000_000) })).max(100),
+});

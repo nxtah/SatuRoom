@@ -33,7 +33,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
       <dl className="grid gap-0.5 text-xs">
         <div className="flex justify-between"><dt>No.</dt><dd className="font-bold">{receipt.receiptNo}</dd></div>
         <div className="flex justify-between"><dt>Tanggal</dt><dd>{new Date(receipt.openedAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" })}</dd></div>
-        <div className="flex justify-between"><dt>Jenis</dt><dd>{TYPE[receipt.type] ?? receipt.type}{receipt.tableName ? ` · ${receipt.tableName}` : ""}</dd></div>
+        <div className="flex justify-between"><dt>Jenis</dt><dd>{receipt.typeName ?? TYPE[receipt.type] ?? receipt.type}{receipt.tableName ? ` · ${receipt.tableName}` : ""}</dd></div>
         {receipt.customerName ? <div className="flex justify-between"><dt>Pelanggan</dt><dd>{receipt.customerName}</dd></div> : null}
         {receipt.cashier ? <div className="flex justify-between"><dt>Kasir</dt><dd>{receipt.cashier}</dd></div> : null}
       </dl>

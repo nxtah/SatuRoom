@@ -42,7 +42,7 @@ export async function primaryOutlet(tx: Tx): Promise<string> {
   return o.id;
 }
 
-/** Satu pintu perubahan stok barang jadi: kunci baris, tolak jika jadi minus, catat ledger, atur status habis. */
+/** Satu pintu perubahan stok barang jadi: kunci baris, tolak jika jadi minus, catat ledger, atur status habis (hanya mengikuti stok cabang utama, yang dipakai kasir). */
 export async function changeItemStock(tx: Tx, ctx: FnbContext, outletId: string, itemId: string, quantity: number, reason: string, refType: string, refId: string | null) {
   await tx.execute(sql`INSERT INTO fnb.outlet_items (business_id, outlet_id, menu_item_id) VALUES (${ctx.businessId}::uuid, ${outletId}::uuid, ${itemId}::uuid) ON CONFLICT DO NOTHING`);
   const [row] = (await tx.execute(sql`SELECT stock FROM fnb.outlet_items WHERE outlet_id = ${outletId}::uuid AND menu_item_id = ${itemId}::uuid FOR UPDATE`)) as unknown as { stock: number }[];
@@ -50,7 +50,7 @@ export async function changeItemStock(tx: Tx, ctx: FnbContext, outletId: string,
   await tx.execute(sql`UPDATE fnb.outlet_items SET stock = stock + ${quantity} WHERE outlet_id = ${outletId}::uuid AND menu_item_id = ${itemId}::uuid`);
   await tx.execute(sql`INSERT INTO fnb.item_stock_movements (business_id, outlet_id, menu_item_id, quantity, reason, reference_type, reference_id, recorded_by)
     VALUES (${ctx.businessId}::uuid, ${outletId}::uuid, ${itemId}::uuid, ${quantity}, ${reason}, ${refType}, ${refId}::uuid, ${ctx.userId}::uuid)`);
-  await tx.execute(sql`UPDATE fnb.menu_items SET is_available = ${row!.stock + quantity > 0} WHERE id = ${itemId}::uuid AND track_stock AND archived_at IS NULL AND is_available <> ${row!.stock + quantity > 0}`);
+  await tx.execute(sql`UPDATE fnb.menu_items SET is_available = ${row!.stock + quantity > 0} WHERE id = ${itemId}::uuid AND track_stock AND archived_at IS NULL AND is_available <> ${row!.stock + quantity > 0} AND ${outletId}::uuid = (SELECT id FROM fnb.outlets WHERE is_primary AND archived_at IS NULL LIMIT 1)`);
 }
 
 /** Dipanggil saat pesanan dibuat: barang jadi yang dilacak dipotong dari stok cabang. */

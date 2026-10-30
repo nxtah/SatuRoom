@@ -11,6 +11,8 @@ import { AppError, forbidden } from "./errors";
 import { resolveModifiers } from "./modifiers";
 import { redeemVoucher, releaseVoucher } from "./promos";
 import { readSettings } from "./settings";
+import { applicableDiscounts } from "./discounts";
+import { resolveOrderType } from "./order-types";
 import { deductTrackedItems, restoreTrackedItems } from "./item-stock";
 import { deductOrderStock, restoreOrderStock } from "./stock";
 
@@ -23,7 +25,7 @@ export type OrderLine = {
   modifiers: { name: string; priceDelta: number }[];
 };
 export type Order = {
-  id: string; number: string; type: string; status: string; tableName: string | null;
+  id: string; number: string; type: string; typeName: string | null; status: string; tableName: string | null;
   customerName: string | null; total: number; paid: number; notes: string | null; openedAt: string; lines: OrderLine[];
   receiptNo: string; subtotal: number; discount: number; serviceCharge: number; tax: number; refunded: number; cancelReason: string | null;
 };
@@ -34,7 +36,7 @@ const inBusiness = <T>(ctx: FnbContext, work: Parameters<typeof withContext<T>>[
   withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, work);
 
 const ORDER_SELECT = sql`
-  SELECT o.id, o.order_number::text AS number, o.type, o.status, t.name AS "tableName",
+  SELECT o.id, o.order_number::text AS number, o.type, o.order_type_name AS "typeName", o.status, t.name AS "tableName",
          o.customer_name AS "customerName", o.total, o.notes, o.opened_at AS "openedAt", o.receipt_no AS "receiptNo",
          o.subtotal, o.discount, o.service_charge AS "serviceCharge", o.tax, o.cancel_reason AS "cancelReason",
          (SELECT coalesce(sum(p.amount), 0)::int FROM fnb.payments p WHERE p.order_id = o.id AND p.voided_at IS NULL) AS paid,
@@ -100,11 +102,11 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     const outlet = (await tx.execute(sql`SELECT id FROM fnb.outlets WHERE is_primary AND archived_at IS NULL LIMIT 1`)) as unknown as { id: string }[];
     if (!outlet[0]) throw new Error("NO_OUTLET");
     const items = (await tx.execute(sql`
-      SELECT i.id, i.name, coalesce(o.price, i.price) AS price, coalesce(o.cost, i.cost) AS cost, i.taxable, i.station_id AS "stationId",
+      SELECT i.id, i.name, i.category_id AS "categoryId", coalesce(o.price, i.price) AS price, coalesce(o.cost, i.cost) AS cost, i.taxable, i.station_id AS "stationId",
              i.is_available AND coalesce(o.is_available, true) AS available
       FROM fnb.menu_items i LEFT JOIN fnb.outlet_items o ON o.menu_item_id = i.id AND o.outlet_id = ${outlet[0].id}::uuid
       WHERE i.id IN (${sql.join(input.lines.map((l) => sql`${l.menuItemId}::uuid`), sql`, `)}) AND i.archived_at IS NULL
-    `)) as unknown as { id: string; name: string; price: number; cost: number; taxable: boolean; stationId: string | null; available: boolean }[];
+    `)) as unknown as { id: string; name: string; categoryId: string; price: number; cost: number; taxable: boolean; stationId: string | null; available: boolean }[];
     const byId = new Map(items.map((i) => [i.id, i]));
     for (const line of input.lines) {
       const item = byId.get(line.menuItemId);
@@ -118,6 +120,9 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     }
     const subtotal = priced.reduce((sum, p) => sum + p.unitPrice * p.line.quantity, 0);
     const settings = await readSettings(tx, ctx.businessId);
+    const ot = await resolveOrderType(tx, input.orderTypeId, input.type ?? "dine_in");
+    const servicePercent = ot.servicePercent ?? settings.servicePercent;
+    const taxPercent = ot.taxPercent ?? settings.taxPercent;
     let discountType = wantsDiscount ? input.discountType : null;
     let discountValue = wantsDiscount ? input.discountValue : 0;
     let discountReason = wantsDiscount ? input.discountReason ?? null : null;
@@ -128,6 +133,13 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
       voucher = v;
       discountType = v.kind; discountValue = v.value; discountReason = `Voucher ${v.code}`;
     }
+    let discountId: string | null = null;
+    const named = input.voucherCode || wantsDiscount ? [] : await applicableDiscounts(tx, { orderTypeId: ot.id, lines: priced.map((p) => ({ menuItemId: p.line.menuItemId, categoryId: byId.get(p.line.menuItemId)!.categoryId, quantity: p.line.quantity, unitPrice: p.unitPrice })) });
+    if (!input.voucherCode && !wantsDiscount) {
+      const pick = input.discountId ? named.find((d) => d.id === input.discountId) : named.find((d) => d.autoApply);
+      if (input.discountId && !pick) throw new AppError(422, "discount_invalid", "Diskon itu tidak berlaku untuk pesanan ini.");
+      if (pick) { discountId = pick.id; discountType = "amount"; discountValue = pick.amount; discountReason = `Diskon ${pick.name}`; }
+    } else if (input.discountId) throw new AppError(422, "voucher_conflict", "Pilih salah satu: diskon, voucher, atau diskon manual.");
     let customerName = input.customerName ?? null;
     if (input.customerId) {
       const [c] = (await tx.execute(sql`SELECT name FROM fnb.customers WHERE id = ${input.customerId}::uuid AND archived_at IS NULL`)) as unknown as { name: string }[];
@@ -139,22 +151,23 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
       nonTaxable: priced.reduce((sum, p) => (byId.get(p.line.menuItemId)!.taxable ? sum : sum + p.unitPrice * p.line.quantity), 0),
       discountType,
       discountValue,
-      servicePercent: settings.servicePercent,
-      taxPercent: settings.taxPercent,
+      servicePercent,
+      taxPercent,
     });
     const receiptNo = await nextReceiptNo(tx, ctx.businessId, settings.receiptPrefix);
-    const tableId = input.type === "dine_in" ? input.tableId ?? null : null;
+    const tableId = ot.kind === "dine_in" || ot.requireTable ? input.tableId ?? null : null;
+    if (ot.requireTable && !tableId) throw new AppError(422, "table_required", `Pilih meja untuk pesanan ${ot.name}.`);
     if (tableId) {
       const [busy] = (await tx.execute(sql`SELECT 1 AS x FROM fnb.orders WHERE table_id = ${tableId}::uuid AND status IN ('confirmed','preparing','ready','served') LIMIT 1`)) as unknown as { x: number }[];
       if (busy) throw new AppError(409, "table_busy", "Meja sedang dipakai pesanan lain. Pilih meja lain atau gabungkan pesanannya.");
     }
     const [order] = (await tx.execute(sql`
       INSERT INTO fnb.orders (business_id, outlet_id, table_id, type, status, customer_name, subtotal, discount, discount_reason, service_charge, tax,
-                              service_percent, tax_percent, total, notes, opened_by, receipt_no, idempotency_key, customer_id, voucher_id, voucher_code)
-      VALUES (${ctx.businessId}::uuid, ${outlet[0].id}::uuid, ${tableId}::uuid, ${input.type}::fnb.order_type, 'confirmed',
+                              service_percent, tax_percent, total, notes, opened_by, receipt_no, idempotency_key, customer_id, voucher_id, voucher_code, order_type_id, order_type_name, discount_id)
+      VALUES (${ctx.businessId}::uuid, ${outlet[0].id}::uuid, ${tableId}::uuid, ${ot.kind}::fnb.order_type, 'confirmed',
               ${customerName}, ${subtotal}, ${totals.discount}, ${discountReason}, ${totals.service}, ${totals.tax},
-              ${settings.servicePercent}, ${settings.taxPercent}, ${totals.total}, ${input.notes ?? null}, ${ctx.userId}::uuid, ${receiptNo}, ${input.idempotencyKey ?? null},
-              ${input.customerId ?? null}::uuid, ${voucher?.id ?? null}::uuid, ${voucher?.code ?? null})
+              ${servicePercent}, ${taxPercent}, ${totals.total}, ${input.notes ?? null}, ${ctx.userId}::uuid, ${receiptNo}, ${input.idempotencyKey ?? null},
+              ${input.customerId ?? null}::uuid, ${voucher?.id ?? null}::uuid, ${voucher?.code ?? null}, ${ot.id}::uuid, ${ot.name}, ${discountId}::uuid)
       RETURNING id
     `)) as unknown as { id: string }[];
     for (const { line, mods, unitPrice, unitCost } of priced) {

@@ -12,6 +12,7 @@ export interface Receipt {
   footer: string | null;
   receiptNo: string;
   type: string;
+  typeName: string | null;
   tableName: string | null;
   customerName: string | null;
   cashier: string | null;
@@ -38,7 +39,7 @@ export async function getReceipt(ctx: FnbContext, orderId: string): Promise<Rece
   if (!can(ctx, "orders.sell") && !can(ctx, "cash.manage") && !can(ctx, "reports.read")) throw forbidden();
   return withContext(db(), { userId: ctx.userId, businessId: ctx.businessId }, async (tx) => {
     const [o] = (await tx.execute(sql`
-      SELECT o.receipt_no AS "receiptNo", o.type::text AS type, t.name AS "tableName", o.customer_name AS "customerName", u.name AS cashier,
+      SELECT o.receipt_no AS "receiptNo", o.type::text AS type, o.order_type_name AS "typeName", t.name AS "tableName", o.customer_name AS "customerName", u.name AS cashier,
              o.opened_at AS "openedAt", o.status::text AS status, o.subtotal, o.discount, o.discount_reason AS "discountReason",
              o.service_charge AS service, o.service_percent::float8 AS "servicePercent", o.tax, o.tax_percent::float8 AS "taxPercent", o.total
       FROM fnb.orders o LEFT JOIN fnb.dining_tables t ON t.id = o.table_id LEFT JOIN core.users u ON u.id = o.opened_by

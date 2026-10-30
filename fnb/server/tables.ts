@@ -11,7 +11,7 @@ import { nextReceiptNo, repriceOrder } from "./orders";
 import { readSettings } from "./settings";
 
 export type DiningTable = {
-  id: string; name: string; capacity: number | null;
+  id: string; name: string; capacity: number | null; groupId: string | null; groupName: string | null;
   order: { id: string; receiptNo: string; status: string; total: number } | null;
 };
 
@@ -24,12 +24,19 @@ const needSettings = (ctx: FnbContext) => { if (!can(ctx, "settings.manage")) th
 export function listTables(ctx: FnbContext): Promise<DiningTable[]> {
   return inBusiness(ctx, async (tx) => {
     const rows = (await tx.execute(sql`
-      SELECT t.id, t.name, t.capacity, o.id AS "orderId", o.receipt_no AS "receiptNo", o.status::text AS status, o.total
+      SELECT t.id, t.name, t.capacity, t.group_id AS "groupId", g.name AS "groupName", o.id AS "orderId", o.receipt_no AS "receiptNo", o.status::text AS status, o.total
       FROM fnb.dining_tables t
+      LEFT JOIN fnb.table_groups g ON g.id = t.group_id
       LEFT JOIN fnb.orders o ON o.table_id = t.id AND o.status IN ${ACTIVE}
-      WHERE t.archived_at IS NULL ORDER BY t.name`)) as unknown as (Omit<DiningTable, "order"> & { orderId: string | null; receiptNo: string; status: string; total: number })[];
-    return rows.map((r) => ({ id: r.id, name: r.name, capacity: r.capacity, order: r.orderId ? { id: r.orderId, receiptNo: r.receiptNo, status: r.status, total: r.total } : null }));
+      WHERE t.archived_at IS NULL ORDER BY g.sort_order NULLS LAST, g.name NULLS LAST, t.name`)) as unknown as (Omit<DiningTable, "order"> & { orderId: string | null; receiptNo: string; status: string; total: number })[];
+    return rows.map((r) => ({ id: r.id, name: r.name, capacity: r.capacity, groupId: r.groupId, groupName: r.groupName, order: r.orderId ? { id: r.orderId, receiptNo: r.receiptNo, status: r.status, total: r.total } : null }));
   });
+}
+
+async function checkGroup(tx: Parameters<Parameters<typeof withContext>[2]>[0], groupId: string | null | undefined) {
+  if (!groupId) return;
+  const rows = (await tx.execute(sql`SELECT 1 FROM fnb.table_groups WHERE id = ${groupId}::uuid AND archived_at IS NULL`)) as unknown as unknown[];
+  if (!rows.length) throw new AppError(422, "invalid", "Grup meja tidak ditemukan.");
 }
 
 export async function createTable(ctx: FnbContext, input: z.infer<typeof TableInput>) {
@@ -39,8 +46,9 @@ export async function createTable(ctx: FnbContext, input: z.infer<typeof TableIn
     if (!outlet) throw new AppError(409, "no_outlet", "Cabang belum ada.");
     const [dup] = (await tx.execute(sql`SELECT 1 AS x FROM fnb.dining_tables WHERE archived_at IS NULL AND lower(name) = lower(${input.name})`)) as unknown as unknown[];
     if (dup) throw new AppError(409, "table_exists", "Nama meja sudah dipakai.");
+    await checkGroup(tx, input.groupId);
     const [row] = (await tx.execute(sql`
-      INSERT INTO fnb.dining_tables (business_id, outlet_id, name, capacity) VALUES (${ctx.businessId}::uuid, ${outlet.id}::uuid, ${input.name}, ${input.capacity ?? null}) RETURNING id`)) as unknown as { id: string }[];
+      INSERT INTO fnb.dining_tables (business_id, outlet_id, name, capacity, group_id) VALUES (${ctx.businessId}::uuid, ${outlet.id}::uuid, ${input.name}, ${input.capacity ?? null}, ${input.groupId ?? null}::uuid) RETURNING id`)) as unknown as { id: string }[];
     await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.table.created", targetType: "table", targetId: row!.id, meta: { name: input.name } });
     return { id: row!.id };
   });
@@ -51,7 +59,8 @@ export async function updateTable(ctx: FnbContext, id: string, input: z.infer<ty
   return inBusiness(ctx, async (tx) => {
     const [dup] = (await tx.execute(sql`SELECT 1 AS x FROM fnb.dining_tables WHERE archived_at IS NULL AND lower(name) = lower(${input.name}) AND id <> ${id}::uuid`)) as unknown as unknown[];
     if (dup) throw new AppError(409, "table_exists", "Nama meja sudah dipakai.");
-    const rows = (await tx.execute(sql`UPDATE fnb.dining_tables SET name = ${input.name}, capacity = ${input.capacity ?? null} WHERE id = ${id}::uuid AND archived_at IS NULL RETURNING id`)) as unknown as unknown[];
+    await checkGroup(tx, input.groupId);
+    const rows = (await tx.execute(sql`UPDATE fnb.dining_tables SET name = ${input.name}, capacity = ${input.capacity ?? null}, group_id = ${input.groupId ?? null}::uuid WHERE id = ${id}::uuid AND archived_at IS NULL RETURNING id`)) as unknown as unknown[];
     if (!rows.length) throw notFound("Meja");
     await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.table.updated", targetType: "table", targetId: id, meta: { name: input.name } });
   });
