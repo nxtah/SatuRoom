@@ -45,6 +45,14 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "branches.manage": { label: "Kelola cabang", hint: "Menambah cabang, mengatur harga dan stok per cabang, dan transfer stok." },
 };
 
+/** Pengelompokan izin per modul untuk matriks di halaman Peran. */
+export const PERMISSION_GROUPS: { title: string; perms: readonly Permission[] }[] = [
+  { title: "Penjualan", perms: ["orders.sell", "orders.discount", "orders.refund", "payments.void", "cash.manage", "kitchen.run"] },
+  { title: "Produk dan stok", perms: ["catalog.manage", "stock.manage", "purchases.manage"] },
+  { title: "Keuangan dan laporan", perms: ["reports.read", "expenses.manage", "payouts.manage", "promos.manage", "audit.read"] },
+  { title: "Bisnis dan akses", perms: ["settings.manage", "branches.manage", "staff.manage", "roles.manage"] },
+];
+
 export const BUILTIN_ROLES = ["owner", "manager", "cashier", "server", "kitchen", "inventory", "accounting"] as const;
 export type BuiltinRole = (typeof BUILTIN_ROLES)[number];
 
@@ -58,7 +66,7 @@ export const ROLE_LABEL: Record<BuiltinRole, string> = {
   accounting: "Keuangan",
 };
 
-const GRANTS: Record<BuiltinRole, readonly Permission[]> = {
+export const GRANTS: Record<BuiltinRole, readonly Permission[]> = {
   owner: PERMISSIONS,
   manager: ["orders.sell", "kitchen.run", "cash.manage", "payments.void", "orders.discount", "orders.refund", "catalog.manage", "stock.manage", "purchases.manage", "reports.read", "expenses.manage", "promos.manage", "settings.manage"],
   cashier: ["orders.sell", "cash.manage"],

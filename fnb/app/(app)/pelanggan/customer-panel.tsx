@@ -1,7 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { Customer } from "@/server/promos";
+import Link from "next/link";
+import { Modal } from "@/components/ui";
+import type { Customer, CustomerDetail } from "@/server/promos";
 
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 const field = "h-11 min-w-0 rounded-xl border border-stone-300 bg-white px-3";
@@ -12,6 +14,13 @@ export function CustomerPanel({ initial }: { initial: Customer[] }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [detail, setDetail] = useState<CustomerDetail | null>(null);
+  const [showing, setShowing] = useState(false);
+  async function openDetail(id: string) {
+    setDetail(null); setShowing(true);
+    const res = await fetch(`/api/v1/customers/${id}`).catch(() => null);
+    if (res?.ok) setDetail(await res.json()); else setShowing(false);
+  }
   const reset = () => { setEditing(null); setV({ name: "", phone: "", notes: "" }); };
 
   async function call(url: string, method: string, body?: unknown) {
@@ -42,7 +51,7 @@ export function CustomerPanel({ initial }: { initial: Customer[] }) {
     <ul className="grid gap-2">
       {initial.map((c) => <li key={c.id} className="rounded-[1.5rem] bg-white p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <b>{c.name}</b>{c.phone ? <span className="text-sm text-stone-600">{c.phone}</span> : null}
+          <button onClick={() => openDetail(c.id)} className="font-extrabold underline-offset-2 hover:underline">{c.name}</button>{c.phone ? <span className="text-sm text-stone-600">{c.phone}</span> : null}
           <span className="ml-auto text-sm text-stone-600">{c.orders}x belanja · <b className="text-ink">{rupiah(c.spent)}</b></span>
         </div>
         {c.notes ? <p className="mt-1 text-sm text-stone-600">{c.notes}</p> : null}
@@ -54,5 +63,14 @@ export function CustomerPanel({ initial }: { initial: Customer[] }) {
       </li>)}
       {!initial.length ? <li className="rounded-[2rem] bg-white p-10 text-center text-stone-600">Belum ada pelanggan.</li> : null}
     </ul>
+    <Modal open={showing} onClose={() => setShowing(false)} title={detail?.name ?? "Pelanggan"}>
+      {!detail ? <p className="py-8 text-center text-stone-500">Memuat...</p> : <div className="grid gap-4 text-sm">
+        <p className="text-stone-600">{detail.phone ?? "Tanpa telepon"} · pelanggan sejak {new Date(detail.since).toLocaleDateString("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" })}</p>
+        <dl className="grid grid-cols-3 gap-2 text-center"><div className="rounded-2xl bg-cream p-3"><dt className="text-xs text-stone-600">Belanja</dt><dd className="font-extrabold">{detail.orders}x</dd></div><div className="rounded-2xl bg-cream p-3"><dt className="text-xs text-stone-600">Total</dt><dd className="font-extrabold">{rupiah(detail.spent)}</dd></div><div className="rounded-2xl bg-cream p-3"><dt className="text-xs text-stone-600">Rata-rata</dt><dd className="font-extrabold">{rupiah(detail.avgTicket)}</dd></div></dl>
+        {detail.notes ? <p className="rounded-2xl bg-saffron/20 p-3">{detail.notes}</p> : null}
+        <section><h3 className="font-extrabold">Menu favorit</h3>{detail.favorites.length ? <ul className="mt-1 divide-y divide-stone-100">{detail.favorites.map((f) => <li key={f.name} className="flex justify-between py-1"><span>{f.name}</span><b>{f.quantity} porsi</b></li>)}</ul> : <p className="mt-1 text-stone-500">Belum ada pesanan.</p>}</section>
+        <section><h3 className="font-extrabold">Transaksi terakhir</h3>{detail.recent.length ? <ul className="mt-1 divide-y divide-stone-100">{detail.recent.map((o) => <li key={o.id} className="flex items-center justify-between gap-2 py-1.5"><Link href={`/struk/${o.id}`} target="_blank" className="font-bold underline-offset-2 hover:underline">{o.receiptNo}</Link><span className="text-xs text-stone-500">{new Date(o.at).toLocaleDateString("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" })}{o.status === "cancelled" ? " · batal" : ""}</span><b className="tabular-nums">{rupiah(o.total)}</b></li>)}</ul> : <p className="mt-1 text-stone-500">Belum ada transaksi.</p>}</section>
+      </div>}
+    </Modal>
   </div>;
 }

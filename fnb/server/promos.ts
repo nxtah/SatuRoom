@@ -21,7 +21,10 @@ const needSell = (ctx: FnbContext) => { if (!can(ctx, "orders.sell")) throw forb
 const needPromos = (ctx: FnbContext) => { if (!can(ctx, "promos.manage")) throw forbidden(); };
 const isDup = (e: unknown) => (e as { cause?: { code?: string } }).cause?.code === "23505";
 
-export function listCustomers(ctx: FnbContext, search?: string): Promise<Customer[]> {
+export const CUSTOMER_SORTS = [["nama", "Nama"], ["belanja", "Belanja terbanyak"], ["sering", "Paling sering"], ["terbaru", "Terakhir datang"]] as const;
+const ORDER = { nama: sql`c.name`, belanja: sql`spent DESC, c.name`, sering: sql`orders DESC, c.name`, terbaru: sql`"lastVisit" DESC NULLS LAST, c.name` } as const;
+
+export function listCustomers(ctx: FnbContext, search?: string, sort: string = "nama"): Promise<Customer[]> {
   needSell(ctx);
   const like = search?.trim() ? `%${search.trim().replace(/[%_\\]/g, "\\$&")}%` : null;
   return inBusiness(ctx, async (tx) => (await tx.execute(sql`
@@ -31,7 +34,7 @@ export function listCustomers(ctx: FnbContext, search?: string): Promise<Custome
            max(o.opened_at) AS "lastVisit"
     FROM fnb.customers c LEFT JOIN fnb.orders o ON o.customer_id = c.id
     WHERE c.archived_at IS NULL ${like ? sql`AND (c.name ILIKE ${like} OR c.phone ILIKE ${like})` : sql``}
-    GROUP BY c.id ORDER BY c.name LIMIT 300`)) as unknown as Customer[]);
+    GROUP BY c.id ORDER BY ${ORDER[sort as keyof typeof ORDER] ?? ORDER.nama} LIMIT 300`)) as unknown as Customer[]);
 }
 
 export async function createCustomer(ctx: FnbContext, input: z.infer<typeof CustomerInput>) {
@@ -146,4 +149,29 @@ export async function releaseVoucher(tx: Tx, orderId: string) {
   await tx.execute(sql`
     UPDATE fnb.vouchers SET used_count = greatest(used_count - 1, 0)
     WHERE id = (SELECT voucher_id FROM fnb.orders WHERE id = ${orderId}::uuid)`);
+}
+
+
+export type CustomerDetail = Customer & {
+  avgTicket: number; since: string;
+  favorites: { name: string; quantity: number }[];
+  recent: { id: string; receiptNo: string; at: string; total: number; status: string }[];
+};
+
+/** Riwayat belanja satu pelanggan: menu favorit dan transaksi terakhir, untuk mengenali pelanggan setia. */
+export async function getCustomer(ctx: FnbContext, id: string): Promise<CustomerDetail> {
+  needSell(ctx);
+  return inBusiness(ctx, async (tx) => {
+    const [c] = (await tx.execute(sql`
+      SELECT c.id, c.name, c.phone, c.notes, c.created_at AS since,
+             count(o.id) FILTER (WHERE o.status <> 'cancelled')::int AS orders,
+             coalesce(sum(o.total) FILTER (WHERE o.status <> 'cancelled'), 0)::int AS spent, max(o.opened_at) AS "lastVisit"
+      FROM fnb.customers c LEFT JOIN fnb.orders o ON o.customer_id = c.id WHERE c.id = ${id}::uuid AND c.archived_at IS NULL GROUP BY c.id`)) as unknown as (Customer & { since: string })[];
+    if (!c) throw notFound("Pelanggan");
+    const favorites = (await tx.execute(sql`
+      SELECT l.item_name AS name, sum(l.quantity)::int AS quantity FROM fnb.order_lines l JOIN fnb.orders o ON o.id = l.order_id
+      WHERE o.customer_id = ${id}::uuid AND o.status <> 'cancelled' GROUP BY l.item_name ORDER BY sum(l.quantity) DESC, l.item_name LIMIT 5`)) as unknown as CustomerDetail["favorites"];
+    const recent = (await tx.execute(sql`SELECT id, receipt_no AS "receiptNo", opened_at AS at, total, status::text AS status FROM fnb.orders WHERE customer_id = ${id}::uuid ORDER BY opened_at DESC LIMIT 10`)) as unknown as CustomerDetail["recent"];
+    return { ...c, avgTicket: c.orders ? Math.round(c.spent / c.orders) : 0, favorites, recent };
+  });
 }

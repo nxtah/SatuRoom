@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PERMISSIONS, PERMISSION_LABEL, type Permission } from "@/lib/permissions";
+import { BUILTIN_ROLES, GRANTS, PERMISSION_GROUPS, PERMISSION_LABEL, ROLE_LABEL, type Permission } from "@/lib/permissions";
 import type { CustomRole } from "@/server/roles";
 
 const field = "h-11 w-full rounded-2xl border border-stone-300 bg-white px-4";
@@ -34,13 +34,20 @@ export function RolesPanel({ initial, mine }: { initial: CustomRole[]; mine: Per
     {editing === null ? <button onClick={() => open()} className="h-11 w-fit rounded-full bg-saffron px-6 font-extrabold text-kitchen">+ Peran baru</button> : <section className="rounded-[2rem] bg-white p-5">
       <h2 className="text-xl font-extrabold">{editing === "new" ? "Peran baru" : "Ubah peran"}</h2>
       <input aria-label="Nama peran" className={`${field} mt-3`} placeholder="Contoh: Kasir pagi" value={name} onChange={(e) => setName(e.target.value)} />
-      <fieldset className="mt-4 grid gap-2 sm:grid-cols-2">
-        <legend className="mb-2 text-sm font-extrabold">Izin</legend>
-        {PERMISSIONS.map((p) => <label key={p} className={`flex min-h-11 items-start gap-3 rounded-2xl bg-stone-50 p-3 ${mine.includes(p) ? "" : "opacity-50"}`}>
-          <input type="checkbox" className="mt-1 size-5 shrink-0" disabled={!mine.includes(p)} checked={perms.includes(p)} onChange={() => setPerms(perms.includes(p) ? perms.filter((x) => x !== p) : [...perms, p])} />
-          <span><span className="block font-bold">{PERMISSION_LABEL[p].label}</span><span className="block text-sm text-stone-600">{PERMISSION_LABEL[p].hint}</span></span>
-        </label>)}
-      </fieldset>
+      <div className="mt-4 grid gap-4">
+        {PERMISSION_GROUPS.map((g) => {
+          const allowed = g.perms.filter((p) => mine.includes(p));
+          const all = allowed.length > 0 && allowed.every((p) => perms.includes(p));
+          return <fieldset key={g.title} className="rounded-2xl border border-stone-200 p-3">
+            <legend className="px-2 text-sm font-extrabold">{g.title}</legend>
+            <button type="button" disabled={!allowed.length} onClick={() => setPerms(all ? perms.filter((p) => !allowed.includes(p)) : [...new Set([...perms, ...allowed])])} className="mb-2 h-9 rounded-full bg-stone-100 px-4 text-xs font-bold disabled:opacity-40">{all ? "Lepas semua" : "Pilih semua"}</button>
+            <div className="grid gap-2 sm:grid-cols-2">{g.perms.map((p) => <label key={p} className={`flex min-h-11 items-start gap-3 rounded-2xl bg-stone-50 p-3 ${mine.includes(p) ? "" : "opacity-50"}`}>
+              <input type="checkbox" className="mt-1 size-5 shrink-0" disabled={!mine.includes(p)} checked={perms.includes(p)} onChange={() => setPerms(perms.includes(p) ? perms.filter((x) => x !== p) : [...perms, p])} />
+              <span><span className="block font-bold">{PERMISSION_LABEL[p].label}</span><span className="block text-sm text-stone-600">{PERMISSION_LABEL[p].hint}</span></span>
+            </label>)}</div>
+          </fieldset>;
+        })}
+      </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <button disabled={busy || name.trim().length < 2 || perms.length === 0} onClick={save} className="h-11 rounded-full bg-saffron px-6 font-extrabold text-kitchen disabled:opacity-40">Simpan peran</button>
         <button onClick={() => setEditing(null)} className="h-11 rounded-full bg-stone-100 px-5 font-bold">Batal</button>
@@ -58,5 +65,15 @@ export function RolesPanel({ initial, mine }: { initial: CustomRole[]; mine: Per
       </div>
     </section>)}
     {!initial.length && editing === null ? <p className="rounded-2xl bg-stone-100 p-4 text-sm text-stone-700">Belum ada peran custom. Peran bawaan (Kasir, Dapur, Gudang, dan lainnya) tetap bisa dipakai.</p> : null}
+    <details className="rounded-[2rem] bg-white p-5">
+      <summary className="cursor-pointer text-lg font-extrabold">Izin peran bawaan</summary>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-max text-sm">
+          <thead><tr className="border-b border-stone-200 text-left"><th className="py-2 pr-4">Izin</th>{BUILTIN_ROLES.map((r) => <th key={r} className="px-2 py-2 text-center">{ROLE_LABEL[r]}</th>)}</tr></thead>
+          <tbody className="divide-y divide-stone-100">{PERMISSION_GROUPS.flatMap((g) => g.perms).map((p) => <tr key={p}><td className="py-1.5 pr-4">{PERMISSION_LABEL[p].label}</td>{BUILTIN_ROLES.map((r) => <td key={r} className="px-2 py-1.5 text-center">{GRANTS[r].includes(p) ? <span aria-label="Ya" className="font-extrabold text-basil">✓</span> : <span aria-label="Tidak" className="text-stone-300">-</span>}</td>)}</tr>)}</tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-xs text-stone-500">Peran bawaan tidak bisa diubah. Buat peran custom untuk kombinasi izin lain.</p>
+    </details>
   </div>;
 }

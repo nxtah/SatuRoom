@@ -286,3 +286,24 @@ export const TransferInput = z.object({
 export const TransferReceiveInput = z.object({
   lines: z.array(z.object({ menuItemId: z.string().uuid(), quantity: z.coerce.number().int().min(0).max(1_000_000) })).max(100),
 });
+
+export const ReceiptTemplateInput = z.object({
+  logoUrl: z.string().trim().max(500).nullish(),
+  paper: z.coerce.number().refine((n) => n === 58 || n === 80, "Pilih kertas 58 atau 80 mm."),
+  header: z.string().trim().max(200).nullish(),
+  footer: z.string().trim().max(200).nullish(),
+  showCashier: z.boolean(),
+  showTable: z.boolean(),
+  showCustomer: z.boolean(),
+  showTaxDetail: z.boolean(),
+  showPayment: z.boolean(),
+});
+export const PrinterInput = z.object({
+  name: z.string().trim().min(2, "Isi nama printer.").max(60),
+  purpose: z.enum(["receipt", "kitchen", "bar"]),
+  paper: z.coerce.number().refine((n) => n === 58 || n === 80, "Pilih kertas 58 atau 80 mm."),
+  location: z.string().trim().max(80).nullish(),
+  copies: z.coerce.number().int().min(1).max(5),
+  isDefault: z.boolean(),
+  isActive: z.boolean(),
+});

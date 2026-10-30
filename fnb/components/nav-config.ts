@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Armchair, Banknote, BarChart3, Clock, FileText, HandCoins, Trash2, BookOpen, Boxes, Building2, ChefHat, ClipboardList, History, Home, Landmark, Layers, ListOrdered, Package, Percent, ReceiptText, Settings, ShoppingBasket, Store, TrendingUp, UserCog, UserRound, Users, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, Printer, Armchair, Banknote, BarChart3, Clock, FileText, HandCoins, Trash2, BookOpen, Boxes, Building2, ChefHat, ClipboardList, History, Home, Landmark, Layers, ListOrdered, Package, Percent, ReceiptText, Settings, ShoppingBasket, Store, TrendingUp, UserCog, UserRound, Users, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
 
 export type NavLeaf = { href: string; label: string; icon: LucideIcon };
 export type NavGroup = { label: string; icon: LucideIcon; children: NavLeaf[] };
@@ -42,13 +42,17 @@ export const NAV: readonly NavEntry[] = [
     { href: "/transfer-stok", label: "Transfer stok", icon: ArrowLeftRight },
     { href: "/pembelian", label: "Pembelian", icon: ShoppingBasket },
   ] },
-  { label: "Bisnis", icon: Building2, children: [
-    { href: "/cabang", label: "Cabang", icon: Store },
-    { href: "/cabang/barang", label: "Barang per cabang", icon: Boxes },
+  { label: "Akses pengguna", icon: UserCog, children: [
     { href: "/staf", label: "Pegawai", icon: Users },
     { href: "/peran", label: "Peran dan izin", icon: UserCog },
+  ] },
+  { label: "Manajemen bisnis", icon: Building2, children: [
+    { href: "/cabang", label: "Cabang", icon: Store },
+    { href: "/cabang/barang", label: "Barang per cabang", icon: Boxes },
     { href: "/pelanggan", label: "Pelanggan", icon: UserRound },
     { href: "/grup-meja", label: "Meja dan grup meja", icon: Armchair },
+    { href: "/pengaturan-struk", label: "Struk", icon: ReceiptText },
+    { href: "/printer", label: "Manajemen printer", icon: Printer },
     { href: "/audit", label: "Jejak aktivitas", icon: History },
     { href: "/pengaturan", label: "Pengaturan", icon: Settings },
   ] },

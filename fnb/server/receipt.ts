@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { can, type FnbContext } from "./context";
 import { db } from "./db";
 import { forbidden, notFound } from "./errors";
+import { readTemplate, type ReceiptTemplate } from "./receipt-template";
 import { readSettings } from "./settings";
 
 export interface Receipt {
@@ -29,6 +30,10 @@ export interface Receipt {
   total: number;
   payments: { method: string; amount: number; tendered: number | null; at: string }[];
   refunds: { amount: number; method: string; reason: string }[];
+  template: ReceiptTemplate;
+  /** Lebar kertas mm: dari printer struk bawaan jika ada, jika tidak dari templat. */
+  paper: 58 | 80;
+  printerName: string | null;
 }
 
 /**
@@ -43,7 +48,7 @@ export async function getReceipt(ctx: FnbContext, orderId: string): Promise<Rece
              o.opened_at AS "openedAt", o.status::text AS status, o.subtotal, o.discount, o.discount_reason AS "discountReason",
              o.service_charge AS service, o.service_percent::float8 AS "servicePercent", o.tax, o.tax_percent::float8 AS "taxPercent", o.total
       FROM fnb.orders o LEFT JOIN fnb.dining_tables t ON t.id = o.table_id LEFT JOIN core.users u ON u.id = o.opened_by
-      WHERE o.id = ${orderId}::uuid`)) as unknown as Omit<Receipt, "businessName" | "header" | "footer" | "lines" | "payments" | "refunds">[];
+      WHERE o.id = ${orderId}::uuid`)) as unknown as Omit<Receipt, "businessName" | "header" | "footer" | "lines" | "payments" | "refunds" | "template" | "paper" | "printerName">[];
     if (!o) throw notFound("Pesanan");
     const lines = (await tx.execute(sql`
       SELECT l.id, l.item_name AS name, l.quantity AS qty, l.unit_price AS "unitPrice", l.notes,
@@ -54,6 +59,8 @@ export async function getReceipt(ctx: FnbContext, orderId: string): Promise<Rece
     const refunds = (await tx.execute(sql`SELECT amount, method::text AS method, reason FROM fnb.refunds WHERE order_id = ${orderId}::uuid ORDER BY refunded_at`)) as unknown as Receipt["refunds"];
     const settings = await readSettings(tx, ctx.businessId);
     const arr = (v: unknown) => (Array.isArray(v) ? (v as string[]) : String(v ?? "").replace(/[{}"]/g, "").split(",").filter(Boolean));
-    return { ...o, businessName: settings.businessName, header: settings.receiptHeader, footer: settings.receiptFooter, lines: lines.map(({ modifiers, ...l }) => ({ ...l, modifiers: arr(modifiers) })), payments, refunds };
+    const template = await readTemplate(tx, ctx.businessId);
+    const [printer] = (await tx.execute(sql`SELECT name, paper::int AS paper FROM fnb.printers WHERE purpose = 'receipt' AND is_default AND is_active AND archived_at IS NULL LIMIT 1`)) as unknown as { name: string; paper: 58 | 80 }[];
+    return { ...o, template, paper: printer?.paper ?? template.paper, printerName: printer?.name ?? null, businessName: settings.businessName, header: settings.receiptHeader, footer: settings.receiptFooter, lines: lines.map(({ modifiers, ...l }) => ({ ...l, modifiers: arr(modifiers) })), payments, refunds };
   });
 }
