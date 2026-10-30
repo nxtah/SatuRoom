@@ -1,11 +1,31 @@
 import { z } from "zod";
 import { BUILTIN_ROLES, PERMISSIONS } from "./permissions";
 const name=z.string().trim().min(1,"Nama wajib diisi.").max(100);
+const rupiah=z.coerce.number().int().min(0).max(100_000_000);
+const skuField=z.string().trim().regex(/^[A-Za-z0-9._-]{1,40}$/,"SKU hanya huruf, angka, titik, minus, dan garis bawah (maks 40).");
+const imageField=z.string().trim().max(500).nullish();
+/** Isian lengkap sebuah menu. Semua opsional agar pemanggil lama (kasir cepat, tes) tetap jalan. */
+export const itemExtras={
+  sku:skuField.nullish().or(z.literal("")),
+  barcode:z.string().trim().min(1).max(40).nullish().or(z.literal("")),
+  cost:rupiah.optional(),
+  trackStock:z.boolean().optional(),
+  minStock:z.coerce.number().int().min(0).max(1_000_000).optional(),
+  imageUrl:imageField,
+  showInPos:z.boolean().optional(),
+  taxable:z.boolean().optional(),
+};
 export const CatalogInput=z.discriminatedUnion("type",[
-  z.object({type:z.literal("category"),name}),
+  z.object({type:z.literal("category"),name,description:z.string().trim().max(200).nullish(),imageUrl:imageField}),
   z.object({type:z.literal("station"),name:name.max(60)}),
-  z.object({type:z.literal("item"),name,description:z.string().trim().max(300).optional(),categoryId:z.string().uuid(),stationId:z.string().uuid().nullable(),price:z.coerce.number().int().min(0).max(100_000_000)}),
+  z.object({type:z.literal("item"),name,description:z.string().trim().max(300).optional(),categoryId:z.string().uuid(),stationId:z.string().uuid().nullable(),price:z.coerce.number().int().min(0).max(100_000_000),...itemExtras}),
 ]);
+export const UploadSignInput=z.object({kind:z.enum(["menu","kategori","addon","struk"])});
+export const CategoryUpdateInput=z.object({name,description:z.string().trim().max(200).nullish(),imageUrl:imageField,isActive:z.boolean().default(true),sortOrder:z.coerce.number().int().min(0).max(10_000).default(0)});
+export const ItemStockInput=z.object({
+  quantity:z.coerce.number().int().refine((v)=>v!==0,"Jumlah tidak boleh nol.").refine((v)=>Math.abs(v)<=1_000_000,"Jumlah terlalu besar."),
+  reason:z.string().trim().min(2,"Alasan wajib diisi.").max(120),
+});
 export const AvailabilityInput=z.object({available:z.boolean()});
 export const OrderInput=z.object({
   type:z.enum(["dine_in","takeaway","pickup"]),
@@ -111,15 +131,21 @@ export const ItemUpdateInput = z.object({
   categoryId: uuid,
   stationId: uuid.nullable(),
   price: z.coerce.number().int().min(0).max(100_000_000),
+  ...itemExtras,
 });
 export const ModifierGroupInput = z
   .object({
     id: uuid.optional(),
     name: name.max(60),
+    description: z.string().trim().max(200).nullish(),
     minSelect: z.coerce.number().int().min(0).max(20),
     maxSelect: z.coerce.number().int().min(1).max(20),
     modifiers: z
-      .array(z.object({ id: uuid.optional(), name: name.max(60), priceDelta: z.coerce.number().int().min(0).max(10_000_000), available: z.boolean().default(true) }))
+      .array(z.object({
+        id: uuid.optional(), name: name.max(60), priceDelta: z.coerce.number().int().min(0).max(10_000_000), available: z.boolean().default(true),
+        sku: skuField.nullish().or(z.literal("")), cost: z.coerce.number().int().min(0).max(10_000_000).default(0), imageUrl: imageField,
+        ingredientId: uuid.nullish(), ingredientQty: z.coerce.number().positive().max(1_000_000).nullish(),
+      }).refine((m) => !!m.ingredientId === !!m.ingredientQty, { path: ["ingredientQty"], message: "Isi bahan dan jumlah pemakaian bersamaan." }))
       .min(1, "Isi minimal satu opsi.")
       .max(40),
   })

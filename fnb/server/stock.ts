@@ -182,16 +182,24 @@ export async function deductOrderStock(
   tx: Tx,
   ctx: FnbContext,
   orderId: string,
-  lines: { menuItemId: string; quantity: number }[],
+  lines: { menuItemId: string; quantity: number; modifierIds?: string[] }[],
 ) {
   if (!lines.length) return;
+  const modIds = [...new Set(lines.flatMap((l) => l.modifierIds ?? []))];
+  const modStock = modIds.length
+    ? ((await tx.execute(sql`SELECT id, ingredient_id AS "ingredientId", ingredient_qty::float8 AS quantity FROM fnb.modifiers WHERE ingredient_id IS NOT NULL AND id IN (${sql.join(modIds.map((m) => sql`${m}::uuid`), sql`, `)})`)) as unknown as { id: string; ingredientId: string; quantity: number }[])
+    : [];
   const recipes = (await tx.execute(sql`
     SELECT menu_item_id AS "menuItemId", ingredient_id AS "ingredientId", quantity::float8 AS quantity
     FROM fnb.recipes WHERE menu_item_id IN (${sql.join(lines.map((l) => sql`${l.menuItemId}::uuid`), sql`, `)})
   `)) as unknown as { menuItemId: string; ingredientId: string; quantity: number }[];
-  if (!recipes.length) return;
+  if (!recipes.length && !modStock.length) return;
   const needed = new Map<string, number>();
   for (const line of lines) {
+    for (const mid of new Set(line.modifierIds ?? [])) {
+      const m = modStock.find((x) => x.id === mid);
+      if (m) needed.set(m.ingredientId, (needed.get(m.ingredientId) ?? 0) + m.quantity * line.quantity);
+    }
     for (const recipe of recipes.filter((r) => r.menuItemId === line.menuItemId)) {
       needed.set(recipe.ingredientId, (needed.get(recipe.ingredientId) ?? 0) + recipe.quantity * line.quantity);
     }

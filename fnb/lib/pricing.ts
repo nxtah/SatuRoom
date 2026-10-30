@@ -11,6 +11,8 @@ export interface PricingInput {
   discountValue?: number;
   servicePercent: number;
   taxPercent: number;
+  /** Bagian subtotal dari menu yang tidak kena pajak. */
+  nonTaxable?: number;
 }
 export interface PricingResult {
   gross: number;
@@ -26,6 +28,7 @@ export function computeTotals(input: PricingInput): PricingResult {
   const discount = Math.min(Math.max(0, raw), gross);
   const base = gross - discount;
   const service = Math.round((base * input.servicePercent) / 100);
-  const tax = Math.round(((base + service) * input.taxPercent) / 100);
+  const ratio = gross > 0 ? Math.max(0, gross - (input.nonTaxable ?? 0)) / gross : 1;
+  const tax = Math.round(((base + service) * ratio * input.taxPercent) / 100);
   return { gross, discount, service, tax, total: base + service + tax };
 }

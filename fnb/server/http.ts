@@ -14,7 +14,7 @@ const LEGACY: Record<string, [number, string]> = {
   FORBIDDEN: [403, "Anda belum punya izin untuk tindakan ini."],
   NOT_FOUND: [404, "Data tidak ditemukan."],
   ITEM_UNAVAILABLE: [422, "Ada menu yang sedang habis."],
-  INSUFFICIENT_STOCK: [409, "Bahan tidak cukup untuk pesanan ini."],
+  INSUFFICIENT_STOCK: [409, "Stok tidak cukup untuk pesanan ini. Cek bahan atau stok menu."],
   NO_OUTLET: [422, "Outlet belum tersedia."],
   ORDER_NOT_READY: [422, "Pesanan ini belum siap dibayar."],
   INVALID_TRANSITION: [409, "Status pesanan tidak bisa diubah ke tahap itu."],

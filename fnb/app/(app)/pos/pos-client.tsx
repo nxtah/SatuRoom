@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { thumb } from "@/lib/images";
 import { computeTotals } from "@/lib/pricing";
 import type { Catalog } from "@/server/catalog";
 import type { Order } from "@/server/orders";
@@ -15,6 +16,7 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
   const [cart, setCart] = useState<CartLine[]>([]);
   const [picking, setPicking] = useState<Catalog["items"][number] | null>(null);
   const [category, setCategory] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [type, setType] = useState<"dine_in" | "takeaway" | "pickup">("dine_in");
   const [customerName, setCustomerName] = useState("");
   const [message, setMessage] = useState("");
@@ -31,15 +33,20 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
   const [key, setKey] = useState(() => crypto.randomUUID());
 
   const items = useMemo(
-    () => catalog.items.filter((i) => i.available && (category === "all" || i.categoryId === category)),
-    [catalog.items, category],
+    () => catalog.items.filter((i) => {
+      if (!i.available || (category !== "all" && i.categoryId !== category)) return false;
+      const q = search.trim().toLowerCase();
+      return !q || `${i.name} ${i.sku ?? ""} ${i.barcode ?? ""}`.toLowerCase().includes(q);
+    }),
+    [catalog.items, category, search],
   );
   const lines = cart;
   const unit = (l: CartLine) => l.item.price + l.mods.reduce((s, m) => s + m.priceDelta, 0);
   const gross = lines.reduce((sum, l) => sum + unit(l) * l.qty, 0);
   const live = voucher && voucher.gross === gross ? voucher : null;
   const wantsDiscount = canDiscount && !live && Number(discValue) > 0;
-  const totals = computeTotals({ gross, discountType: live ? "amount" : wantsDiscount ? discType : null, discountValue: live ? live.discount : wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
+  const nonTaxable = lines.reduce((sum, l) => (l.item.taxable ? sum : sum + unit(l) * l.qty), 0);
+  const totals = computeTotals({ gross, nonTaxable, discountType: live ? "amount" : wantsDiscount ? discType : null, discountValue: live ? live.discount : wantsDiscount ? Number(discValue) : 0, servicePercent, taxPercent });
   const total = totals.total;
 
   async function applyVoucher() {
@@ -86,19 +93,30 @@ export function PosClient({ customers, tables, catalog, initialOrders, servicePe
     setBusy(false);
   }
 
-  return <div className="mt-6 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-    <section>
+  return <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+    <section className="min-w-0">
       <div className="flex gap-2 overflow-x-auto pb-1">
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => {
+          // Scanner barcode mengetik kode lalu Enter: kalau persis satu menu cocok, langsung masuk keranjang.
+          if (e.key !== "Enter") return;
+          const hit = catalog.items.find((i) => i.available && i.barcode === search.trim());
+          if (hit) { e.preventDefault(); choose(hit); setSearch(""); }
+        }} placeholder="Cari menu, SKU, atau scan barcode" aria-label="Cari menu" className="h-11 w-64 shrink-0 rounded-full border border-stone-200 bg-white px-4" />
         <Chip active={category === "all"} onClick={() => setCategory("all")}>Semua</Chip>
         {catalog.categories.map((c) => <Chip key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>{c.name}</Chip>)}
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-3">
-        {items.map((i) => <button key={i.id} onClick={() => choose(i)} className="min-h-28 rounded-[1.5rem] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99]">
+        {items.map((i) => <button key={i.id} onClick={() => choose(i)} className="min-h-28 overflow-hidden rounded-[1.5rem] bg-white text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {i.imageUrl ? <img src={thumb(i.imageUrl, 400)!} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" /> : null}
+          <span className="block p-4">
           <span className="font-extrabold text-ink">{i.name}</span>
           <span className="mt-1 block text-sm text-stone-500">{i.categoryName}</span>
           <span className="mt-4 block font-bold text-basil">{rupiah(i.price)}</span>
           {i.groupIds.length ? <span className="mt-1 mr-1 inline-block rounded-full bg-stone-100 px-2 py-0.5 text-xs font-bold text-stone-600">Ada pilihan</span> : null}
           {cartQty(i.id) ? <span className="mt-1 inline-block rounded-full bg-saffron/20 px-2 py-0.5 text-xs font-bold text-kitchen">{cartQty(i.id)}x</span> : null}
+          {i.trackStock && i.stock <= i.minStock ? <span className="mt-1 ml-1 inline-block rounded-full bg-tomato/15 px-2 py-0.5 text-xs font-bold text-chili">Sisa {i.stock}</span> : null}
+          </span>
         </button>)}
         {!items.length ? <p className="col-span-full rounded-[1.5rem] bg-white p-8 text-center text-stone-500">Belum ada menu tersedia. Tambah dari halaman Menu.</p> : null}
       </div>

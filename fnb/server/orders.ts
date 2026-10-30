@@ -11,6 +11,7 @@ import { AppError, forbidden } from "./errors";
 import { resolveModifiers } from "./modifiers";
 import { redeemVoucher, releaseVoucher } from "./promos";
 import { readSettings } from "./settings";
+import { deductTrackedItems, restoreTrackedItems } from "./item-stock";
 import { deductOrderStock, restoreOrderStock } from "./stock";
 
 export const ORDER_STATUSES = ["open", "confirmed", "preparing", "ready", "served", "completed", "cancelled"] as const;
@@ -96,22 +97,24 @@ export async function createOrder(ctx: FnbContext, input: z.input<typeof OrderIn
 
 function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDiscount: boolean) {
   return inBusiness(ctx, async (tx) => {
+    const outlet = (await tx.execute(sql`SELECT id FROM fnb.outlets WHERE is_primary AND archived_at IS NULL LIMIT 1`)) as unknown as { id: string }[];
+    if (!outlet[0]) throw new Error("NO_OUTLET");
     const items = (await tx.execute(sql`
-      SELECT id, name, price, station_id AS "stationId", is_available AS available
-      FROM fnb.menu_items WHERE id IN (${sql.join(input.lines.map((l) => sql`${l.menuItemId}::uuid`), sql`, `)}) AND archived_at IS NULL
-    `)) as unknown as { id: string; name: string; price: number; stationId: string | null; available: boolean }[];
+      SELECT i.id, i.name, coalesce(o.price, i.price) AS price, coalesce(o.cost, i.cost) AS cost, i.taxable, i.station_id AS "stationId",
+             i.is_available AND coalesce(o.is_available, true) AS available
+      FROM fnb.menu_items i LEFT JOIN fnb.outlet_items o ON o.menu_item_id = i.id AND o.outlet_id = ${outlet[0].id}::uuid
+      WHERE i.id IN (${sql.join(input.lines.map((l) => sql`${l.menuItemId}::uuid`), sql`, `)}) AND i.archived_at IS NULL
+    `)) as unknown as { id: string; name: string; price: number; cost: number; taxable: boolean; stationId: string | null; available: boolean }[];
     const byId = new Map(items.map((i) => [i.id, i]));
     for (const line of input.lines) {
       const item = byId.get(line.menuItemId);
       if (!item) throw new Error("NOT_FOUND");
       if (!item.available) throw new Error("ITEM_UNAVAILABLE");
     }
-    const outlet = (await tx.execute(sql`SELECT id FROM fnb.outlets WHERE is_primary AND archived_at IS NULL LIMIT 1`)) as unknown as { id: string }[];
-    if (!outlet[0]) throw new Error("NO_OUTLET");
     const priced = [];
     for (const line of input.lines) {
       const mods = await resolveModifiers(tx, line.menuItemId, line.modifierIds ?? []);
-      priced.push({ line, mods, unitPrice: byId.get(line.menuItemId)!.price + mods.delta });
+      priced.push({ line, mods, unitPrice: byId.get(line.menuItemId)!.price + mods.delta, unitCost: byId.get(line.menuItemId)!.cost + mods.cost });
     }
     const subtotal = priced.reduce((sum, p) => sum + p.unitPrice * p.line.quantity, 0);
     const settings = await readSettings(tx, ctx.businessId);
@@ -133,6 +136,7 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     }
     const totals = computeTotals({
       gross: subtotal,
+      nonTaxable: priced.reduce((sum, p) => (byId.get(p.line.menuItemId)!.taxable ? sum : sum + p.unitPrice * p.line.quantity), 0),
       discountType,
       discountValue,
       servicePercent: settings.servicePercent,
@@ -153,11 +157,11 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
               ${input.customerId ?? null}::uuid, ${voucher?.id ?? null}::uuid, ${voucher?.code ?? null})
       RETURNING id
     `)) as unknown as { id: string }[];
-    for (const { line, mods, unitPrice } of priced) {
+    for (const { line, mods, unitPrice, unitCost } of priced) {
       const item = byId.get(line.menuItemId)!;
       const [created] = (await tx.execute(sql`
-        INSERT INTO fnb.order_lines (business_id, order_id, menu_item_id, station_id, item_name, unit_price, quantity, notes, status)
-        VALUES (${ctx.businessId}::uuid, ${order!.id}::uuid, ${item.id}::uuid, ${item.stationId}::uuid, ${item.name}, ${unitPrice},
+        INSERT INTO fnb.order_lines (business_id, order_id, menu_item_id, station_id, item_name, unit_price, unit_cost, taxable, quantity, notes, status)
+        VALUES (${ctx.businessId}::uuid, ${order!.id}::uuid, ${item.id}::uuid, ${item.stationId}::uuid, ${item.name}, ${unitPrice}, ${unitCost}, ${item.taxable},
                 ${line.quantity}, ${line.notes ?? null}, 'confirmed')
         RETURNING id
       `)) as unknown as { id: string }[];
@@ -169,6 +173,7 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
       }
     }
     await deductOrderStock(tx, ctx, order!.id, input.lines);
+    await deductTrackedItems(tx, ctx, outlet[0].id, order!.id, input.lines);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.order.created",
       targetType: "order", targetId: order!.id, meta: { receiptNo, subtotal, discount: totals.discount, total: totals.total, lines: input.lines.length },
@@ -192,9 +197,10 @@ export async function nextReceiptNo(tx: Tx, businessId: string, prefix: string) 
 export async function repriceOrder(tx: Tx, orderId: string) {
   const [o] = (await tx.execute(sql`
     SELECT o.service_percent::float8 AS "servicePercent", o.tax_percent::float8 AS "taxPercent",
-           coalesce((SELECT sum(l.unit_price * l.quantity) FROM fnb.order_lines l WHERE l.order_id = o.id), 0)::int AS subtotal
-    FROM fnb.orders o WHERE o.id = ${orderId}::uuid`)) as unknown as { servicePercent: number; taxPercent: number; subtotal: number }[];
-  const t = computeTotals({ gross: o!.subtotal, servicePercent: o!.servicePercent, taxPercent: o!.taxPercent });
+           coalesce((SELECT sum(l.unit_price * l.quantity) FROM fnb.order_lines l WHERE l.order_id = o.id), 0)::int AS subtotal,
+           coalesce((SELECT sum(l.unit_price * l.quantity) FROM fnb.order_lines l WHERE l.order_id = o.id AND NOT l.taxable), 0)::int AS "nonTaxable"
+    FROM fnb.orders o WHERE o.id = ${orderId}::uuid`)) as unknown as { servicePercent: number; taxPercent: number; subtotal: number; nonTaxable: number }[];
+  const t = computeTotals({ gross: o!.subtotal, nonTaxable: o!.nonTaxable, servicePercent: o!.servicePercent, taxPercent: o!.taxPercent });
   await tx.execute(sql`UPDATE fnb.orders SET subtotal = ${t.gross}, discount = 0, service_charge = ${t.service}, tax = ${t.tax}, total = ${t.total} WHERE id = ${orderId}::uuid`);
   return t.total;
 }
@@ -223,7 +229,7 @@ export async function updateOrderStatus(ctx: FnbContext, id: string, status: Ord
         cancel_reason = CASE WHEN ${status} = 'cancelled' THEN ${reason?.trim() ?? null} ELSE cancel_reason END
       WHERE id = ${id}::uuid
     `);
-    if (status === "cancelled") { await restoreOrderStock(tx, ctx, id); await releaseVoucher(tx, id); }
+    if (status === "cancelled") { await restoreOrderStock(tx, ctx, id); await restoreTrackedItems(tx, ctx, id); await releaseVoucher(tx, id); }
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.order.status_changed",
       targetType: "order", targetId: id, meta: { from: current, to: status, ...(reason ? { reason } : {}) },

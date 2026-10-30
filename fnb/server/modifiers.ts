@@ -4,6 +4,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { ItemGroupsInput, ModifierGroupInput } from "@/lib/schemas";
+import { cleanImageUrl } from "./cloudinary";
 import { can, type FnbContext } from "./context";
 import { db } from "./db";
 import { AppError, forbidden, notFound } from "./errors";
@@ -11,9 +12,10 @@ import { AppError, forbidden, notFound } from "./errors";
 export interface ModifierGroup {
   id: string;
   name: string;
+  description: string | null;
   minSelect: number;
   maxSelect: number;
-  modifiers: { id: string; name: string; priceDelta: number; available: boolean }[];
+  modifiers: { id: string; name: string; priceDelta: number; available: boolean; sku: string | null; cost: number; imageUrl: string | null; ingredientId: string | null; ingredientQty: number | null }[];
   itemIds: string[];
 }
 
@@ -27,11 +29,12 @@ const manage = (ctx: FnbContext) => {
 /** Dipakai POS dan halaman Menu. Hanya grup dan opsi yang masih aktif. */
 export async function listGroups(tx: Tx): Promise<ModifierGroup[]> {
   const groups = (await tx.execute(sql`
-    SELECT id, name, min_select AS "minSelect", max_select AS "maxSelect"
+    SELECT id, name, description, min_select AS "minSelect", max_select AS "maxSelect"
     FROM fnb.modifier_groups WHERE archived_at IS NULL ORDER BY lower(name)`)) as unknown as Omit<ModifierGroup, "modifiers" | "itemIds">[];
   if (!groups.length) return [];
   const mods = (await tx.execute(sql`
-    SELECT id, group_id AS "groupId", name, price_delta AS "priceDelta", is_available AS available
+    SELECT id, group_id AS "groupId", name, price_delta AS "priceDelta", is_available AS available, sku, cost, image_url AS "imageUrl",
+           ingredient_id AS "ingredientId", ingredient_qty::float8 AS "ingredientQty"
     FROM fnb.modifiers WHERE archived_at IS NULL ORDER BY sort_order, name`)) as unknown as (ModifierGroup["modifiers"][number] & { groupId: string })[];
   const links = (await tx.execute(sql`SELECT group_id AS "groupId", menu_item_id AS "itemId" FROM fnb.menu_item_groups`)) as unknown as { groupId: string; itemId: string }[];
   return groups.map((g) => ({
@@ -46,33 +49,34 @@ export function listModifierGroups(ctx: FnbContext): Promise<ModifierGroup[]> {
 }
 
 /** Simpan grup beserta opsinya sekaligus. Opsi yang tidak lagi dikirim diarsipkan, riwayat struk tetap utuh. */
-export async function saveModifierGroup(ctx: FnbContext, input: z.infer<typeof ModifierGroupInput>): Promise<{ id: string }> {
+export async function saveModifierGroup(ctx: FnbContext, input: z.input<typeof ModifierGroupInput>): Promise<{ id: string }> {
   manage(ctx);
   return inBusiness(ctx, async (tx) => {
     let id = input.id;
     if (id) {
       const rows = (await tx.execute(sql`
-        UPDATE fnb.modifier_groups SET name = ${input.name}, min_select = ${input.minSelect}, max_select = ${input.maxSelect}
+        UPDATE fnb.modifier_groups SET name = ${input.name}, description = ${input.description || null}, min_select = ${input.minSelect}, max_select = ${input.maxSelect}
         WHERE id = ${id}::uuid AND archived_at IS NULL RETURNING id`)) as unknown as unknown[];
       if (!rows.length) throw notFound("Grup pilihan");
     } else {
       const [row] = (await tx.execute(sql`
-        INSERT INTO fnb.modifier_groups (business_id, name, min_select, max_select)
-        VALUES (${ctx.businessId}::uuid, ${input.name}, ${input.minSelect}, ${input.maxSelect}) RETURNING id`)) as unknown as { id: string }[];
+        INSERT INTO fnb.modifier_groups (business_id, name, description, min_select, max_select)
+        VALUES (${ctx.businessId}::uuid, ${input.name}, ${input.description || null}, ${input.minSelect}, ${input.maxSelect}) RETURNING id`)) as unknown as { id: string }[];
       id = row!.id;
     }
     const keep: string[] = [];
     for (const [index, m] of input.modifiers.entries()) {
       if (m.id) {
         const rows = (await tx.execute(sql`
-          UPDATE fnb.modifiers SET name = ${m.name}, price_delta = ${m.priceDelta}, is_available = ${m.available}, sort_order = ${index}, archived_at = NULL
+          UPDATE fnb.modifiers SET name = ${m.name}, price_delta = ${m.priceDelta}, is_available = ${m.available ?? true}, sort_order = ${index}, archived_at = NULL,
+            sku = ${m.sku?.trim() || null}, cost = ${m.cost ?? 0}, image_url = ${cleanImageUrl(ctx, m.imageUrl)}, ingredient_id = ${m.ingredientId ?? null}::uuid, ingredient_qty = ${m.ingredientQty ?? null}
           WHERE id = ${m.id}::uuid AND group_id = ${id}::uuid RETURNING id`)) as unknown as unknown[];
         if (!rows.length) throw notFound("Opsi");
         keep.push(m.id);
       } else {
         const [row] = (await tx.execute(sql`
-          INSERT INTO fnb.modifiers (business_id, group_id, name, price_delta, is_available, sort_order)
-          VALUES (${ctx.businessId}::uuid, ${id}::uuid, ${m.name}, ${m.priceDelta}, ${m.available}, ${index}) RETURNING id`)) as unknown as { id: string }[];
+          INSERT INTO fnb.modifiers (business_id, group_id, name, price_delta, is_available, sort_order, sku, cost, image_url, ingredient_id, ingredient_qty)
+          VALUES (${ctx.businessId}::uuid, ${id}::uuid, ${m.name}, ${m.priceDelta}, ${m.available ?? true}, ${index}, ${m.sku?.trim() || null}, ${m.cost ?? 0}, ${cleanImageUrl(ctx, m.imageUrl)}, ${m.ingredientId ?? null}::uuid, ${m.ingredientQty ?? null}) RETURNING id`)) as unknown as { id: string }[];
         keep.push(row!.id);
       }
     }
@@ -128,9 +132,9 @@ export async function resolveModifiers(tx: Tx, itemId: string, modifierIds: stri
     WHERE l.menu_item_id = ${itemId}::uuid AND g.archived_at IS NULL`)) as unknown as { id: string; name: string; min: number; max: number }[];
   const chosen = ids.length
     ? ((await tx.execute(sql`
-        SELECT m.id, m.name, m.price_delta AS "priceDelta", m.group_id AS "groupId", m.is_available AS available
+        SELECT m.id, m.name, m.price_delta AS "priceDelta", m.cost, m.group_id AS "groupId", m.is_available AS available
         FROM fnb.modifiers m WHERE m.archived_at IS NULL AND m.id IN (${sql.join(ids.map((i) => sql`${i}::uuid`), sql`, `)})`)) as unknown as {
-        id: string; name: string; priceDelta: number; groupId: string; available: boolean;
+        id: string; name: string; priceDelta: number; cost: number; groupId: string; available: boolean;
       }[])
     : [];
   if (chosen.length !== ids.length) throw new AppError(422, "modifier_invalid", "Ada pilihan menu yang sudah tidak tersedia. Muat ulang halaman.");
@@ -143,5 +147,5 @@ export async function resolveModifiers(tx: Tx, itemId: string, modifierIds: stri
     if (count < g.min) throw new AppError(422, "modifier_min", `${g.name}: pilih minimal ${g.min}.`);
     if (count > g.max) throw new AppError(422, "modifier_max", `${g.name}: pilih maksimal ${g.max}.`);
   }
-  return { rows: chosen.map(({ id, name, priceDelta }) => ({ id, name, priceDelta })), delta: chosen.reduce((s, m) => s + m.priceDelta, 0) };
+  return { rows: chosen.map(({ id, name, priceDelta }) => ({ id, name, priceDelta })), delta: chosen.reduce((s, m) => s + m.priceDelta, 0), cost: chosen.reduce((s, m) => s + m.cost, 0) };
 }

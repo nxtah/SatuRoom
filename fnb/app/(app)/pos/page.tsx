@@ -9,7 +9,7 @@ import { PosClient } from "./pos-client";
 
 export default async function PosPage() {
   const ctx = await requireFnbPage();
-  const [catalog, orders, settings, tables, customers] = await Promise.all([listCatalog(ctx), listOrders(ctx), getSettings(ctx), listTables(ctx), listCustomers(ctx)]);
+  const [catalog, orders, settings, tables, customers] = await Promise.all([listCatalog(ctx, { forPos: true }), listOrders(ctx), getSettings(ctx), listTables(ctx), listCustomers(ctx)]);
   return <main className="mx-auto max-w-6xl p-4 sm:p-8">
     <p className="font-bold text-tomato">Kasir</p>
     <h1 className="text-3xl font-extrabold">Pesanan baru</h1>
