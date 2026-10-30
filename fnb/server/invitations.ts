@@ -4,6 +4,7 @@ import { withContext } from "@saturoom/core/db";
 import { auditEvents, businesses } from "@saturoom/core/schema";
 import { eq, sql } from "drizzle-orm";
 import type { z } from "zod";
+import { formatBusinessCode } from "@/lib/business-code";
 import { permissionsFor, ROLE_LABEL, type BuiltinRole } from "@/lib/permissions";
 import type { InviteInput } from "@/lib/schemas";
 import { can, type FnbContext } from "./context";
@@ -47,7 +48,7 @@ export async function inviteStaff(ctx: FnbContext, input: z.infer<typeof InviteI
   const customRoleIds = [...new Set(input.customRoleIds)];
   if (roles.includes("owner") && !ctx.roles.includes("owner")) throw forbidden();
 
-  const { id, name, labels } = await inBusiness(ctx, async (tx) => {
+  const { id, name, code, labels } = await inBusiness(ctx, async (tx) => {
     const custom = customRoleIds.length
       ? ((await tx.execute(sql`SELECT name, permissions FROM fnb.custom_roles WHERE archived_at IS NULL AND id IN (${sql.join(customRoleIds.map((c) => sql`${c}::uuid`), sql`, `)})`)) as unknown as { name: string; permissions: string[] }[])
       : [];
@@ -67,13 +68,13 @@ export async function inviteStaff(ctx: FnbContext, input: z.infer<typeof InviteI
       businessId: ctx.businessId, actorUserId: ctx.userId, action: "fnb.staff.invited", targetType: "invitation", targetId: row!.id,
       meta: { roles, customRoleIds },
     });
-    const [biz] = await tx.select({ name: businesses.name }).from(businesses).where(eq(businesses.id, ctx.businessId));
-    return { id: row!.id, name: biz?.name ?? "Rasa", labels: [...roles.map((r) => ROLE_LABEL[r]), ...custom.map((c) => c.name)].join(", ") };
+    const [biz] = await tx.select({ name: businesses.name, code: businesses.code }).from(businesses).where(eq(businesses.id, ctx.businessId));
+    return { id: row!.id, name: biz?.name ?? "Rasa", code: biz?.code ?? "", labels: [...roles.map((r) => ROLE_LABEL[r]), ...custom.map((c) => c.name)].join(", ") };
   });
 
   // Gagal kirim email tidak membatalkan undangan; penerima tetap melihatnya di /undangan setelah masuk.
   let emailSent = true;
-  await sendStaffInvite(email, name, ctx.session.name, labels).catch((error: unknown) => {
+  await sendStaffInvite(email, name, ctx.session.name, labels, code ? formatBusinessCode(code) : "").catch((error: unknown) => {
     emailSent = false;
     console.error("gagal kirim undangan", error instanceof Error ? error.message : error);
   });

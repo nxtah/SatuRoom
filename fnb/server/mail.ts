@@ -53,17 +53,21 @@ export function sendResetPassword(to: string, token: string) {
   );
 }
 
-export function sendStaffInvite(to: string, venueName: string, inviterName: string, roleLabels: string) {
-  const url = `${env().APP_URL}/undangan`;
+export function sendStaffInvite(to: string, venueName: string, inviterName: string, roleLabels: string, businessCode: string) {
+  const base = env().APP_URL;
+  const signup = `${base}/daftar?undangan=1&email=${encodeURIComponent(to)}`;
+  const login = `${base}/masuk?undangan=1`;
+  const codeHtml = businessCode ? `<p style="margin:0 0 20px;font-size:15px;color:#4d5a52">ID bisnis<br><span style="display:inline-block;margin-top:6px;background:#fff4e2;border-radius:12px;padding:8px 14px;font-size:22px;font-weight:800;letter-spacing:2px;color:#2a1a10">${escapeHtml(businessCode)}</span></p>` : "";
+  const html = layout(
+    `Anda diundang ke ${escapeHtml(venueName)}`,
+    `${escapeHtml(inviterName)} mengundang Anda sebagai ${escapeHtml(roleLabels)} di SatuRoom Rasa. Belum punya akun? Buat akun dengan email ini (${escapeHtml(to)}) dan atur password Anda sendiri, konfirmasi emailnya, lalu terima undangannya. Undangan berlaku 14 hari.`,
+    { label: "Buat akun dan terima undangan", url: escapeHtml(signup) },
+  ).replace('<a href="', `${codeHtml}<a href="`).replace('<p style="font-size:12px', `<p style="font-size:14px;margin:20px 0 0"><a href="${login}" style="color:#2a1a10;font-weight:700">Sudah punya akun? Masuk</a>. Saat masuk, isi ID bisnis di atas, lalu email dan password Anda.</p><p style="font-size:12px`);
   return send(
     to,
     `Undangan bergabung ke ${venueName}`,
-    layout(
-      `Anda diundang ke ${escapeHtml(venueName)}`,
-      `${escapeHtml(inviterName)} mengundang Anda sebagai ${escapeHtml(roleLabels)} di SatuRoom Rasa. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Undangan berlaku 14 hari.`,
-      { label: "Lihat undangan", url },
-    ),
-    `${inviterName} mengundang Anda ke ${venueName} sebagai ${roleLabels}. Masuk atau daftar dengan email ${to}: ${url}`,
+    html,
+    `${inviterName} mengundang Anda ke ${venueName} sebagai ${roleLabels}.${businessCode ? ` ID bisnis: ${businessCode}.` : ""} Belum punya akun? Buat akun dengan email ${to} dan atur password Anda: ${signup} . Sudah punya akun? Masuk: ${login}`,
   );
 }
 

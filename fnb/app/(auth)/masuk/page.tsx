@@ -11,9 +11,9 @@ const NOTICE: Record<string, string> = {
   google_conflict: "Email ini sudah tertaut ke akun Google lain.",
 };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ galat?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ galat?: string; undangan?: string }> }) {
   if (await currentSession()) redirect("/");
-  const { galat } = await searchParams;
+  const { galat, undangan } = await searchParams;
   const google = googleConfig() !== null;
   return (
     <>
@@ -27,10 +27,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <OrDivider />
         </div>
       ) : null}
-      <LoginForm />
+      <LoginForm next={undangan ? "/undangan" : "/"} />
       <p className="mt-8 text-center text-stone-600">
         Belum punya akun?{" "}
-        <Link href="/daftar" className="font-bold text-kitchen underline decoration-saffron decoration-2 underline-offset-4">Daftar gratis</Link>
+        <Link href={undangan ? "/daftar?undangan=1" : "/daftar"} className="font-bold text-kitchen underline decoration-saffron decoration-2 underline-offset-4">Daftar gratis</Link>
       </p>
     </>
   );

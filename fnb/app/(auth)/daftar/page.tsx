@@ -5,7 +5,8 @@ import { currentSession } from "@/server/context";
 import { googleConfig } from "@/server/google";
 import { RegisterForm } from "./form";
 
-export default async function RegisterPage() {
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ email?: string; undangan?: string }> }) {
+  const q = await searchParams;
   if (await currentSession()) redirect("/");
   const google = googleConfig() !== null;
   return (
@@ -19,10 +20,10 @@ export default async function RegisterPage() {
           <OrDivider />
         </div>
       ) : null}
-      <RegisterForm />
+      <RegisterForm defaultEmail={q.email ?? ""} next={q.undangan ? "/undangan" : "/"} />
       <p className="mt-8 text-center text-stone-600">
         Sudah punya akun?{" "}
-        <Link href="/masuk" className="font-bold text-kitchen underline decoration-saffron decoration-2 underline-offset-4">Masuk</Link>
+        <Link href={q.undangan ? "/masuk?undangan=1" : "/masuk"} className="font-bold text-kitchen underline decoration-saffron decoration-2 underline-offset-4">Masuk</Link>
       </p>
     </>
   );

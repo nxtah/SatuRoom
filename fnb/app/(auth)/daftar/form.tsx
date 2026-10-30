@@ -3,7 +3,7 @@ import { useState } from "react";
 
 const input = "h-13 rounded-2xl border-2 border-stone-200 px-4 font-normal outline-none focus:border-saffron";
 
-export function RegisterForm() {
+export function RegisterForm({ defaultEmail = "", next = "/" }: { defaultEmail?: string; next?: string }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -25,13 +25,13 @@ export function RegisterForm() {
       setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Terjadi gangguan. Coba lagi.");
       return setBusy(false);
     }
-    location.replace("/");
+    location.replace(next);
   }
 
   return (
     <form className="mt-5 grid gap-4" onSubmit={onSubmit}>
       <label className="grid gap-2 font-bold">Nama Anda<input name="name" autoComplete="name" required className={input} /></label>
-      <label className="grid gap-2 font-bold">Email<input name="email" type="email" autoComplete="email" required className={input} /></label>
+      <label className="grid gap-2 font-bold">Email<input name="email" type="email" autoComplete="email" required defaultValue={defaultEmail} className={input} /></label>
       <label className="grid gap-2 font-bold">
         Password
         <input name="password" type="password" autoComplete="new-password" minLength={8} required className={input} />
