@@ -20,7 +20,7 @@ export const CatalogInput=z.discriminatedUnion("type",[
   z.object({type:z.literal("station"),name:name.max(60)}),
   z.object({type:z.literal("item"),name,description:z.string().trim().max(300).optional(),categoryId:z.string().uuid(),stationId:z.string().uuid().nullable(),price:z.coerce.number().int().min(0).max(100_000_000),...itemExtras}),
 ]);
-export const UploadSignInput=z.object({kind:z.enum(["menu","kategori","addon","struk"])});
+export const UploadSignInput=z.object({kind:z.enum(["menu","kategori","addon","struk","logo"])});
 export const CategoryUpdateInput=z.object({name,description:z.string().trim().max(200).nullish(),imageUrl:imageField,isActive:z.boolean().default(true),sortOrder:z.coerce.number().int().min(0).max(10_000).default(0)});
 export const ItemStockInput=z.object({
   quantity:z.coerce.number().int().refine((v)=>v!==0,"Jumlah tidak boleh nol.").refine((v)=>Math.abs(v)<=1_000_000,"Jumlah terlalu besar."),
@@ -306,4 +306,11 @@ export const PrinterInput = z.object({
   copies: z.coerce.number().int().min(1).max(5),
   isDefault: z.boolean(),
   isActive: z.boolean(),
+});
+
+export const BusinessProfileInput = z.object({
+  logoUrl: z.string().trim().max(500).nullish(),
+  address: z.string().trim().max(300).nullish(),
+  city: z.string().trim().max(80).nullish(),
+  publicMenuEnabled: z.boolean(),
 });

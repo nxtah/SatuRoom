@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Printer, Armchair, Banknote, BarChart3, Clock, FileText, HandCoins, Trash2, BookOpen, Boxes, Building2, ChefHat, ClipboardList, History, Home, Landmark, Layers, ListOrdered, Package, Percent, ReceiptText, Settings, ShoppingBasket, Store, TrendingUp, UserCog, UserRound, Users, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
+import { QrCode, ArrowLeftRight, Printer, Armchair, Banknote, BarChart3, Clock, FileText, HandCoins, Trash2, BookOpen, Boxes, Building2, ChefHat, ClipboardList, History, Home, Landmark, Layers, ListOrdered, Package, Percent, ReceiptText, Settings, ShoppingBasket, Store, TrendingUp, UserCog, UserRound, Users, UtensilsCrossed, Wallet, type LucideIcon } from "lucide-react";
 
 export type NavLeaf = { href: string; label: string; icon: LucideIcon };
 export type NavGroup = { label: string; icon: LucideIcon; children: NavLeaf[] };
@@ -51,6 +51,7 @@ export const NAV: readonly NavEntry[] = [
     { href: "/cabang/barang", label: "Barang per cabang", icon: Boxes },
     { href: "/pelanggan", label: "Pelanggan", icon: UserRound },
     { href: "/grup-meja", label: "Meja dan grup meja", icon: Armchair },
+    { href: "/menu-digital", label: "Menu digital (QR)", icon: QrCode },
     { href: "/pengaturan-struk", label: "Struk", icon: ReceiptText },
     { href: "/printer", label: "Manajemen printer", icon: Printer },
     { href: "/audit", label: "Jejak aktivitas", icon: History },

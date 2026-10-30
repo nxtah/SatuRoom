@@ -6,7 +6,7 @@ import { thumb } from "@/lib/images";
 const MAX = 5 * 1024 * 1024;
 
 /** Unggah gambar langsung ke Cloudinary dengan tanda tangan dari server. Mengembalikan URL aman lewat onChange. */
-export function ImageField({ value, onChange, kind, label = "Gambar" }: { value: string | null; onChange: (url: string | null) => void; kind: "menu" | "kategori" | "addon" | "struk"; label?: string }) {
+export function ImageField({ value, onChange, kind, label = "Gambar" }: { value: string | null; onChange: (url: string | null) => void; kind: "menu" | "kategori" | "addon" | "struk" | "logo"; label?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

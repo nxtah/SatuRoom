@@ -1,12 +1,29 @@
 "use client";
 
-import { ChevronDown, Ellipsis, X } from "lucide-react";
+import { ChevronDown, Ellipsis, LogOut, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Brand } from "./brand";
 import { LogoMark } from "./maskot";
+import { Img } from "./img";
+import { thumb } from "@/lib/images";
 import { isGroup, NAV, type NavEntry, type NavGroup, type NavLeaf } from "./nav-config";
+
+export type ShellProfile = { name: string; city: string | null; logoUrl: string | null };
+
+/** Logo bisnis, atau huruf pertama nama bila belum ada logo. */
+function BizMark({ p, size = "size-10" }: { p: ShellProfile; size?: string }) {
+  const src = thumb(p.logoUrl, 96);
+  return src
+    ? <Img src={src} alt="" className={`${size} shrink-0 rounded-xl bg-white object-cover`} />
+    : <span aria-hidden className={`${size} grid shrink-0 place-items-center rounded-xl bg-saffron text-lg font-extrabold text-kitchen`}>{p.name.trim().charAt(0).toUpperCase()}</span>;
+}
+
+async function signOut() {
+  await fetch("/api/v1/auth/logout", { method: "POST" }).catch(() => null);
+  location.replace("/masuk");
+}
 
 const MAIN = ["/", "/pos", "/pesanan", "/dapur"];
 
@@ -19,7 +36,7 @@ function visible(hidden: string[]): NavEntry[] {
   });
 }
 
-export function AppShell({ children, hidden = [] }: { children: React.ReactNode; hidden?: string[] }) {
+export function AppShell({ children, hidden = [], profile }: { children: React.ReactNode; hidden?: string[]; profile: ShellProfile }) {
   const path = usePathname();
   const [sheet, setSheet] = useState(false);
   const [flyout, setFlyout] = useState<string | null>(null);
@@ -43,12 +60,12 @@ export function AppShell({ children, hidden = [] }: { children: React.ReactNode;
   const idle = " text-white/75 hover:bg-white/10 hover:text-white";
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[88px_minmax(0,1fr)] lg:grid-cols-[272px_minmax(0,1fr)]">
+    <div className="min-h-dvh md:grid md:grid-cols-[104px_minmax(0,1fr)] lg:grid-cols-[272px_minmax(0,1fr)]">
       <a href="#isi" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-kitchen focus:px-4 focus:py-2 focus:text-white">
         Lewati ke isi
       </a>
-      <aside className="hidden p-3 md:block">
-        <div className="sticky top-3 flex h-[calc(100dvh-1.5rem)] flex-col gap-4 overflow-y-auto rounded-[2rem] bg-kitchen p-3 text-white lg:p-4">
+      <aside className="hidden p-2.5 md:block">
+        <div className="sticky top-2.5 flex h-[calc(100dvh-1.25rem)] flex-col gap-3 overflow-y-auto rounded-[2rem] bg-kitchen p-2 pb-4 text-white lg:gap-4 lg:p-4">
           <div className="hidden px-2 pt-1 lg:block"><Brand tone="white" /></div>
           <div className="mx-auto pt-3 lg:hidden"><LogoMark className="h-10" /></div>
           {/* Layar lebar: grup bisa dibuka-tutup. */}
@@ -73,20 +90,22 @@ export function AppShell({ children, hidden = [] }: { children: React.ReactNode;
             {entries.map((e) => {
               const Icon = e.icon;
               const lit = isGroup(e) ? groupOn(e) || flyout === e.label : on(e.href);
-              const cls = `flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2.5 text-[11px] font-bold leading-tight transition ${lit ? "bg-saffron text-kitchen" : "text-white/75 hover:bg-white/10 hover:text-white"}`;
+              const cls = `flex flex-col items-center justify-center gap-1 rounded-2xl px-0.5 py-2 text-[10.5px] font-bold text-center leading-tight break-words transition ${lit ? "bg-saffron text-kitchen" : "text-white/75 hover:bg-white/10 hover:text-white"}`;
               if (!isGroup(e)) return <Link key={e.href} href={e.href} onClick={close} aria-current={on(e.href) ? "page" : undefined} className={cls}><Icon aria-hidden className="size-5" /><span>{e.label}</span></Link>;
               return <button key={e.label} type="button" aria-expanded={flyout === e.label} onClick={() => setFlyout(flyout === e.label ? null : e.label)} className={cls}><Icon aria-hidden className="size-5" /><span>{e.label}</span></button>;
             })}
           </nav>
-          <p className="mt-auto hidden rounded-2xl bg-white/8 p-4 text-sm text-white/70 lg:block">
-            Pesanan, dapur, stok, dan kas terhubung. Satu input, semua ikut berubah.
-          </p>
+          <div className="mt-auto grid gap-2">
+            <div className="hidden items-center gap-3 rounded-2xl bg-white/8 p-3 lg:flex"><BizMark p={profile} /><div className="min-w-0"><p className="truncate font-extrabold">{profile.name}</p>{profile.city ? <p className="truncate text-xs text-white/60">{profile.city}</p> : null}</div></div>
+            <div className="mx-auto lg:hidden"><BizMark p={profile} size="size-11" /></div>
+            <button type="button" onClick={signOut} className="flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-white/75 hover:bg-white/10 hover:text-white lg:justify-start lg:px-4"><LogOut aria-hidden className="size-5 shrink-0" /><span className="hidden lg:inline">Keluar</span><span className="sr-only lg:hidden">Keluar</span></button>
+          </div>
         </div>
       </aside>
       {flyout ? (
         <>
           <button type="button" aria-label="Tutup menu" className="fixed inset-0 z-30 hidden cursor-default md:block lg:hidden" onClick={() => setFlyout(null)} />
-          <div role="menu" className="fixed top-3 bottom-3 left-[100px] z-40 hidden w-64 content-start gap-1 overflow-y-auto rounded-[1.5rem] bg-kitchen p-3 shadow-xl md:grid lg:hidden">
+          <div role="menu" className="fixed top-3 bottom-3 left-[116px] z-40 hidden w-64 content-start gap-1 overflow-y-auto rounded-[1.5rem] bg-kitchen p-3 shadow-xl md:grid lg:hidden">
             <p className="px-4 pt-1 pb-2 text-sm font-bold text-saffron">{flyout}</p>
             {entries.filter(isGroup).find((g) => g.label === flyout)?.children.map((c) => link(c, sideCls + (on(c.href) ? "" : " text-white/85 hover:bg-white/10")))}
           </div>
@@ -95,10 +114,11 @@ export function AppShell({ children, hidden = [] }: { children: React.ReactNode;
       <div className="min-w-0 pb-24 md:pb-0">
         <header className="sticky top-0 z-20 flex h-16 items-center bg-plate/90 px-4 backdrop-blur sm:px-8 md:hidden">
           <Brand />
+          <div className="ml-auto shrink-0"><BizMark p={profile} size="size-9" /></div>
         </header>
         <div id="isi">{children}</div>
       </div>
-      <nav aria-label="Menu cepat" className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 rounded-[1.6rem] bg-kitchen p-1.5 shadow-xl md:hidden">
+      <nav aria-label="Menu cepat" style={{ gridTemplateColumns: `repeat(${mobile.length + 1}, minmax(0, 1fr))` }} className="fixed inset-x-3 bottom-3 z-30 grid rounded-[1.6rem] bg-kitchen p-1.5 shadow-xl md:hidden">
         {mobile.map((l) => (
           <Link key={l.href} href={l.href} onClick={close} aria-current={on(l.href) ? "page" : undefined} className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-bold ${on(l.href) ? "bg-saffron text-kitchen" : "text-white/75"}`}>
             <l.icon aria-hidden className="size-5" />
@@ -117,6 +137,7 @@ export function AppShell({ children, hidden = [] }: { children: React.ReactNode;
                 {(isGroup(e) ? e.children : [e]).map((c) => link(c, "flex items-center gap-3 rounded-2xl px-4 py-3 font-bold " + (on(c.href) ? "" : "text-white/85 active:bg-white/10")))}
               </div>
             ))}
+            <button type="button" onClick={signOut} className="mt-1 flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-bold text-white/85 active:bg-white/10"><LogOut aria-hidden className="size-5 shrink-0" />Keluar</button>
           </div>
         ) : null}
       </nav>

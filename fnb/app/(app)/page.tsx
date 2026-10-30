@@ -5,6 +5,9 @@ import { AreaTrend, BarList, Sparkline } from "@/components/charts";
 import { Maskot } from "@/components/maskot";
 import { formatBusinessCode } from "@/lib/business-code";
 import { getFnbBusinessCode } from "@/server/business";
+import { getProfile } from "@/server/business-profile";
+import { Img } from "@/components/img";
+import { thumb } from "@/lib/images";
 import { listOrders } from "@/server/orders";
 import { overview } from "@/server/overview";
 import { dailyReport, salesSeries, todayJakarta } from "@/server/reports";
@@ -26,8 +29,9 @@ export default async function FnbDashboard() {
   const canReport = can(ctx, "reports.read");
   const canCash = can(ctx, "cash.manage");
   const today = todayJakarta();
-  const [code, orders, stock, report, series, ov] = await Promise.all([
+  const [code, profile, orders, stock, report, series, ov] = await Promise.all([
     getFnbBusinessCode(ctx),
+    getProfile(ctx),
     listOrders(ctx, "active"),
     listStock(ctx),
     canReport ? dailyReport(ctx, today) : null,
@@ -50,7 +54,11 @@ export default async function FnbDashboard() {
       <span aria-hidden className="pointer-events-none absolute right-6 bottom-0 size-52 rounded-full bg-white/[0.06] sm:right-12 sm:size-72" />
       <div className="relative pr-24 sm:pr-0 sm:pb-12">
         <p className="font-bold text-saffron">{todayLabel}</p>
-        <h1 className="mt-1 text-2xl leading-tight font-extrabold tracking-tight sm:mt-2 sm:text-5xl">Operasional hari ini</h1>
+        <div className="mt-2 flex items-center gap-3 pr-24 sm:gap-4 sm:pr-0">
+          {thumb(profile.logoUrl, 160) ? <Img src={thumb(profile.logoUrl, 160) ?? undefined} alt="" className="size-12 shrink-0 rounded-2xl bg-white object-cover sm:size-16" /> : <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-2xl bg-saffron text-2xl font-extrabold text-kitchen sm:size-16 sm:text-3xl">{profile.name.trim().charAt(0).toUpperCase()}</span>}
+          <h1 className="min-w-0 text-xl leading-tight font-extrabold tracking-tight break-words sm:text-3xl lg:text-5xl">{profile.name}</h1>
+        </div>
+        <p className="mt-1 text-sm text-white/70 sm:text-base">Operasional hari ini{profile.city ? ` · ${profile.city}` : ""}</p>
         <p className="mt-2 hidden max-w-md text-white/70 sm:block">POS, dapur, stok, dan laporan terhubung dalam satu alur.</p>
         <p className="mt-2 text-sm text-white/70 sm:mt-3 sm:text-base">ID bisnis <span className="rounded-full bg-white/12 px-2.5 py-0.5 font-extrabold tracking-wider text-white select-all">{formatBusinessCode(code)}</span></p>
         <nav aria-label="Pintasan" className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&>a]:shrink-0">

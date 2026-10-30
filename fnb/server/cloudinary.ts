@@ -4,7 +4,7 @@ import { can, type FnbContext } from "./context";
 import { env } from "./env";
 import { AppError, forbidden } from "./errors";
 
-export const IMAGE_KINDS = ["menu", "kategori", "addon", "struk"] as const;
+export const IMAGE_KINDS = ["menu", "kategori", "addon", "struk", "logo"] as const;
 export type ImageKind = (typeof IMAGE_KINDS)[number];
 const FORMATS = "jpg,jpeg,png,webp";
 

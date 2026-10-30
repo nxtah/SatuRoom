@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import type { Permission } from "@/lib/permissions";
+import { getProfile } from "@/server/business-profile";
 import { can } from "@/server/context";
 import { REPORTS } from "@/server/report-center";
 import { requireFnbPage } from "@/server/routing";
@@ -33,10 +34,12 @@ const NEEDS: Record<string, Permission[]> = {
   "/audit": ["audit.read"],
   ...Object.fromEntries(REPORTS.map((r) => [`/laporan/${r.slug}`, ["reports.read"] as Permission[]])),
   "/pengaturan": ["settings.manage"],
+  "/menu-digital": ["settings.manage"],
 };
 
 export default async function FnbAppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireFnbPage();
   const hidden = Object.entries(NEEDS).filter(([, any]) => !any.some((p) => can(ctx, p))).map(([href]) => href);
-  return <AppShell hidden={hidden}>{children}</AppShell>;
+  const profile = await getProfile(ctx);
+  return <AppShell hidden={hidden} profile={{ name: profile.name, city: profile.city, logoUrl: profile.logoUrl }}>{children}</AppShell>;
 }
