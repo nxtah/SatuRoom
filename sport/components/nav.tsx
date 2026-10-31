@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, BookText, CalendarDays, ClipboardCheck, Clock3, History, Layers, House, IdCard, KeyRound, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
+import { BookOpen, BookText, Banknote, Boxes, ShoppingBag, CalendarDays, ClipboardCheck, Clock3, History, Layers, House, IdCard, KeyRound, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { activeHref, mobileNav, navGroups } from "@/lib/nav";
@@ -20,6 +20,9 @@ const ICONS = {
   clock: Clock3,
   assess: ClipboardCheck,
   ledger: BookText,
+  payroll: Banknote,
+  stock: Boxes,
+  store: ShoppingBag,
 } as const;
 
 const linkClass = (on: boolean) =>

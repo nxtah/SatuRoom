@@ -39,6 +39,9 @@ export const PERMISSIONS = [
   "accounting.read",
   "accounting.manage",
   "accounting.close",
+  "payroll.manage",
+  "inventory.manage",
+  "store.manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -63,6 +66,8 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     "programs.manage",
     "staff_attendance.manage",
     "accounting.read",
+    "inventory.manage",
+    "store.manage",
   ],
   head_coach: [
     "staff.read",
@@ -80,7 +85,7 @@ const GRANTS: Record<Role, readonly Permission[]> = {
   // Pelatih tidak punya izin "_all": aksesnya dibatasi ke tim yang dia latih.
   coach: ["evaluations.write"],
   // Bendahara: iuran dan kontak orang tua untuk penagihan; tidak mengelola tim, jadwal, atau staf.
-  treasurer: ["teams.read_all", "players.read_all", "guardians.read", "billing.read", "billing.manage", "accounting.read", "accounting.manage"],
+  treasurer: ["teams.read_all", "players.read_all", "guardians.read", "billing.read", "billing.manage", "accounting.read", "accounting.manage", "store.manage"],
 };
 
 /** Izin efektif: gabungan peran bawaan dan peran custom. Izin custom yang tidak dikenal diabaikan. */

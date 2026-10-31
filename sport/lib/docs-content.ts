@@ -224,6 +224,45 @@ export const DOCS: DocPage[] = [
     ],
   },
   {
+    slug: "gaji", group: "Uang dan kabar", title: "Gaji staf", summary: "Atur gaji per staf, hitung otomatis dari sesi dan absensi, setujui, bayar, slip gaji.",
+    blocks: [
+      { t: "steps", items: [
+        "Buka **Gaji → Pengaturan gaji**, klik **Atur gaji** pada setiap staf. Isi gaji pokok, honor per sesi, tunjangan, lembur, dan potongan yang berlaku saja.",
+        "Di akhir bulan buka **Gaji bulanan**, klik **Hitung gaji**. Honor sesi diambil dari sesi tim yang dia latih; lembur dan terlambat dari **Absensi staf**.",
+        "Perlu bonus atau kasbon? Klik **Tambah bonus/potongan** di slipnya.",
+        "Klik **Setujui**. Biaya gaji langsung tercatat di Keuangan.",
+        "Setelah transfer, pilih tanggal dan akun lalu klik **Tandai dibayar**.",
+      ] },
+      { t: "tip", text: "Staf melihat slip gajinya sendiri di **Absensi staf** setelah gaji disetujui." },
+    ],
+  },
+  {
+    slug: "stok-toko", group: "Uang dan kabar", title: "Stok, aset, dan toko", summary: "Barang dan pembelian, stok opname, aset tetap dan penyusutan, toko serta pesanan orang tua.",
+    blocks: [
+      { t: "h", text: "Barang dan pembelian" },
+      { t: "steps", items: [
+        "Buka **Stok dan aset → Barang**, tambahkan barang (bola, rompi, jersey).",
+        "Di **Pembelian dan supplier**, tambah supplier lalu **Pesan barang**.",
+        "Saat barang datang klik **Barang diterima**: stok bertambah dan utang ke supplier tercatat.",
+        "Setelah membayar supplier klik **Bayar supplier**.",
+      ] },
+      { t: "list", items: [
+        "**Pakai**: catat barang yang dipakai sendiri, misalnya bola untuk latihan.",
+        "**Stok opname**: hitung barang di gudang, isi jumlah sebenarnya, selisihnya dicatat otomatis.",
+        "Harga pokok dihitung rata-rata dari semua pembelian.",
+      ] },
+      { t: "h", text: "Aset tetap" },
+      { t: "p", text: "Catat barang tahan lama bernilai besar di **Aset tetap** beserta umur pakainya. Setiap bulan klik **Catat penyusutan** supaya nilainya berkurang di laporan." },
+      { t: "h", text: "Toko" },
+      { t: "steps", items: [
+        "Ubah barang, centang **Dijual di toko**, isi harga jual.",
+        "Di **Toko**, pilih barang dan pembeli lalu **Buat pesanan**. Orang tua juga bisa memesan dari akun pemain (**Iuran → Toko akademi**).",
+        "Saat dibayar klik **Tunai** atau **Transfer**: stok berkurang dan penjualan masuk ke Keuangan.",
+        "Setelah barang diambil klik **Sudah diambil**.",
+      ] },
+    ],
+  },
+  {
     slug: "pengumuman-rapor", group: "Uang dan kabar", title: "Pengumuman dan rapor", summary: "Kabar untuk pemain dan penilaian perkembangan dari pelatih.",
     blocks: [
       { t: "h", text: "Pengumuman" },

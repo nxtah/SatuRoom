@@ -12,7 +12,7 @@ export const MODULES = [
   { key: "staff_attendance", label: "Absensi staf", hint: "Jadwal kerja, absen masuk/pulang, cuti, lembur.", requires: [], hrefs: ["/absensi-staf"] },
   { key: "payroll", label: "Gaji", hint: "Komponen gaji, proses gaji bulanan, slip gaji.", requires: ["staff_attendance", "accounting"], hrefs: ["/gaji"] },
   { key: "accounting", label: "Keuangan dan akuntansi", hint: "Pengeluaran, kas/bank, jurnal, laporan keuangan.", requires: [], hrefs: ["/keuangan"] },
-  { key: "inventory", label: "Stok dan pembelian", hint: "Barang, supplier, pembelian, stok opname, aset.", requires: ["accounting"], hrefs: ["/stok"] },
+  { key: "inventory", label: "Stok dan pembelian", hint: "Barang, supplier, pembelian, stok opname, aset tetap.", requires: ["accounting"], hrefs: ["/stok"] },
   { key: "store", label: "Toko", hint: "Jual jersey, perlengkapan, dan pesanan orang tua.", requires: ["inventory"], hrefs: ["/toko"] },
   { key: "events", label: "Event dan turnamen", hint: "Event, pendaftaran peserta, turnamen, klasemen.", requires: [], hrefs: ["/event"] },
   { key: "support", label: "Layanan orang tua", hint: "Pertanyaan, keluhan, dan masukan dari orang tua.", requires: [], hrefs: ["/layanan"] },

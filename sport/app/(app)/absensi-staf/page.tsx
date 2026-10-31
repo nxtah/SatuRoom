@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { monthLabel, rupiah } from "@/lib/money";
+import { mySlips } from "@/server/payroll";
 import { requireAcademyPage } from "@/server/routing";
 import { attendanceBoard, listStaffRequests, monthlyRecap, myAttendance } from "@/server/staff-attendance";
 import { ApprovalList, ClockCard, MyRequests, RecapTable, RequestForm, TeamBoard } from "./parts";
@@ -23,6 +25,7 @@ export default async function AbsensiStafPage({ searchParams }: { searchParams: 
   const tab = manage && TABS.some((t) => t.key === params.tab) ? params.tab! : "saya";
   const me = await myAttendance(ctx);
   const pending = manage ? await listStaffRequests(ctx, "pending") : [];
+  const slips = tab === "saya" ? await mySlips(ctx) : [];
 
   return (
     <div className="max-w-4xl">
@@ -50,6 +53,29 @@ export default async function AbsensiStafPage({ searchParams }: { searchParams: 
           <div className="grid content-start gap-5">
             <ClockCard me={me} />
             <MyRequests requests={me.requests} />
+            {slips.length ? (
+              <section className="rise rounded-[2rem] bg-chalk p-5">
+                <h2 className="text-lg font-extrabold">Slip gaji saya</h2>
+                <div className="mt-3 grid gap-2">
+                  {slips.slice(0, 6).map((s) => (
+                    <details key={s.id} className="rounded-2xl bg-mist p-3">
+                      <summary className="flex cursor-pointer flex-wrap justify-between gap-2 font-bold">
+                        <span>{monthLabel(s.month)}</span>
+                        <span className="tabular-nums">{rupiah(s.net)} · {s.status === "paid" ? "dibayar" : "disetujui"}</span>
+                      </summary>
+                      <ul className="mt-2 grid gap-1 text-sm">
+                        {s.lines.map((l, i) => (
+                          <li key={i} className="flex justify-between gap-3">
+                            <span>{l.label}</span>
+                            <span className={l.kind === "deduction" ? "text-flame" : ""}>{l.kind === "deduction" ? "-" : ""}{rupiah(l.amount)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
           <RequestForm today={me.today} />
         </div>

@@ -33,6 +33,10 @@ export default async function PengaturanPage() {
     "/program": { title: "Program latihan", hint: "Reguler, Elite, Kiper, dan tim di dalamnya." },
     "/absensi-staf": { title: "Absensi staf", hint: "Absen masuk/pulang, cuti, lembur, rekap." },
     "/pengaturan/cabang": { title: "Cabang", hint: "Tempat latihan di kota atau area lain." },
+    "/keuangan": { title: "Keuangan", hint: "Pengeluaran, laporan laba rugi, neraca, arus kas." },
+    "/gaji": { title: "Gaji", hint: "Hitung, setujui, dan bayar gaji staf." },
+    "/stok": { title: "Stok dan aset", hint: "Barang, pembelian, stok opname, aset tetap." },
+    "/toko": { title: "Toko", hint: "Jual jersey dan pesanan dari orang tua." },
     "/pengaturan/modul": { title: "Modul", hint: "Pilih fitur yang dipakai akademi." },
   };
   const more = allowed.filter((h) => !inTabs.has(h) && HINTS[h]).map((h) => ({ href: h, ...HINTS[h]! }));

@@ -26,13 +26,16 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "accounting.read": { label: "Lihat laporan keuangan", hint: "Laba rugi, neraca, arus kas, buku besar, piutang." },
   "accounting.manage": { label: "Catat keuangan", hint: "Pengeluaran, jurnal manual, akun, beasiswa, rekonsiliasi." },
   "accounting.close": { label: "Tutup buku", hint: "Mengunci bulan supaya angka tidak berubah lagi." },
+  "payroll.manage": { label: "Kelola gaji", hint: "Atur gaji staf, hitung, setujui, dan bayar gaji bulanan." },
+  "inventory.manage": { label: "Kelola stok dan aset", hint: "Barang, supplier, pembelian, stok opname, aset tetap." },
+  "store.manage": { label: "Kelola toko", hint: "Harga jual, pesanan, dan pembayaran toko." },
   "staff_attendance.manage": { label: "Kelola absensi staf", hint: "Atur jadwal kerja, lihat rekap, setujui koreksi, cuti, dan lembur." },
 };
 
 export const PERMISSION_GROUPS: { title: string; perms: Permission[] }[] = [
   { title: "Pemain dan tim", perms: ["players.read_all", "players.manage", "guardians.read", "teams.read_all", "teams.manage"] },
   { title: "Latihan", perms: ["programs.manage", "schedule.manage_all", "attendance.record_all", "evaluations.write", "evaluations.manage_all"] },
-  { title: "Keuangan", perms: ["billing.read", "billing.manage", "accounting.read", "accounting.manage", "accounting.close"] },
+  { title: "Keuangan", perms: ["billing.read", "billing.manage", "accounting.read", "accounting.manage", "accounting.close", "payroll.manage", "inventory.manage", "store.manage"] },
   { title: "Komunikasi", perms: ["announcements.manage"] },
   { title: "Tim kerja dan akses", perms: ["staff.read", "staff.manage", "staff_attendance.manage", "roles.manage", "audit.read"] },
   { title: "Akademi", perms: ["academy.update", "locations.manage", "branches.manage", "modules.manage"] },

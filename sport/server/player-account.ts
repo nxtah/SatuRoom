@@ -18,7 +18,7 @@ import { formatBusinessCode } from "@/lib/business-code";
 import { visiblePlayerIds } from "./players";
 import { addDays, academyToday } from "./schedule";
 
-interface PlayerLink {
+export interface PlayerLink {
   businessId: string;
   playerId: string;
 }
@@ -68,6 +68,12 @@ async function requireLink(session: SessionInfo): Promise<PlayerLink> {
 /** Transaksi di akademi pemain, atas nama akun pemain. Query di dalamnya wajib dibatasi ke `link.playerId`. */
 const asPlayer = <T>(session: SessionInfo, link: PlayerLink, work: (tx: Tx) => Promise<T>) =>
   withContext(db(), { userId: session.userId, businessId: link.businessId }, work);
+
+/** Transaksi atas nama akun pemain/orang tua yang sedang masuk. Dipakai modul lain (toko, layanan). */
+export async function playerTx<T>(session: SessionInfo, work: (tx: Tx, link: PlayerLink) => Promise<T>): Promise<T> {
+  const link = await requireLink(session);
+  return asPlayer(session, link, (tx) => work(tx, link));
+}
 
 export interface PlayerSession {
   sessionId: string;
