@@ -5,7 +5,9 @@ import { revokePlayerInvitation } from "@/server/player-account";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export const DELETE = route(async (_req, ctx: Ctx) => {
-  await revokePlayerInvitation(await academyContext(), await routeId(ctx, "Pemain"));
+const uuidOr = (v: string | null) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
+
+export const DELETE = route(async (req, ctx: Ctx) => {
+  await revokePlayerInvitation(await academyContext(), await routeId(ctx, "Pemain"), uuidOr(new URL(req.url).searchParams.get("id")));
   return noContent();
 });

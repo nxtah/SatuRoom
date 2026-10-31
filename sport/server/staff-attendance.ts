@@ -6,6 +6,9 @@ import type { z } from "zod";
 import type { ShiftsInput, StaffRequestDecisionInput, StaffRequestInput } from "@/lib/schemas";
 import { inAcademy, requireModule, requirePermission, type AcademyContext } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
+import { notify, staffWith } from "./notifications";
+
+const KIND_LABEL = { correction: "koreksi absen", leave: "cuti", overtime: "lembur" } as const;
 import { academyToday } from "./schedule";
 
 /** Batas toleransi terlambat dari jam masuk jadwal. */
@@ -169,6 +172,10 @@ export async function createStaffRequest(ctx: AcademyContext, input: z.infer<typ
       VALUES (${ctx.businessId}::uuid, ${ctx.membershipId}::uuid, ${values}, ${input.reason})
       RETURNING id`)) as unknown as { id: string }[];
     await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: `staff_request.${input.kind}`, targetType: "staff_request", targetId: row!.id });
+    await notify(tx, ctx.businessId, await staffWith(tx, ctx.businessId, "staff_attendance.manage", ctx.userId), {
+      title: `Pengajuan ${KIND_LABEL[input.kind]} baru`,
+      href: "/absensi-staf?tab=pengajuan",
+    });
     return row!.id;
   });
 }
@@ -294,11 +301,11 @@ export async function decideStaffRequest(ctx: AcademyContext, id: string, input:
   requirePermission(ctx, "staff_attendance.manage");
   await inAcademy(ctx, async (tx) => {
     const [r] = (await tx.execute(sql`
-      SELECT r.membership_id AS "membershipId", r.kind, to_char(r.date_from, 'YYYY-MM-DD') AS date,
+      SELECT r.membership_id AS "membershipId", m.user_id AS "userId", r.kind, to_char(r.date_from, 'YYYY-MM-DD') AS date,
              to_char(r.clock_in, 'HH24:MI') AS "clockIn", to_char(r.clock_out, 'HH24:MI') AS "clockOut"
       FROM bola.staff_requests r JOIN core.memberships m ON m.id = r.membership_id
       WHERE r.id = ${id}::uuid AND r.status = 'pending' ${memberScope(ctx)}`)) as unknown as {
-      membershipId: string; kind: RequestKind; date: string; clockIn: string | null; clockOut: string | null;
+      membershipId: string; userId: string; kind: RequestKind; date: string; clockIn: string | null; clockOut: string | null;
     }[];
     if (!r) throw notFound("Pengajuan");
     // Pengajuan sendiri diputuskan orang lain, kecuali pemilik.
@@ -318,6 +325,10 @@ export async function decideStaffRequest(ctx: AcademyContext, id: string, input:
         ON CONFLICT (membership_id, work_date) DO UPDATE SET clock_in = excluded.clock_in, clock_out = excluded.clock_out, source = 'correction'`);
     }
     await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: `staff_request.${input.decision}`, targetType: "staff_request", targetId: id, meta: { kind: r.kind } });
+    await notify(tx, ctx.businessId, [r.userId], {
+      title: `Pengajuan ${KIND_LABEL[r.kind]} ${input.decision === "approved" ? "disetujui" : "ditolak"}`,
+      href: "/absensi-staf",
+    });
   });
 }
 

@@ -9,6 +9,7 @@ import { accountIdOf, postJournal, reverseSource } from "./ledger";
 import { inAcademy, requirePermission, type AcademyContext, requireModule } from "./context";
 import { AppError, notFound } from "./errors";
 import { invoices, teamFees, teams } from "./schema";
+import { accountsOf, notify } from "./notifications";
 import { academyToday } from "./schedule";
 
 /** "2026-10" ke tanggal awal bulan "2026-10-01". */
@@ -117,9 +118,18 @@ export async function generateInvoices(ctx: AcademyContext, month: string): Prom
              CASE WHEN amount - discount = 0 THEN 'waived' ELSE 'unpaid' END::bola.invoice_status, ${ctx.userId}::uuid
       FROM disc
       ON CONFLICT (player_id, period) DO NOTHING
-      RETURNING id, amount - discount AS net,
-        (SELECT full_name FROM bola.players WHERE id = player_id) AS name`)) as unknown as { id: string; net: number; name: string }[];
-    for (const r of rows) await postInvoice(ctx, tx, r.id, r.net, month, r.name);
+      RETURNING id, player_id AS "playerId", amount - discount AS net,
+        (SELECT full_name FROM bola.players WHERE id = player_id) AS name`)) as unknown as { id: string; playerId: string; net: number; name: string }[];
+    for (const r of rows) {
+      await postInvoice(ctx, tx, r.id, r.net, month, r.name);
+      if (r.net > 0) {
+        await notify(tx, ctx.businessId, await accountsOf(tx, [r.playerId]), {
+          title: `Tagihan iuran ${r.name} bulan ${month.slice(5, 7)}/${month.slice(0, 4)}`,
+          body: `Rp${r.net.toLocaleString("id-ID")}. Bayar tunai atau transfer ke akademi.`,
+          href: "/saya/iuran",
+        });
+      }
+    }
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,

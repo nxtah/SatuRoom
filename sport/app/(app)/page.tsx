@@ -17,6 +17,7 @@ import { AttendanceWidgets, StatTiles } from "@/components/home-stats";
 import { MatchWidget } from "@/components/match-widget";
 import { matchesOverview } from "@/server/matches";
 import { formatBusinessCode } from "@/lib/business-code";
+import { openTicketCount } from "@/server/support";
 import { monthLabel, rupiah } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Beranda" };
@@ -32,6 +33,7 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
     homeStats(ctx),
     matchesOverview(ctx),
   ]);
+  const tickets = await openTicketCount(ctx);
   const sp = await searchParams;
   const justCreated = sp.selamat === "1";
   const justJoined = sp.selamat === "gabung";
@@ -79,6 +81,11 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           {ctx.can("players.manage") ? (
             <Link href="/pemain/baru" className="inline-flex h-11 shrink-0 items-center rounded-full bg-white/12 px-5 font-bold text-white transition hover:bg-white/20">
               Tambah pemain
+            </Link>
+          ) : null}
+          {tickets ? (
+            <Link href="/layanan" className="inline-flex h-11 shrink-0 items-center rounded-full bg-flame px-5 font-extrabold text-white transition hover:-translate-y-0.5">
+              {tickets} pesan orang tua
             </Link>
           ) : null}
           {billing ? (

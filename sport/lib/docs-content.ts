@@ -169,8 +169,15 @@ export const DOCS: DocPage[] = [
         "**Hadir**: persentase kehadiran 60 hari terakhir.",
         "**Iuran**: status tagihan tiap bulan.",
         "**Profil**: data diri (perubahan lewat admin akademi).",
+        "Pintasan **Event**, **Toko akademi**, dan **Layanan** bila modulnya aktif, serta **lonceng notifikasi** di kanan atas.",
       ] },
-      { t: "p", text: "Satu pemain memakai satu akun. Ingin ganti email? Klik **Putuskan**, lalu undang email baru." },
+      { t: "h", text: "Ayah, ibu, dan beberapa anak" },
+      { t: "list", items: [
+        "Satu pemain boleh punya sampai **4 akun**: pemain sendiri, ayah, ibu, atau wali. Pilih **Sebagai** saat mengundang.",
+        "Satu akun orang tua boleh memegang **beberapa anak**, bahkan di akademi berbeda. Undang email yang sama dari data anak kedua.",
+        "Orang tua dengan beberapa anak memilih anak lewat kotak **Anak** di kanan atas.",
+        "Klik **Putuskan** untuk melepas satu akun tanpa mengganggu akun lainnya.",
+      ] },
     ],
   },
   {
@@ -260,6 +267,37 @@ export const DOCS: DocPage[] = [
         "Saat dibayar klik **Tunai** atau **Transfer**: stok berkurang dan penjualan masuk ke Keuangan.",
         "Setelah barang diambil klik **Sudah diambil**.",
       ] },
+    ],
+  },
+  {
+    slug: "event", group: "Uang dan kabar", title: "Event dan turnamen", summary: "Clinic, trial, liburan, turnamen dengan klasemen, pendaftaran orang tua, dan biaya event.",
+    blocks: [
+      { t: "steps", items: [
+        "Buka **Event**, pilih **Event** atau **Turnamen**, isi nama, tanggal, biaya (0 bila gratis), dan kuota.",
+        "Klik **Buka pendaftaran**. Semua orang tua mendapat notifikasi dan bisa klik **Daftar** di akun pemain.",
+        "Staf juga bisa mendaftarkan pemain lewat **Daftarkan pemain**.",
+        "Saat biaya dibayar klik **Bayar tunai** atau **Transfer**: uangnya masuk Keuangan sebagai Pendapatan event.",
+        "Isi **Hasil** (peringkat dan catatan, mis. Juara 1). Hasil terlihat di akun pemain.",
+      ] },
+      { t: "h", text: "Turnamen" },
+      { t: "list", items: [
+        "Tambah tim peserta: tim akademi sendiri atau tim tamu, boleh dengan grup.",
+        "Tambah pertandingan, lalu isi skor. **Klasemen** dihitung otomatis: menang 3, seri 1, kalah 0.",
+        "Peserta yang sudah membayar lalu dibatalkan dicatat sebagai uang dikembalikan.",
+      ] },
+    ],
+  },
+  {
+    slug: "layanan", group: "Uang dan kabar", title: "Layanan orang tua dan notifikasi", summary: "Pertanyaan, keluhan, masukan dari orang tua; lonceng notifikasi.",
+    blocks: [
+      { t: "steps", items: [
+        "Orang tua mengirim pesan dari **Layanan** di akun pemain (pertanyaan, keluhan, masukan, lainnya).",
+        "Staf dengan izin **Layanan orang tua** mendapat notifikasi dan melihatnya di menu **Layanan orang tua**. Di beranda muncul tombol merah jumlah pesan.",
+        "Klik pesannya, tulis balasan, **Kirim balasan**. Orang tua mendapat notifikasi.",
+        "Orang tua menutup percakapan dengan memberi nilai 1-5. Staf juga bisa **Tandai selesai**.",
+      ] },
+      { t: "h", text: "Lonceng notifikasi" },
+      { t: "p", text: "Notifikasi muncul di aplikasi (belum lewat WhatsApp atau email) untuk: tagihan iuran baru, pengumuman, hasil penilaian, event baru, balasan layanan, pesanan toko, pendaftaran event, serta pengajuan cuti, koreksi, dan lembur staf." },
     ],
   },
   {

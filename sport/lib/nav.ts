@@ -18,6 +18,8 @@ export const NAV = [
   { href: "/stok", label: "Stok dan aset", icon: "stock", group: "Keuangan", permission: "inventory.manage", mobile: false },
   { href: "/toko", label: "Toko", icon: "store", group: "Keuangan", permission: "store.manage", mobile: false },
   { href: "/pengumuman", label: "Pengumuman", icon: "announce", group: "Komunikasi", permission: null, mobile: "overflow" },
+  { href: "/event", label: "Event", icon: "event", group: "Komunikasi", permission: null, mobile: false },
+  { href: "/layanan", label: "Layanan orang tua", icon: "support", group: "Komunikasi", permission: "support.manage", mobile: false },
   { href: "/staf", label: "Staf", icon: "staff", group: "Tim kerja dan akses", permission: "staff.read", mobile: false },
   { href: "/absensi-staf", label: "Absensi staf", icon: "clock", group: "Tim kerja dan akses", permission: null, mobile: "overflow" },
   { href: "/staf/peran", label: "Peran dan izin", icon: "roles", group: "Tim kerja dan akses", permission: "roles.manage", mobile: false },

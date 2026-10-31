@@ -7,6 +7,7 @@ import { defaultTemplate, type Metric } from "@/lib/assessment-defaults";
 import type { AssessmentInput, GoalInput, TemplateInput } from "@/lib/schemas";
 import { inAcademy, requireModule, requirePermission, type AcademyContext } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
+import { accountsOf, notify } from "./notifications";
 import { visiblePlayerIds } from "./players";
 
 export type TemplateStatus = "draft" | "published" | "archived";
@@ -260,8 +261,10 @@ export async function sendAssessment(ctx: AcademyContext, id: string): Promise<v
   requirePermission(ctx, "evaluations.write");
   await inAcademy(ctx, async (tx) => {
     await loadDraft(ctx, tx, id);
-    await tx.execute(sql`UPDATE bola.assessments SET status = 'sent', sent_at = now() WHERE id = ${id}::uuid`);
+    const [a] = (await tx.execute(sql`
+      UPDATE bola.assessments SET status = 'sent', sent_at = now() WHERE id = ${id}::uuid RETURNING player_id AS "playerId"`)) as unknown as { playerId: string }[];
     await audit(ctx, tx, "assessment.sent", "assessment", id);
+    await notify(tx, ctx.businessId, await accountsOf(tx, [a!.playerId]), { title: "Hasil penilaian baru", body: "Lihat perkembangan di beranda.", href: "/saya" });
   });
 }
 

@@ -162,6 +162,7 @@ async function setupBolaRole(sql: postgres.Sql, password: string): Promise<void>
     "bola.my_invitations()",
     "bola.accept_invitation(uuid)",
     "bola.my_player()",
+    "bola.my_players()",
     "bola.my_player_invitations()",
     "bola.accept_player_invitation(uuid, text)",
     "bola.registration_academy(text)",

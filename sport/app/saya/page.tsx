@@ -13,6 +13,7 @@ import { resultOf } from "@/server/matches-shared";
 import { FormChip } from "@/components/scoreboard";
 import { positionLabel, sportOf } from "@/lib/sports";
 import { currentSession } from "@/server/context";
+import { parentModules } from "@/server/parent-portal";
 import { playerHome, type PlayerHome } from "@/server/player-account";
 import { NoticeActions } from "./notice-actions";
 import { AttendanceQr } from "./attendance-qr";
@@ -31,10 +32,26 @@ export default async function SayaPage() {
   const me = await playerHome(session);
   if (!me) redirect("/undangan");
   const next = me.upcoming.find((s) => !s.cancelled);
+  const mods = new Set(await parentModules(session));
+  const shortcuts = [
+    mods.has("events") && { href: "/saya/event", label: "Event dan turnamen" },
+    mods.has("store") && { href: "/saya/toko", label: "Toko akademi" },
+    mods.has("support") && { href: "/saya/layanan", label: "Tanya atau beri masukan" },
+  ].filter(Boolean) as { href: string; label: string }[];
 
   return (
     <>
       <Hero me={me} />
+
+      {shortcuts.length ? (
+        <nav aria-label="Pintasan" className="rise mt-4 flex flex-wrap gap-2">
+          {shortcuts.map((s) => (
+            <Link key={s.href} href={s.href} className="flex h-11 items-center rounded-full bg-chalk px-4 font-bold transition hover:bg-white">
+              {s.label} <span aria-hidden className="ml-2">›</span>
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <Announcements me={me} />
 

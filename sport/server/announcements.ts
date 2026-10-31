@@ -7,6 +7,7 @@ import type { AnnouncementInput } from "@/lib/schemas";
 import { inAcademy, type AcademyContext, requireModule } from "./context";
 import { forbidden, notFound } from "./errors";
 import { uuidList } from "./schedule";
+import { accountsOf, notify } from "./notifications";
 import { visibleTeamIds } from "./teams";
 
 export interface AnnouncementRow {
@@ -79,6 +80,10 @@ export async function createAnnouncement(ctx: AcademyContext, input: z.infer<typ
       targetId: row!.id,
       meta: { teamId },
     });
+    const players = (await tx.execute(sql`
+      SELECT DISTINCT p.id FROM bola.players p ${teamId ? sql`JOIN bola.team_players tp ON tp.player_id = p.id AND tp.team_id = ${teamId}::uuid` : sql``}
+      WHERE p.status = 'active'`)) as unknown as { id: string }[];
+    await notify(tx, ctx.businessId, await accountsOf(tx, players.map((p) => p.id)), { title: `Pengumuman: ${input.title}`, body: input.body.slice(0, 140), href: "/saya" });
     return row!.id;
   });
 }

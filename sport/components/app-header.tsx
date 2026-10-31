@@ -15,11 +15,12 @@ interface Props {
   activeAcademyId: string;
   user: { name: string; email: string };
   roleLabel: string;
+  bell?: React.ReactNode;
 }
 
 const item = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-semibold hover:bg-mist";
 
-export function AppHeader({ academyName, logoUrl, academies, activeAcademyId, user, roleLabel }: Props) {
+export function AppHeader({ academyName, logoUrl, academies, activeAcademyId, user, roleLabel, bell }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +83,8 @@ export function AppHeader({ academyName, logoUrl, academies, activeAcademyId, us
         )}
       </MenuButton>
 
-      <div className="ml-auto shrink-0">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {bell}
         <MenuButton
           label={`Akun: ${user.name}`}
           align="right"

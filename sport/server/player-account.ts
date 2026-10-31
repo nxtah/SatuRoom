@@ -23,12 +23,38 @@ export interface PlayerLink {
   playerId: string;
 }
 
-/** Pemain milik akun ini (satu akun satu pemain). Sumber kebenaran: fungsi SECURITY DEFINER. */
+export interface MyChild extends PlayerLink {
+  fullName: string;
+  academyName: string;
+}
+
+/** Cookie berisi id anak yang sedang dilihat (akun orang tua dengan beberapa anak). */
+export const CHILD_COOKIE = "sr_bola_anak";
+
+/** Semua anak yang terhubung ke akun ini. Sumber kebenaran: fungsi SECURITY DEFINER. */
+export async function myChildren(userId: string): Promise<MyChild[]> {
+  return (await withContext(db(), { userId }, (tx) =>
+    tx.execute(sql`
+      SELECT business_id AS "businessId", player_id AS "playerId", full_name AS "fullName", academy_name AS "academyName"
+      FROM bola.my_players()`),
+  )) as unknown as MyChild[];
+}
+
+async function preferredChild(): Promise<string | undefined> {
+  try {
+    const { cookies } = await import("next/headers");
+    return (await cookies()).get(CHILD_COOKIE)?.value;
+  } catch {
+    return undefined; // di luar request (tes, skrip)
+  }
+}
+
+/** Anak yang sedang dilihat: pilihan di cookie bila masih terhubung, kalau tidak anak pertama. */
 async function playerLink(userId: string): Promise<PlayerLink | null> {
-  const [row] = (await withContext(db(), { userId }, (tx) =>
-    tx.execute(sql`SELECT business_id AS "businessId", player_id AS "playerId" FROM bola.my_player()`),
-  )) as unknown as PlayerLink[];
-  return row ?? null;
+  const kids = await myChildren(userId);
+  const want = await preferredChild();
+  const pick = kids.find((k) => k.playerId === want) ?? kids[0];
+  return pick ? { businessId: pick.businessId, playerId: pick.playerId } : null;
 }
 
 /** Cabang olahraga akademi pemain; dipakai untuk warna aksen dan maskot di portal pemain. */
@@ -39,6 +65,13 @@ export async function playerSport(session: SessionInfo): Promise<SportId> {
     const [row] = (await tx.execute(sql`SELECT sport FROM bola.academy_settings WHERE business_id = ${link.businessId}::uuid`)) as unknown as { sport: SportId }[];
     return row?.sport ?? "football";
   });
+}
+
+/** Anak-anak akun ini dan yang sedang dilihat (untuk pemilih anak di portal). */
+export async function childPicker(userId: string): Promise<{ kids: MyChild[]; current: string | null }> {
+  const kids = await myChildren(userId);
+  const want = await preferredChild();
+  return { kids, current: (kids.find((k) => k.playerId === want) ?? kids[0])?.playerId ?? null };
 }
 
 export async function hasPlayerAccount(userId: string): Promise<boolean> {
@@ -304,9 +337,6 @@ export async function myPlayerInvitations(userId: string): Promise<MyPlayerInvit
 /** `consentBy`: nama orang tua/wali yang menyetujui, atau nama pemain sendiri bila sudah dewasa. */
 export async function acceptPlayerInvitation(session: SessionInfo, invitationId: string, consentBy: string): Promise<string> {
   if (!(await isEmailVerified(db(), session.userId))) throw unverifiedEmail();
-  if (await hasPlayerAccount(session.userId)) {
-    throw new AppError(409, "has_player", "Akun ini sudah terhubung ke pemain lain. Satu pemain memakai satu akun.");
-  }
   const [row] = (await withContext(db(), { userId: session.userId }, (tx) =>
     tx.execute(sql`SELECT bola.accept_player_invitation(${invitationId}::uuid, ${consentBy}) AS id`),
   )) as unknown as { id: string | null }[];
@@ -316,9 +346,12 @@ export async function acceptPlayerInvitation(session: SessionInfo, invitationId:
 
 /* ---------- Sisi staf: akun pemain untuk satu pemain ---------- */
 
+export type Relation = "self" | "father" | "mother" | "guardian";
+export const MAX_ACCOUNTS = 4;
+
 export interface PlayerAccountInfo {
-  account: { name: string; email: string; since: string } | null;
-  pending: { id: string; email: string; expiresAt: string } | null;
+  accounts: { userId: string; name: string; email: string; since: string; relation: Relation }[];
+  pending: { id: string; email: string; expiresAt: string; relation: Relation }[];
 }
 
 async function assertAccountAdmin(ctx: AcademyContext, tx: Tx, playerId: string) {
@@ -330,32 +363,34 @@ async function assertAccountAdmin(ctx: AcademyContext, tx: Tx, playerId: string)
 export function playerAccount(ctx: AcademyContext, playerId: string): Promise<PlayerAccountInfo> {
   return inAcademy(ctx, async (tx) => {
     await assertAccountAdmin(ctx, tx, playerId);
-    const [account] = (await tx.execute(sql`
-      SELECT u.name, u.email, to_char(a.created_at, 'YYYY-MM-DD') AS since
+    const accounts = (await tx.execute(sql`
+      SELECT u.id AS "userId", u.name, u.email, to_char(a.created_at, 'YYYY-MM-DD') AS since, a.relation
       FROM bola.player_accounts a JOIN core.users u ON u.id = a.user_id
-      WHERE a.player_id = ${playerId}::uuid`)) as unknown as NonNullable<PlayerAccountInfo["account"]>[];
-    const [pending] = (await tx.execute(sql`
-      SELECT id, email, to_char(expires_at, 'YYYY-MM-DD') AS "expiresAt" FROM bola.player_invitations
-      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()`)) as unknown as NonNullable<
-      PlayerAccountInfo["pending"]
-    >[];
-    return { account: account ?? null, pending: pending ?? null };
+      WHERE a.player_id = ${playerId}::uuid ORDER BY a.created_at`)) as unknown as PlayerAccountInfo["accounts"];
+    const pending = (await tx.execute(sql`
+      SELECT id, email, to_char(expires_at, 'YYYY-MM-DD') AS "expiresAt", relation FROM bola.player_invitations
+      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()
+      ORDER BY created_at`)) as unknown as PlayerAccountInfo["pending"];
+    return { accounts, pending };
   });
 }
 
-/** Mengundang email untuk menjadi akun pemain ini. Undangan lama yang belum diterima diganti. */
-export async function invitePlayerAccount(ctx: AcademyContext, playerId: string, email: string): Promise<void> {
+/** Mengundang email (pemain sendiri, ayah, ibu, atau wali) untuk terhubung ke pemain ini. Maksimal 4 akun. */
+export async function invitePlayerAccount(ctx: AcademyContext, playerId: string, email: string, relation: Relation = "guardian"): Promise<void> {
   const { academyName, playerName, code } = await inAcademy(ctx, async (tx) => {
     await assertAccountAdmin(ctx, tx, playerId);
-    const [linked] = (await tx.execute(sql`
-      SELECT 1 FROM bola.player_accounts WHERE player_id = ${playerId}::uuid`)) as unknown as unknown[];
-    if (linked) throw new AppError(409, "has_account", "Pemain ini sudah punya akun. Putuskan dulu bila ingin mengganti.");
+    const [c] = (await tx.execute(sql`
+      SELECT (SELECT count(*) FROM bola.player_accounts WHERE player_id = ${playerId}::uuid)::int AS linked,
+             EXISTS (SELECT 1 FROM bola.player_accounts a JOIN core.users u ON u.id = a.user_id
+                     WHERE a.player_id = ${playerId}::uuid AND lower(u.email) = lower(${email})) AS mine`)) as unknown as { linked: number; mine: boolean }[];
+    if (c!.mine) throw new AppError(409, "has_account", "Email ini sudah terhubung ke pemain ini.", { email: "Email ini sudah terhubung." });
+    if (c!.linked >= MAX_ACCOUNTS) throw new AppError(409, "too_many", `Satu pemain maksimal ${MAX_ACCOUNTS} akun. Putuskan salah satu dulu.`);
     await tx.execute(sql`
       UPDATE bola.player_invitations SET revoked_at = now()
-      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL`);
+      WHERE player_id = ${playerId}::uuid AND lower(email) = lower(${email}) AND accepted_at IS NULL AND revoked_at IS NULL`);
     await tx.execute(sql`
-      INSERT INTO bola.player_invitations (business_id, player_id, email, invited_by)
-      VALUES (${ctx.businessId}::uuid, ${playerId}::uuid, ${email}, ${ctx.userId}::uuid)`);
+      INSERT INTO bola.player_invitations (business_id, player_id, email, invited_by, relation)
+      VALUES (${ctx.businessId}::uuid, ${playerId}::uuid, ${email}, ${ctx.userId}::uuid, ${relation})`);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,
@@ -377,19 +412,22 @@ export async function invitePlayerAccount(ctx: AcademyContext, playerId: string,
   }
 }
 
-export async function revokePlayerInvitation(ctx: AcademyContext, playerId: string): Promise<void> {
+/** `invitationId` kosong = batalkan semua undangan pemain ini. */
+export async function revokePlayerInvitation(ctx: AcademyContext, playerId: string, invitationId?: string): Promise<void> {
   await inAcademy(ctx, async (tx) => {
     await assertAccountAdmin(ctx, tx, playerId);
     await tx.execute(sql`
       UPDATE bola.player_invitations SET revoked_at = now()
-      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL`);
+      WHERE player_id = ${playerId}::uuid AND accepted_at IS NULL AND revoked_at IS NULL
+        ${invitationId ? sql`AND id = ${invitationId}::uuid` : sql``}`);
   });
 }
 
-export async function unlinkPlayerAccount(ctx: AcademyContext, playerId: string): Promise<void> {
+/** `userId` kosong = putuskan semua akun pemain ini. Akun penggunanya tetap ada. */
+export async function unlinkPlayerAccount(ctx: AcademyContext, playerId: string, userId?: string): Promise<void> {
   await inAcademy(ctx, async (tx) => {
     await assertAccountAdmin(ctx, tx, playerId);
-    await tx.execute(sql`DELETE FROM bola.player_accounts WHERE player_id = ${playerId}::uuid`);
+    await tx.execute(sql`DELETE FROM bola.player_accounts WHERE player_id = ${playerId}::uuid ${userId ? sql`AND user_id = ${userId}::uuid` : sql``}`);
     await tx.insert(auditEvents).values({
       businessId: ctx.businessId,
       actorUserId: ctx.userId,

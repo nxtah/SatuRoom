@@ -6,6 +6,7 @@ import { effectiveModules } from "@/lib/modules";
 import type { SessionInfo } from "@saturoom/core/auth";
 import { AppError } from "./errors";
 import { catalog, ordersWhere, placeOrderIn, type OrderInput, type OrderRow } from "./inventory";
+import { notify, staffWith } from "./notifications";
 import { playerTx } from "./player-account";
 
 async function storeOn(tx: Tx): Promise<boolean> {
@@ -34,7 +35,9 @@ export async function parentOrder(session: SessionInfo, lines: z.infer<typeof Or
     const [open] = (await tx.execute(sql`
       SELECT count(*)::int AS n FROM bola.orders WHERE player_id = ${link.playerId}::uuid AND status = 'pending'`)) as unknown as { n: number }[];
     if (open!.n >= 5) throw new AppError(429, "too_many", "Masih ada 5 pesanan belum dibayar. Selesaikan dulu di akademi.");
-    return placeOrderIn(tx, link.businessId, session.userId, { playerId: link.playerId, buyerName: p!.name, note: note ?? null, lines }, "parent");
+    const id = await placeOrderIn(tx, link.businessId, session.userId, { playerId: link.playerId, buyerName: p!.name, note: note ?? null, lines }, "parent");
+    await notify(tx, link.businessId, await staffWith(tx, link.businessId, "store.manage"), { title: `Pesanan toko dari ${p!.name}`, href: "/toko" });
+    return id;
   });
 }
 

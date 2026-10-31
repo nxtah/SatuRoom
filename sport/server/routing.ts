@@ -30,8 +30,8 @@ export const requireAcademyPage = cache(async (): Promise<AcademyContext> => {
       myPlayerInvitations(session.userId),
       hasPlayerAccount(session.userId),
     ]);
-    if (isPlayer) redirect("/saya");
     if (staffInvites.length || playerInvites.length) redirect("/undangan");
+    if (isPlayer) redirect("/saya");
     redirect("/mulai");
   }
   if (mine.length > 1) redirect("/pilih-akademi");

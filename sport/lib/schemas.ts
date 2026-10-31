@@ -257,7 +257,7 @@ export const NoticeInput = z.object({
   status: z.enum(["excused", "sick"]),
   note: z.string().trim().max(200, "Maksimal 200 karakter.").optional(),
 });
-export const PlayerInviteInput = z.object({ email });
+export const PlayerInviteInput = z.object({ email, relation: z.enum(["self", "father", "mother", "guardian"]).default("guardian") });
 export const AcceptPlayerInvitationInput = z.object({
   invitationId: z.string().uuid(),
   consentBy: z.string().trim().min(2, "Isi nama yang memberi persetujuan.").max(120),

@@ -42,6 +42,8 @@ export const PERMISSIONS = [
   "payroll.manage",
   "inventory.manage",
   "store.manage",
+  "events.manage",
+  "support.manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -68,6 +70,8 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     "accounting.read",
     "inventory.manage",
     "store.manage",
+    "events.manage",
+    "support.manage",
   ],
   head_coach: [
     "staff.read",
@@ -81,6 +85,7 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     "evaluations.write",
     "evaluations.manage_all",
     "programs.manage",
+    "events.manage",
   ],
   // Pelatih tidak punya izin "_all": aksesnya dibatasi ke tim yang dia latih.
   coach: ["evaluations.write"],

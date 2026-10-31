@@ -21,8 +21,8 @@ export default async function UndanganPage() {
     listMyAcademies(session.userId),
     hasPlayerAccount(session.userId),
   ]);
-  // Akun yang sudah menjadi akun pemain tidak bisa menerima undangan pemain lain.
-  const usablePlayerInvites = isPlayer ? [] : playerInvites;
+  // Akun orang tua boleh menerima undangan untuk anak lain.
+  const usablePlayerInvites = playerInvites;
   const invites = [...staffInvites, ...usablePlayerInvites];
 
   return (

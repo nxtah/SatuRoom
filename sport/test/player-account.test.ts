@@ -5,6 +5,7 @@ import {
   cancelNotice,
   hasPlayerAccount,
   invitePlayerAccount,
+  myChildren,
   myPlayerInvitations,
   playerAccount,
   playerHome,
@@ -40,11 +41,13 @@ describe("akun pemain", () => {
     expect(await acceptPlayerInvitation(user, invite!.id, "Ibu Sari")).toBe(andi);
     expect(await hasPlayerAccount(user.userId)).toBe(true);
 
-    // Pemain yang sudah punya akun tidak bisa diundang lagi; akun ini tidak bisa jadi akun pemain lain.
-    await expect(invitePlayerAccount(a.ctx, andi, stranger.email)).rejects.toMatchObject({ status: 409 });
-    await invitePlayerAccount(a.ctx, bayu, user.email);
+    // Email yang sama tidak bisa diundang dua kali ke pemain yang sama. Satu akun orang tua boleh punya
+    // beberapa anak; anak pertama tetap yang tampil sampai dipilih lain.
+    await expect(invitePlayerAccount(a.ctx, andi, user.email)).rejects.toMatchObject({ status: 409 });
+    await invitePlayerAccount(a.ctx, bayu, user.email, "mother");
     const [second] = await myPlayerInvitations(user.userId);
-    await expect(acceptPlayerInvitation(user, second!.id, "Ibu Sari")).rejects.toMatchObject({ status: 409 });
+    expect(await acceptPlayerInvitation(user, second!.id, "Ibu Sari")).toBe(bayu);
+    expect((await myChildren(user.userId)).map((k) => k.playerId)).toEqual([andi, bayu]);
 
     const me = await playerHome(user);
     expect(me).toMatchObject({ fullName: "Andi", teamNames: "KU 10-13", attendance: { rate: 100 } });
@@ -63,8 +66,10 @@ describe("akun pemain", () => {
     // Pelatih tanpa hak kelola pemain tidak bisa mengatur akun; pemilik bisa memutus.
     const coach = await staffOf(a, ["coach"], "Tomi");
     await expect(playerAccount(coach, andi)).rejects.toThrow();
-    expect((await playerAccount(a.ctx, andi)).account?.email).toBe(user.email);
-    await unlinkPlayerAccount(a.ctx, andi);
+    expect((await playerAccount(a.ctx, andi)).accounts.map((x) => x.email)).toEqual([user.email]);
+    await unlinkPlayerAccount(a.ctx, andi, user.userId);
+    expect((await playerHome(user))?.fullName).toBe("Bayu");
+    await unlinkPlayerAccount(a.ctx, bayu);
     expect(await playerHome(user)).toBeNull();
   });
 });
