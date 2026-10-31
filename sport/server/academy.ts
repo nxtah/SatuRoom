@@ -10,6 +10,7 @@ import { inAcademy, PRODUCT, requirePermission, type AcademyContext } from "./co
 import { db } from "./db";
 import { AppError, forbidden, notFound } from "./errors";
 import { sportOf, type SportId } from "@/lib/sports";
+import { cleanImageUrl } from "./cloudinary";
 import { academySettings, locations, onboarding, players, staffRoles } from "./schema";
 
 export type AcademyInput = z.input<typeof AcademyInput>;
@@ -82,6 +83,8 @@ export interface AcademyProfile extends AcademySummary {
   sport: SportId;
   /** Cabang masih bisa diganti selama belum ada pemain (posisi pemain mengikuti cabang). */
   sportLocked: boolean;
+  logoUrl: string | null;
+  address: string | null;
 }
 
 export function getAcademy(ctx: AcademyContext): Promise<AcademyProfile> {
@@ -92,8 +95,16 @@ export function getAcademy(ctx: AcademyContext): Promise<AcademyProfile> {
       .where(eq(businesses.id, ctx.businessId));
     if (!row) throw notFound("Akademi");
     const [anyPlayer] = await tx.select({ id: players.id }).from(players).limit(1);
-    const [settings] = await tx.select({ sport: academySettings.sport }).from(academySettings);
-    return { ...row, sport: settings?.sport ?? ctx.sport, sportLocked: Boolean(anyPlayer) };
+    const [settings] = await tx
+      .select({ sport: academySettings.sport, logoUrl: academySettings.logoUrl, address: academySettings.address })
+      .from(academySettings);
+    return {
+      ...row,
+      sport: settings?.sport ?? ctx.sport,
+      sportLocked: Boolean(anyPlayer),
+      logoUrl: settings?.logoUrl ?? null,
+      address: settings?.address ?? null,
+    };
   });
 }
 
@@ -106,6 +117,12 @@ export async function updateAcademy(ctx: AcademyContext, input: AcademyInput): P
       .where(eq(businesses.id, ctx.businessId))
       .returning({ id: businesses.id });
     if (updated.length === 0) throw forbidden();
+    if (input.address !== undefined) {
+      await tx
+        .update(academySettings)
+        .set({ address: input.address || null, updatedAt: new Date() })
+        .where(eq(academySettings.businessId, ctx.businessId));
+    }
     if (input.sport && input.sport !== ctx.sport) {
       // Posisi pemain mengikuti cabang, jadi cabang hanya bisa diganti selama belum ada pemain.
       const [anyPlayer] = await tx.select({ id: players.id }).from(players).limit(1);
@@ -116,6 +133,22 @@ export async function updateAcademy(ctx: AcademyContext, input: AcademyInput): P
       businessId: ctx.businessId,
       actorUserId: ctx.userId,
       action: "academy.updated",
+      targetType: "academy",
+      targetId: ctx.businessId,
+    });
+  });
+}
+
+/** Memasang atau menghapus logo akademi. URL hanya diterima dari folder Cloudinary akademi ini. */
+export async function setAcademyLogo(ctx: AcademyContext, url: string | null): Promise<void> {
+  requirePermission(ctx, "academy.update");
+  const logoUrl = cleanImageUrl(ctx, url);
+  await inAcademy(ctx, async (tx) => {
+    await tx.update(academySettings).set({ logoUrl, updatedAt: new Date() }).where(eq(academySettings.businessId, ctx.businessId));
+    await tx.insert(auditEvents).values({
+      businessId: ctx.businessId,
+      actorUserId: ctx.userId,
+      action: logoUrl ? "academy.logo_set" : "academy.logo_removed",
       targetType: "academy",
       targetId: ctx.businessId,
     });

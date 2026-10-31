@@ -30,7 +30,12 @@ export const AcademyInput = z.object({
   sport: z.enum(SPORT_IDS, "Pilih cabang olahraga.").default("football"),
   name: z.string().trim().min(2, "Nama akademi minimal 2 huruf.").max(100, "Nama akademi terlalu panjang."),
   city: z.string().trim().min(2, "Isi kota akademi.").max(80, "Nama kota terlalu panjang."),
+  /** Alamat lengkap; tidak dikirim berarti tidak diubah. */
+  address: z.string().trim().max(200, "Alamat terlalu panjang.").optional(),
 });
+
+export const UploadSignInput = z.object({ kind: z.enum(["logo"]) });
+export const AcademyLogoInput = z.object({ logoUrl: z.string().trim().max(500).nullable() });
 
 /** Umur opsional: isian kosong berarti tidak dibatasi. */
 const optionalAge = z.preprocess(

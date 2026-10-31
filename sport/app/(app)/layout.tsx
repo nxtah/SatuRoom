@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       academyName={academy.name}
+      logoUrl={academy.logoUrl}
       academies={academies}
       activeAcademyId={ctx.businessId}
       user={{ name: ctx.session.name, email: ctx.session.email }}

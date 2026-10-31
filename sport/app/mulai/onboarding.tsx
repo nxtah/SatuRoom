@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { SportPicker } from "@/components/sport-picker";
 import { Maskot } from "@/components/maskot";
+import { ImageField } from "@/components/image-field";
 import { sportOf, type SportId } from "@/lib/sports";
 import { api } from "@/lib/api";
 import { AcademyInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-const STEPS = ["Selamat datang", "Cabang olahraga", "Data akademi"] as const;
+const STEPS = ["Selamat datang", "Cabang olahraga", "Data akademi", "Logo"] as const;
 
 /** Onboarding satu langkah per layar, dengan progres. Langkah berikutnya ditambah tiap tahap. */
 export function Onboarding({ firstName, another }: { firstName: string; another: boolean }) {
@@ -22,14 +23,26 @@ export function Onboarding({ firstName, another }: { firstName: string; another:
   const [step, setStep] = useState(another ? 1 : 0);
   const [sport, setSport] = useState<SportId>("football");
   const form = useForm(AcademyInput);
+  const [logo, setLogo] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState("");
+
+  function finish() {
+    router.replace("/?selamat=1");
+    router.refresh();
+  }
+
+  async function saveLogo(url: string | null) {
+    setLogoError("");
+    const r = await api("/academy/logo", { method: "PUT", body: { logoUrl: url } });
+    if (!r.ok) return setLogoError(r.error.message);
+    setLogo(url);
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const done = await form.submit({ ...formValues(e.currentTarget), sport }, (input) => api("/academies", { body: input }));
-    if (done) {
-      router.replace("/?selamat=1");
-      router.refresh();
-    }
+    // Akademi sudah dibuat; logo di langkah berikut boleh dilewati.
+    if (done) setStep(3);
   }
 
   return (
@@ -84,6 +97,23 @@ export function Onboarding({ firstName, another }: { firstName: string; another:
             <Button size="lg" className="mt-8" onClick={() => setStep(2)}>
               Lanjut
             </Button>
+          </section>
+        ) : step === 3 ? (
+          <section key="logo" className="rise">
+            <h1 className="text-4xl font-extrabold tracking-tight">Punya logo akademi?</h1>
+            <p className="mt-3 text-lg text-ink-soft">Logo tampil di menu dan beranda. Belum ada? Lewati saja, bisa dipasang nanti di Pengaturan.</p>
+            <div className="mt-8 rounded-[2rem] bg-mist p-5 sm:p-6">
+              <ImageField value={logo} onChange={saveLogo} label="Logo akademi" hint="JPG, PNG, atau WebP, maksimal 5 MB. Gambar persegi paling rapi." />
+              {logoError ? <div className="mt-3"><Alert tone="error">{logoError}</Alert></div> : null}
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="lg" onClick={finish} disabled={!logo}>
+                Selesai
+              </Button>
+              <Button size="lg" variant="ghost" onClick={finish}>
+                {logo ? "Nanti saja" : "Lewati"}
+              </Button>
+            </div>
           </section>
         ) : (
           <section key="academy" className="rise">

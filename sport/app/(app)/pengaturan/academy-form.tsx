@@ -11,7 +11,7 @@ import { api } from "@/lib/api";
 import { AcademyInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-export function AcademyForm({ name, city, sport, sportLocked }: { name: string; city: string; sport: SportId; sportLocked: boolean }) {
+export function AcademyForm({ name, city, address, sport, sportLocked }: { name: string; city: string; address: string; sport: SportId; sportLocked: boolean }) {
   const router = useRouter();
   const form = useForm(AcademyInput);
   const [saved, setSaved] = useState(false);
@@ -41,6 +41,17 @@ export function AcademyForm({ name, city, sport, sportLocked }: { name: string; 
       ) : null}
       <Field label="Nama akademi" name="name" defaultValue={name} error={form.fields.name} onChange={() => setSaved(false)} />
       <Field label="Kota" name="city" defaultValue={city} error={form.fields.city} onChange={() => setSaved(false)} />
+      <div className="sm:col-span-2">
+        <Field
+          label="Alamat lengkap"
+          name="address"
+          defaultValue={address}
+          placeholder="Contoh: Jl. Merdeka 12, dekat GOR Kota"
+          hint="Boleh dikosongkan. Membantu orang tua menemukan tempat latihan."
+          error={form.fields.address}
+          onChange={() => setSaved(false)}
+        />
+      </div>
       <div className="sm:col-span-2">
         <SportPicker defaultValue={sport} disabled={sportLocked} error={form.fields.sport} />
         {sportLocked ? <p className="mt-2 text-sm text-ink-soft">Cabang olahraga terkunci karena sudah ada pemain.</p> : null}

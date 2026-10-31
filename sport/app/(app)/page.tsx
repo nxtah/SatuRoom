@@ -2,6 +2,7 @@ import { ChevronRight, CircleAlert, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Maskot } from "@/components/maskot";
+import { AcademyMark } from "@/components/academy-mark";
 import { sportOf } from "@/lib/sports";
 import { SessionCard } from "@/components/session-card";
 import { dayLabel } from "@/lib/dates";
@@ -57,7 +58,10 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
         </div>
         <div className="relative min-w-0 pr-20 sm:max-w-[55%] sm:pr-0">
           <p className="text-sm font-semibold text-white/70 sm:text-base">{justCreated ? "Akademi berhasil dibuat" : justJoined ? `Selamat bergabung, ${firstName}` : celebrate ? "Persiapan selesai" : `Halo, ${firstName}`}</p>
-          <h1 className="mt-0.5 text-2xl leading-tight font-extrabold tracking-tight text-balance sm:mt-1 sm:text-5xl">{academy.name}</h1>
+          <div className="mt-1 flex min-w-0 items-center gap-3 sm:mt-2 sm:gap-4">
+            {academy.logoUrl ? <AcademyMark name={academy.name} logoUrl={academy.logoUrl} className="size-11 rounded-2xl ring-2 ring-white/20 sm:size-16" /> : null}
+            <h1 className="min-w-0 text-2xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl">{academy.name}</h1>
+          </div>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/70 sm:mt-2 sm:text-base">
             <span>{sport.label}{academy.city ? `, ${academy.city}` : ""}</span>
             <span className="rounded-full bg-white/12 px-2.5 py-0.5 text-xs font-extrabold tracking-wider text-white select-all sm:text-sm">ID {formatBusinessCode(academy.code)}</span>

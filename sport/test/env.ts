@@ -7,4 +7,8 @@ Object.assign(process.env, {
   SMTP_PORT: "1026",
   MAIL_FROM: "SatuRoom Sport <no-reply@saturoom.com>",
   COOKIE_SECURE: "false",
+  // Kunci palsu khusus tes: hanya untuk tanda tangan dan validasi URL, tidak menghubungi Cloudinary.
+  CLOUDINARY_CLOUD_NAME: "tes-cloud",
+  CLOUDINARY_API_KEY: "tes-key",
+  CLOUDINARY_API_SECRET: "tes-secret-lokal",
 });

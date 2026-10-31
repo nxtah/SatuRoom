@@ -37,6 +37,8 @@ export const onboarding = bola.table("onboarding", {
 export const academySettings = bola.table("academy_settings", {
   businessId: uuid("business_id").primaryKey(),
   sport: text("sport").$type<SportId>().notNull().default("football"),
+  logoUrl: text("logo_url"),
+  address: text("address"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

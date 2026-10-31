@@ -5,6 +5,7 @@ import { BottomNav, SideNav } from "./nav";
 
 interface Props {
   academyName: string;
+  logoUrl: string | null;
   academies: { id: string; name: string }[];
   activeAcademyId: string;
   user: { name: string; email: string };
@@ -15,7 +16,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export function AppShell({ academyName, academies, activeAcademyId, user, roleLabel, allowed, accent, children }: Props) {
+export function AppShell({ academyName, logoUrl, academies, activeAcademyId, user, roleLabel, allowed, accent, children }: Props) {
   return (
     <div style={{ "--color-ember": accent } as React.CSSProperties} className="min-h-dvh md:grid md:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
       <a
@@ -39,6 +40,7 @@ export function AppShell({ academyName, academies, activeAcademyId, user, roleLa
       <div className="flex min-w-0 flex-col pb-24 md:pb-0">
         <AppHeader
           academyName={academyName}
+          logoUrl={logoUrl}
           academies={academies}
           activeAcademyId={activeAcademyId}
           user={user}

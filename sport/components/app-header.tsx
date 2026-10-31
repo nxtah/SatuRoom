@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
+import { AcademyMark } from "./academy-mark";
 import { MenuButton } from "./menu-button";
 
 interface Props {
   academyName: string;
+  logoUrl: string | null;
   academies: { id: string; name: string }[];
   activeAcademyId: string;
   user: { name: string; email: string };
@@ -17,7 +19,7 @@ interface Props {
 
 const item = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-semibold hover:bg-mist";
 
-export function AppHeader({ academyName, academies, activeAcademyId, user, roleLabel }: Props) {
+export function AppHeader({ academyName, logoUrl, academies, activeAcademyId, user, roleLabel }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -48,9 +50,7 @@ export function AppHeader({ academyName, academies, activeAcademyId, user, roleL
         buttonClassName="flex min-w-0 items-center gap-3 rounded-2xl py-2 pr-3 pl-2 text-left transition hover:bg-chalk"
         button={
           <>
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-pitch font-extrabold text-white">
-              {academyName[0]?.toUpperCase()}
-            </span>
+            <AcademyMark name={academyName} logoUrl={logoUrl} />
             <span className="min-w-0">
               <span className="block truncate font-extrabold">{academyName}</span>
               <span className="block text-xs font-semibold text-ink-soft">{roleLabel}</span>

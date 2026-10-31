@@ -4,7 +4,9 @@ import Link from "next/link";
 import { mobileNav, NAV } from "@/lib/nav";
 import { getAcademy } from "@/server/academy";
 import { requireAcademyPage } from "@/server/routing";
+import { AcademyMark } from "@/components/academy-mark";
 import { AcademyForm } from "./academy-form";
+import { LogoForm } from "./logo-form";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 
@@ -60,9 +62,17 @@ export default async function PengaturanPage() {
           Profil akademi
         </h2>
         {canEdit ? (
-          <AcademyForm name={academy.name} city={academy.city ?? ""} sport={academy.sport} sportLocked={academy.sportLocked} />
+          <>
+            <div className="mt-5">
+              <LogoForm logoUrl={academy.logoUrl} />
+            </div>
+            <AcademyForm name={academy.name} city={academy.city ?? ""} address={academy.address ?? ""} sport={academy.sport} sportLocked={academy.sportLocked} />
+          </>
         ) : (
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <AcademyMark name={academy.name} logoUrl={academy.logoUrl} className="size-16 rounded-2xl text-2xl" />
+            </div>
             <div>
               <dt className="text-sm font-bold text-ink-soft">Nama akademi</dt>
               <dd className="mt-1 font-semibold">{academy.name}</dd>
@@ -70,6 +80,10 @@ export default async function PengaturanPage() {
             <div>
               <dt className="text-sm font-bold text-ink-soft">Kota</dt>
               <dd className="mt-1 font-semibold">{academy.city ?? "-"}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-sm font-bold text-ink-soft">Alamat</dt>
+              <dd className="mt-1 font-semibold">{academy.address ?? "-"}</dd>
             </div>
             <p className="text-sm text-ink-soft sm:col-span-2">Hanya pemilik akademi yang bisa mengubah profil.</p>
           </dl>
