@@ -1,7 +1,7 @@
 import { BookOpen, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { mobileNav, NAV } from "@/lib/nav";
+import { allowedHrefs, mobileNav } from "@/lib/nav";
 import { getAcademy } from "@/server/academy";
 import { requireAcademyPage } from "@/server/routing";
 import { AcademyMark } from "@/components/academy-mark";
@@ -15,7 +15,11 @@ export default async function PengaturanPage() {
   const academy = await getAcademy(ctx);
   const canEdit = ctx.can("academy.update");
   // Menu yang tidak muat di tab bawah HP dibuka dari sini.
-  const allowed: string[] = [...NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href), ...(ctx.can("locations.manage") ? ["/pengaturan/lokasi"] : [])];
+  const allowed: string[] = allowedHrefs(ctx.can, ctx.modules, [
+    ...(ctx.can("locations.manage") ? ["/pengaturan/lokasi"] : []),
+    ...(ctx.can("branches.manage") ? ["/pengaturan/cabang"] : []),
+    ...(ctx.can("modules.manage") ? ["/pengaturan/modul"] : []),
+  ]);
   const inTabs = new Set<string>(mobileNav(allowed).map((i) => i.href));
   const HINTS: Record<string, { title: string; hint: string }> = {
     "/tim": { title: "Tim", hint: "Kelompok umur, pemain, dan pelatihnya." },
@@ -25,6 +29,8 @@ export default async function PengaturanPage() {
     "/iuran": { title: "Iuran", hint: "Tarif, tagihan bulanan, dan pembayaran." },
     "/staf/peran": { title: "Peran dan izin", hint: "Buat jabatan sendiri dan atur aksesnya." },
     "/aktivitas": { title: "Jejak aktivitas", hint: "Siapa mengubah apa dan kapan." },
+    "/pengaturan/cabang": { title: "Cabang", hint: "Tempat latihan di kota atau area lain." },
+    "/pengaturan/modul": { title: "Modul", hint: "Pilih fitur yang dipakai akademi." },
   };
   const more = allowed.filter((h) => !inTabs.has(h) && HINTS[h]).map((h) => ({ href: h, ...HINTS[h]! }));
   return (
@@ -62,6 +68,29 @@ export default async function PengaturanPage() {
         </span>
         <ChevronRight aria-hidden className="size-5" />
       </a>
+
+      {ctx.can("branches.manage") || ctx.can("modules.manage") ? (
+        <div className="rise hidden gap-3 md:grid md:grid-cols-2">
+          {ctx.can("branches.manage") ? (
+            <Link href="/pengaturan/cabang" className="group flex items-center gap-4 rounded-[2rem] bg-chalk p-5 transition hover:-translate-y-0.5">
+              <span className="flex-1">
+                <span className="block text-lg font-extrabold">Cabang</span>
+                <span className="block text-sm text-ink-soft">Tempat latihan di kota atau area lain, dan batas akses staf per cabang.</span>
+              </span>
+              <ChevronRight aria-hidden className="size-5" />
+            </Link>
+          ) : null}
+          {ctx.can("modules.manage") ? (
+            <Link href="/pengaturan/modul" className="group flex items-center gap-4 rounded-[2rem] bg-chalk p-5 transition hover:-translate-y-0.5">
+              <span className="flex-1">
+                <span className="block text-lg font-extrabold">Modul</span>
+                <span className="block text-sm text-ink-soft">Nyalakan atau matikan fitur seperti iuran, gaji, toko, dan event.</span>
+              </span>
+              <ChevronRight aria-hidden className="size-5" />
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
 
       {ctx.can("locations.manage") ? (
         <Link href="/pengaturan/lokasi" className="rise group hidden items-center gap-4 rounded-[2rem] bg-chalk p-5 transition hover:-translate-y-0.5 md:flex">

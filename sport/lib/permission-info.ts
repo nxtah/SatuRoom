@@ -20,6 +20,8 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "evaluations.write": { label: "Tulis rapor pemain", hint: "Menilai pemain di tim yang dipegang." },
   "evaluations.manage_all": { label: "Kelola semua rapor", hint: "Menilai dan mengubah rapor semua pemain." },
   "audit.read": { label: "Lihat jejak aktivitas", hint: "Siapa mengubah apa dan kapan." },
+  "branches.manage": { label: "Kelola cabang", hint: "Tambah cabang dan atur lokasinya." },
+  "modules.manage": { label: "Nyalakan/matikan modul", hint: "Memilih fitur yang dipakai akademi." },
 };
 
 export const PERMISSION_GROUPS: { title: string; perms: Permission[] }[] = [
@@ -28,5 +30,5 @@ export const PERMISSION_GROUPS: { title: string; perms: Permission[] }[] = [
   { title: "Keuangan", perms: ["billing.read", "billing.manage"] },
   { title: "Komunikasi", perms: ["announcements.manage"] },
   { title: "Tim kerja dan akses", perms: ["staff.read", "staff.manage", "roles.manage", "audit.read"] },
-  { title: "Akademi", perms: ["academy.update", "locations.manage"] },
+  { title: "Akademi", perms: ["academy.update", "locations.manage", "branches.manage", "modules.manage"] },
 ];

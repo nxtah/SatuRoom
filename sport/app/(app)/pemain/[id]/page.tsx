@@ -46,9 +46,9 @@ export default async function PlayerPage({
     p.status === "active" && teamIds.size
       ? listSessions(ctx, { from: today, to: addDays(today, 14) })
       : [],
-    ctx.can("billing.read") ? playerInvoices(ctx, id) : null,
+    ctx.can("billing.read") && ctx.modules.has("billing") ? playerInvoices(ctx, id) : null,
     canManage && p.status === "active" ? playerAccount(ctx, id) : null,
-    ctx.can("evaluations.write") ? listEvaluations(ctx, id) : null,
+    ctx.can("evaluations.write") && ctx.modules.has("evaluations") ? listEvaluations(ctx, id) : null,
   ]);
   const upcoming = sessions
     .filter((s) => teamIds.has(s.teamId) && s.status === "scheduled")

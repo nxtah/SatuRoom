@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { getAcademy } from "@/server/academy";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "Pengumuman" };
 
 export default async function PengumumanPage() {
   const ctx = await requireAcademyPage();
+  if (!ctx.modules.has("announcements")) redirect("/");
   const [items, targets, teams, academy] = await Promise.all([
     listAnnouncements(ctx),
     announcementTargets(ctx),

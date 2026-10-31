@@ -3,7 +3,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { MatchInput } from "@/lib/schemas";
-import { inAcademy, type AcademyContext } from "./context";
+import { inAcademy, type AcademyContext, requireModule } from "./context";
 import { AppError, notFound } from "./errors";
 import { assertTeamAccess, getSession, academyToday, uuidList, type SessionRow } from "./schedule";
 import { visibleTeamIds } from "./teams";
@@ -71,6 +71,7 @@ export function getMatch(ctx: AcademyContext, sessionId: string): Promise<MatchV
 
 /** Menyimpan lawan, skor, catatan, dan susunan pemain sekaligus. Susunan lama diganti seluruhnya. */
 export async function saveMatch(ctx: AcademyContext, sessionId: string, input: z.infer<typeof MatchInput>): Promise<void> {
+  requireModule(ctx, "matches");
   const view = await getMatch(ctx, sessionId);
   await inAcademy(ctx, async (tx) => {
     await assertTeamAccess(ctx, tx, view.session.teamId, "manage");
@@ -137,7 +138,7 @@ export interface MatchesOverview {
 export function matchesOverview(ctx: AcademyContext, limit = 5): Promise<MatchesOverview> {
   return inAcademy(ctx, async (tx) => {
     const scope = await visibleTeamIds(ctx, tx);
-    if (scope && scope.length === 0) return { record: { w: 0, d: 0, l: 0, goalsFor: 0, goalsAgainst: 0 }, recent: [], next: null };
+    if (!ctx.modules.has("matches") || (scope && scope.length === 0)) return { record: { w: 0, d: 0, l: 0, goalsFor: 0, goalsAgainst: 0 }, recent: [], next: null };
     const filter = scope ? sql`AND s.team_id IN (${uuidList(scope)})` : sql``;
     const today = await academyToday(tx);
     const rows = (await tx.execute(sql`

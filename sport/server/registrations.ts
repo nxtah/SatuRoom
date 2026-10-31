@@ -5,7 +5,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { PublicRegistrationInput, RegistrationApproveInput, RegistrationRejectInput } from "@/lib/schemas";
-import { inAcademy, requirePermission, type AcademyContext } from "./context";
+import { inAcademy, requirePermission, type AcademyContext, requireModule } from "./context";
 import { db } from "./db";
 import { AppError, notFound } from "./errors";
 import { createPlayerIn } from "./players";
@@ -29,6 +29,7 @@ export interface RegistrationRow {
 
 /** Link pendaftaran akademi ini; null bila belum pernah dibuat. */
 export async function getRegistrationLink(ctx: AcademyContext): Promise<RegistrationLink | null> {
+  requireModule(ctx, "registrations");
   requirePermission(ctx, "players.manage");
   return inAcademy(ctx, async (tx) => {
     const [row] = (await tx.execute(sql`SELECT token, enabled FROM bola.registration_links`)) as unknown as RegistrationLink[];
@@ -41,6 +42,7 @@ export async function updateRegistrationLink(
   ctx: AcademyContext,
   input: { enabled?: boolean; rotate?: boolean },
 ): Promise<RegistrationLink> {
+  requireModule(ctx, "registrations");
   requirePermission(ctx, "players.manage");
   return inAcademy(ctx, async (tx) => {
     const [row] = (await tx.execute(sql`
@@ -64,6 +66,7 @@ export async function updateRegistrationLink(
 }
 
 export async function listRegistrations(ctx: AcademyContext): Promise<RegistrationRow[]> {
+  requireModule(ctx, "registrations");
   requirePermission(ctx, "players.manage");
   return inAcademy(ctx, async (tx) => {
     // Kontak wali hanya untuk peran dengan izin kontak, sama seperti data pemain.
@@ -77,6 +80,7 @@ export async function listRegistrations(ctx: AcademyContext): Promise<Registrati
 }
 
 export async function pendingRegistrationCount(ctx: AcademyContext): Promise<number> {
+  if (!ctx.modules.has("registrations")) return 0;
   if (!ctx.can("players.manage") || !ctx.can("guardians.read")) return 0;
   return inAcademy(ctx, async (tx) => {
     const [row] = (await tx.execute(sql`SELECT count(*)::int AS n FROM bola.registrations WHERE status = 'pending'`)) as unknown as { n: number }[];
@@ -90,6 +94,7 @@ export async function approveRegistration(
   id: string,
   input: z.infer<typeof RegistrationApproveInput>,
 ): Promise<string> {
+  requireModule(ctx, "registrations");
   requirePermission(ctx, "players.manage");
   requirePermission(ctx, "guardians.read");
   return inAcademy(ctx, async (tx) => {
@@ -127,6 +132,7 @@ export async function rejectRegistration(
   id: string,
   input: z.infer<typeof RegistrationRejectInput>,
 ): Promise<void> {
+  requireModule(ctx, "registrations");
   requirePermission(ctx, "players.manage");
   await inAcademy(ctx, async (tx) => {
     const done = (await tx.execute(sql`

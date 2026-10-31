@@ -16,6 +16,8 @@ export function RoleFields({
   roles = [],
   customRoles = [],
   customRoleIds = [],
+  branches = [],
+  branchIds = [],
   teams,
   teamIds = [],
   errors,
@@ -24,6 +26,8 @@ export function RoleFields({
   roles?: Role[];
   customRoles?: { id: string; name: string; description: string | null }[];
   customRoleIds?: string[];
+  branches?: { id: string; name: string }[];
+  branchIds?: string[];
   teams: { id: string; name: string }[];
   teamIds?: string[];
   errors: Record<string, string>;
@@ -65,6 +69,23 @@ export function RoleFields({
         </div>
         {errors.roles ? <p className="mt-2 text-sm font-semibold text-[#b42318]">{errors.roles}</p> : null}
       </fieldset>
+      {branches.length > 1 ? (
+        <fieldset>
+          <legend className="mb-1 text-sm font-bold">Cabang</legend>
+          <p className="mb-3 text-sm text-ink-soft">Kosongkan bila boleh melihat semua cabang. Dicentang = hanya data cabang itu.</p>
+          <div className="flex flex-wrap gap-2">
+            {branches.map((b) => (
+              <label key={b.id} className="cursor-pointer">
+                <input type="checkbox" name="branchIds" value={b.id} defaultChecked={branchIds.includes(b.id)} className="peer sr-only" />
+                <span className="flex h-11 items-center gap-1.5 rounded-full border-2 border-line bg-chalk px-4 font-bold transition peer-checked:border-pitch peer-checked:bg-pitch peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-pitch [&>svg]:hidden peer-checked:[&>svg]:block">
+                  <Check aria-hidden className="size-4" />
+                  {b.name}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       {teams.length ? (
         <fieldset>
           <legend className="mb-1 text-sm font-bold">Tim yang dipegang</legend>

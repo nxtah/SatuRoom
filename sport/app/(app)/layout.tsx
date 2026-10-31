@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { NAV } from "@/lib/nav";
+import { allowedHrefs } from "@/lib/nav";
 import { sportOf } from "@/lib/sports";
 import { getAcademy, listMyAcademies } from "@/server/academy";
 import { ROLE_LABEL, ROLES } from "@/server/permissions";
@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       user={{ name: ctx.session.name, email: ctx.session.email }}
       roleLabel={top ? ROLE_LABEL[top] : (ctx.customRoleNames[0] ?? "Anggota")}
       accent={sportOf(ctx.sport).accent}
-      allowed={NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href)}
+      allowed={allowedHrefs(ctx.can, ctx.modules)}
     >
       {children}
     </AppShell>

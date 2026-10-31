@@ -34,7 +34,7 @@ export default async function TeamPage({
     listPlayers(ctx, { teamId: id }),
     listSessions(ctx, { from: today, to: addDays(today, 14), teamId: id }),
     homeStats(ctx),
-    ctx.can("billing.read") ? listTeamFees(ctx) : null,
+    ctx.can("billing.read") && ctx.modules.has("billing") ? listTeamFees(ctx) : null,
   ]);
   const upcoming = sessions.filter((s) => s.status === "scheduled").slice(0, 3);
   const rate = stats.perTeam.find((t) => t.teamId === id)?.rate ?? null;

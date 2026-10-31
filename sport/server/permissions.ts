@@ -32,6 +32,8 @@ export const PERMISSIONS = [
   "evaluations.manage_all",
   "roles.manage",
   "audit.read",
+  "branches.manage",
+  "modules.manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -52,6 +54,7 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     "billing.manage",
     "announcements.manage",
     "audit.read",
+    "branches.manage",
   ],
   head_coach: [
     "staff.read",

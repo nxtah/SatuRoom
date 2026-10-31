@@ -2,6 +2,8 @@
 import { z } from "zod";
 import { SPORT_IDS } from "./sports";
 
+const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
+
 export const email = z.string().trim().email("Format email belum benar.").max(254);
 export const password = z
   .string()
@@ -48,13 +50,14 @@ export const TeamInput = z
     name: z.string().trim().min(1, "Isi nama tim.").max(60, "Nama tim terlalu panjang."),
     ageMin: optionalAge,
     ageMax: optionalAge,
+    /** Lokasi latihan utama tim; menentukan cabang. Kosong = lokasi utama. */
+    locationId: z.preprocess(emptyToNull, z.string().uuid().nullable()).optional(),
   })
   .refine((t) => t.ageMin === null || t.ageMax === null || t.ageMin <= t.ageMax, {
     path: ["ageMax"],
     message: "Umur maksimal harus sama atau lebih besar dari umur minimal.",
   });
 
-const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
 
 /** Tanggal lahir wajar untuk pemain akademi: umur 3 sampai 25 tahun. */
 const birthDate = z
@@ -174,6 +177,8 @@ export const MatchInput = z
 
 export const LocationInput = z.object({
   name: z.string().trim().min(2, "Nama lokasi minimal 2 huruf.").max(80, "Nama lokasi terlalu panjang."),
+  /** Cabang pemilik lokasi; kosong = cabang utama. */
+  branchId: z.preprocess(emptyToNull, z.string().uuid().nullable()).optional(),
   address: z.preprocess(emptyToNull, z.string().trim().max(200, "Alamat terlalu panjang.").nullable()).optional(),
 });
 
@@ -200,14 +205,15 @@ export const AttendanceQrScanInput = z.object({ token: z.string().min(20).max(20
 const staffRoles = z.array(z.enum(["owner", "admin", "head_coach", "coach", "treasurer"])).max(5).default([]);
 const teamIdList = z.array(z.string().uuid()).max(50).default([]);
 const customRoleIdList = z.array(z.string().uuid()).max(20).default([]);
+const branchIdList = z.array(z.string().uuid()).max(50).default([]);
 const atLeastOneRole = (v: { roles: unknown[]; customRoleIds: unknown[] }) => v.roles.length + v.customRoleIds.length > 0;
 const roleMessage = { message: "Pilih minimal satu peran.", path: ["roles"] };
 
 export const InviteInput = z
-  .object({ email, roles: staffRoles, customRoleIds: customRoleIdList, teamIds: teamIdList })
+  .object({ email, roles: staffRoles, customRoleIds: customRoleIdList, teamIds: teamIdList, branchIds: branchIdList })
   .refine(atLeastOneRole, roleMessage);
 export const StaffUpdateInput = z
-  .object({ roles: staffRoles, customRoleIds: customRoleIdList, teamIds: teamIdList })
+  .object({ roles: staffRoles, customRoleIds: customRoleIdList, teamIds: teamIdList, branchIds: branchIdList })
   .refine(atLeastOneRole, roleMessage);
 
 export const CustomRoleInput = z.object({
@@ -268,3 +274,10 @@ export const EVALUATION_ASPECTS = [
   { id: "fitness", label: "Fisik", hint: "Stamina, kecepatan, kekuatan" },
   { id: "attitude", label: "Sikap", hint: "Disiplin, semangat, sportivitas" },
 ] as const;
+
+export const BranchInput = z.object({
+  name: z.string().trim().min(2, "Nama cabang minimal 2 huruf.").max(80, "Nama cabang terlalu panjang."),
+  address: z.preprocess(emptyToNull, z.string().trim().max(200, "Alamat terlalu panjang.").nullable()).optional(),
+  phone: z.preprocess(emptyToNull, z.string().trim().max(30, "Nomor terlalu panjang.").nullable()).optional(),
+});
+export const ModuleToggleInput = z.object({ module: z.string().regex(/^[a-z_]{2,40}$/), enabled: z.boolean() });

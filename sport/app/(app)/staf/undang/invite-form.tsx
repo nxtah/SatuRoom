@@ -13,10 +13,12 @@ export function InviteForm({
   teams,
   canGrantOwner,
   customRoles,
+  branches,
 }: {
   teams: { id: string; name: string }[];
   canGrantOwner: boolean;
   customRoles: { id: string; name: string; description: string | null }[];
+  branches: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const form = useForm(InviteInput);
@@ -24,7 +26,7 @@ export function InviteForm({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const raw = { email: data.get("email"), roles: data.getAll("roles"), customRoleIds: data.getAll("customRoleIds"), teamIds: data.getAll("teamIds") };
+    const raw = { email: data.get("email"), roles: data.getAll("roles"), customRoleIds: data.getAll("customRoleIds"), branchIds: data.getAll("branchIds"), teamIds: data.getAll("teamIds") };
     const done = await form.submit(raw, (input) => api<{ id: string }>("/staff", { body: input }));
     if (!done) return;
     router.push("/staf?terkirim=1");
@@ -44,7 +46,7 @@ export function InviteForm({
         error={form.fields.email}
         autoFocus
       />
-      <RoleFields canGrantOwner={canGrantOwner} roles={["coach"]} customRoles={customRoles} teams={teams} errors={form.fields} />
+      <RoleFields canGrantOwner={canGrantOwner} roles={["coach"]} customRoles={customRoles} branches={branches} teams={teams} errors={form.fields} />
       <Button type="submit" disabled={form.pending} className="justify-self-start">
         {form.pending ? "Mengirim…" : "Kirim undangan"}
       </Button>

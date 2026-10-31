@@ -48,7 +48,7 @@ describe("isolasi antar-akademi", () => {
     const b = await academyOf("Elang");
     await expect(
       withContext(db(), { userId: b.ctx.userId, businessId: b.id }, (tx) =>
-        tx.insert(locations).values({ businessId: a.id, name: "Susupan" }),
+        tx.insert(locations).values({ businessId: a.id, branchId: crypto.randomUUID(), name: "Susupan" }),
       ),
     ).rejects.toThrow();
     // Update ke baris akademi lain tidak mengenai apa pun.

@@ -9,6 +9,7 @@ import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
 import { players, teamPlayers, teams } from "./schema";
 import { visibleTeamIds } from "./teams";
+import { teamIdsInBranches } from "./branches";
 
 export interface PlayerRow {
   id: string;
@@ -33,8 +34,8 @@ export interface PlayerFilter {
 
 /** Id pemain yang boleh dilihat; null = semua pemain akademi. */
 export async function visiblePlayerIds(ctx: AcademyContext, tx: Tx): Promise<string[] | null> {
-  if (ctx.can("players.read_all")) return null;
-  const scope = (await visibleTeamIds(ctx, tx)) ?? [];
+  if (ctx.can("players.read_all") && ctx.branchIds === null) return null;
+  const scope = ctx.can("players.read_all") ? await teamIdsInBranches(tx, ctx.branchIds!) : ((await visibleTeamIds(ctx, tx)) ?? []);
   if (scope.length === 0) return [];
   const rows = await tx
     .selectDistinct({ id: teamPlayers.playerId })

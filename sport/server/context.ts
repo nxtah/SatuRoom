@@ -9,7 +9,8 @@ import { db } from "./db";
 import { env } from "./env";
 import { AppError, forbidden, unauthorized } from "./errors";
 import { permissionsFor, type Permission, type Role } from "./permissions";
-import { academySettings, customRoles, staffCustomRoles, staffRoles } from "./schema";
+import { academyModules, academySettings, customRoles, staffBranches, staffCustomRoles, staffRoles } from "./schema";
+import { effectiveModules, moduleOf, type ModuleKey } from "@/lib/modules";
 import type { SportId } from "@/lib/sports";
 
 export const PRODUCT = "bola";
@@ -40,6 +41,10 @@ export interface AcademyContext {
   roles: Role[];
   /** Nama peran custom yang aktif untuk anggota ini. */
   customRoleNames: string[];
+  /** Cabang yang boleh dilihat; null = semua cabang. */
+  branchIds: string[] | null;
+  /** Modul yang menyala untuk akademi ini. */
+  modules: Set<ModuleKey>;
   can: (p: Permission) => boolean;
 }
 
@@ -71,7 +76,16 @@ export async function loadAcademyContext(session: SessionInfo): Promise<AcademyC
       .innerJoin(customRoles, eq(customRoles.id, staffCustomRoles.customRoleId))
       .where(and(eq(staffCustomRoles.membershipId, m.id), isNull(customRoles.archivedAt)));
     const [settings] = await tx.select({ sport: academySettings.sport }).from(academySettings);
-    return { membershipId: m.id, roles: rows.map((r) => r.role), custom, sport: settings?.sport ?? ("football" as SportId) };
+    const branches = await tx.select({ id: staffBranches.branchId }).from(staffBranches).where(eq(staffBranches.membershipId, m.id));
+    const disabled = await tx.select({ module: academyModules.module }).from(academyModules).where(eq(academyModules.enabled, false));
+    return {
+      membershipId: m.id,
+      roles: rows.map((r) => r.role),
+      custom,
+      branches: branches.map((b) => b.id),
+      disabled: disabled.map((d) => d.module),
+      sport: settings?.sport ?? ("football" as SportId),
+    };
   });
   if (!found) throw new AppError(409, "no_academy", "Pilih atau buat akademi dulu.");
   const perms = permissionsFor(found.roles, found.custom.map((c) => c.permissions));
@@ -83,8 +97,18 @@ export async function loadAcademyContext(session: SessionInfo): Promise<AcademyC
     sport: found.sport,
     roles: found.roles,
     customRoleNames: found.custom.map((c) => c.name),
+    // Pemilik selalu melihat semua cabang.
+    branchIds: found.roles.includes("owner") || found.branches.length === 0 ? null : found.branches,
+    modules: effectiveModules(found.disabled),
     can: (p) => perms.has(p),
   };
+}
+
+/** Menolak aksi pada modul yang sedang dimatikan pemilik. */
+export function requireModule(ctx: AcademyContext, key: ModuleKey): void {
+  if (!ctx.modules.has(key)) {
+    throw new AppError(403, "module_off", `Modul ${moduleOf(key).label} sedang dimatikan. Pemilik bisa menyalakannya di Pengaturan → Modul.`);
+  }
 }
 
 export function requirePermission(ctx: AcademyContext, p: Permission): void {

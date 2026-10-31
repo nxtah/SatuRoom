@@ -11,7 +11,7 @@ import { db } from "./db";
 import { AppError, forbidden, notFound } from "./errors";
 import { sportOf, type SportId } from "@/lib/sports";
 import { cleanImageUrl } from "./cloudinary";
-import { academySettings, locations, onboarding, players, staffRoles } from "./schema";
+import { academySettings, branches, locations, onboarding, players, staffRoles } from "./schema";
 
 export type AcademyInput = z.input<typeof AcademyInput>;
 
@@ -35,7 +35,8 @@ export async function createAcademy(session: SessionInfo, input: AcademyInput): 
       .returning({ id: memberships.id });
     await tx.insert(staffRoles).values({ businessId, membershipId: m!.id, role: "owner" });
     await tx.insert(academySettings).values({ businessId, sport: input.sport ?? "football" });
-    await tx.insert(locations).values({ businessId, name: sportOf(input.sport ?? "football").venueDefault, isPrimary: true });
+    const [branch] = await tx.insert(branches).values({ businessId, name: "Cabang utama", isPrimary: true }).returning({ id: branches.id });
+    await tx.insert(locations).values({ businessId, branchId: branch!.id, name: sportOf(input.sport ?? "football").venueDefault, isPrimary: true });
     await tx.insert(onboarding).values({ businessId });
     await tx.insert(auditEvents).values({
       businessId,

@@ -17,12 +17,14 @@ const PRESETS = [
 ];
 
 interface Props {
-  team?: { id: string; name: string; ageMin: number | null; ageMax: number | null };
+  team?: { id: string; name: string; ageMin: number | null; ageMax: number | null; locationId?: string };
+  /** Lokasi latihan; pilihan tampil bila lebih dari satu. */
+  locations: { id: string; name: string; branchName: string }[];
   /** Ke mana setelah tersimpan. `{id}` diganti id tim. */
   next: string;
 }
 
-export function TeamForm({ team, next }: Props) {
+export function TeamForm({ team, next, locations }: Props) {
   const router = useRouter();
   const form = useForm(TeamInput);
   const ref = useRef<HTMLFormElement>(null);
@@ -94,6 +96,19 @@ export function TeamForm({ team, next }: Props) {
           error={form.fields.ageMax}
         />
       </div>
+      {locations.length > 1 ? (
+        <label className="grid gap-2 text-sm font-bold">
+          Tempat latihan utama
+          <select name="locationId" defaultValue={team?.locationId ?? locations[0]?.id} className="h-12 rounded-2xl border-2 border-line bg-white px-4 text-base font-normal outline-none focus:border-pitch">
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.branchName} · {l.name}
+              </option>
+            ))}
+          </select>
+          <span className="font-normal text-ink-soft">Menentukan cabang tim. Staf cabang hanya melihat tim di cabangnya.</span>
+        </label>
+      ) : null}
       <Button type="submit" disabled={form.pending} className="justify-self-start">
         {form.pending ? "Menyimpan…" : team ? "Simpan perubahan" : "Buat tim"}
       </Button>

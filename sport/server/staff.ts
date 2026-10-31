@@ -13,7 +13,8 @@ import { sendStaffInvite } from "./mail";
 import { formatBusinessCode } from "@/lib/business-code";
 import { ROLE_LABEL, ROLES, type Role } from "./permissions";
 import { assertCanGrant } from "./roles";
-import { customRoles, invitations, staffCustomRoles, staffRoles, teamCoaches, teams } from "./schema";
+import { assertBranches } from "./branches";
+import { branches, customRoles, invitations, staffBranches, staffCustomRoles, staffRoles, teamCoaches, teams } from "./schema";
 
 export interface StaffMember {
   membershipId: string;
@@ -23,6 +24,8 @@ export interface StaffMember {
   status: "active" | "suspended" | "removed";
   roles: Role[];
   customRoles: { id: string; name: string }[];
+  /** Kosong = semua cabang. */
+  branches: { id: string; name: string }[];
   teams: { id: string; name: string }[];
 }
 
@@ -54,7 +57,7 @@ export async function listStaff(ctx: AcademyContext): Promise<{ members: StaffMe
       .where(and(eq(memberships.businessId, ctx.businessId), ne(memberships.status, "removed")))
       .orderBy(users.name);
     const ids = rows.map((r) => r.membershipId);
-    const [roles, custom, assigned, invites, activeCustom] = await Promise.all([
+    const [roles, custom, assigned, invites, activeCustom, branchRows] = await Promise.all([
       ids.length ? tx.select().from(staffRoles).where(inArray(staffRoles.membershipId, ids)) : [],
       ids.length
         ? tx
@@ -73,24 +76,38 @@ export async function listStaff(ctx: AcademyContext): Promise<{ members: StaffMe
             .orderBy(teams.name)
         : [],
       tx
-        .select({ id: invitations.id, email: invitations.email, roles: invitations.roles, customRoleIds: invitations.customRoleIds, expiresAt: invitations.expiresAt })
+        .select({ id: invitations.id, email: invitations.email, roles: invitations.roles, customRoleIds: invitations.customRoleIds, branchIds: invitations.branchIds, expiresAt: invitations.expiresAt })
         .from(invitations)
         .where(and(isNull(invitations.acceptedAt), isNull(invitations.revokedAt), sql`${invitations.expiresAt} > now()`))
         .orderBy(invitations.createdAt),
       tx.select({ id: customRoles.id, name: customRoles.name }).from(customRoles).where(isNull(customRoles.archivedAt)),
+      ids.length
+        ? tx
+            .select({ membershipId: staffBranches.membershipId, id: branches.id, name: branches.name })
+            .from(staffBranches)
+            .innerJoin(branches, eq(branches.id, staffBranches.branchId))
+            .where(and(inArray(staffBranches.membershipId, ids), isNull(branches.archivedAt)))
+            .orderBy(branches.name)
+        : [],
     ]);
     const members = rows.map((r) => ({
       ...r,
       roles: roles.filter((x) => x.membershipId === r.membershipId).map((x) => x.role).sort(byRank),
       customRoles: custom.filter((x) => x.membershipId === r.membershipId).map(({ id, name }) => ({ id, name })),
+      branches: branchRows.filter((x) => x.membershipId === r.membershipId).map(({ id, name }) => ({ id, name })),
       teams: assigned.filter((x) => x.membershipId === r.membershipId).map(({ id, name }) => ({ id, name })),
     }));
     // Pemilik dulu, lalu urut peran tertinggi, lalu nama.
     members.sort((a, b) => byRank(a.roles[0] ?? "coach", b.roles[0] ?? "coach") || a.name.localeCompare(b.name));
     const nameOf = new Map(activeCustom.map((c) => [c.id, c.name]));
+    // Staf yang dibatasi cabang hanya melihat staf di cabangnya (dan dirinya sendiri).
+    const inScope = (m: StaffMember) =>
+      ctx.branchIds === null || m.membershipId === ctx.membershipId || m.branches.some((b) => ctx.branchIds!.includes(b.id));
     return {
-      members,
-      invites: invites.map(({ customRoleIds, ...i }) => ({
+      members: members.filter(inScope),
+      invites: invites
+        .filter((i) => ctx.branchIds === null || i.branchIds.some((b) => ctx.branchIds!.includes(b)))
+        .map(({ customRoleIds, branchIds: _b, ...i }) => ({
         ...i,
         customRoleNames: customRoleIds.map((id) => nameOf.get(id)).filter((n): n is string => Boolean(n)),
       })),
@@ -148,7 +165,14 @@ async function assertAnotherOwner(tx: Tx, membershipId: string) {
 
 export async function inviteStaff(ctx: AcademyContext, raw: z.input<typeof InviteInput>): Promise<string> {
   requirePermission(ctx, "staff.manage");
-  const input = { ...raw, roles: raw.roles ?? [], customRoleIds: [...new Set(raw.customRoleIds ?? [])], teamIds: raw.teamIds ?? [] };
+  const input = {
+    ...raw,
+    roles: raw.roles ?? [],
+    customRoleIds: [...new Set(raw.customRoleIds ?? [])],
+    teamIds: raw.teamIds ?? [],
+    // Staf yang dibatasi cabang hanya bisa mengundang ke cabangnya sendiri.
+    branchIds: [...new Set(raw.branchIds?.length ? raw.branchIds : (ctx.branchIds ?? []))],
+  };
   if (input.roles.length + input.customRoleIds.length === 0) {
     throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { roles: "Pilih minimal satu peran." });
   }
@@ -158,6 +182,7 @@ export async function inviteStaff(ctx: AcademyContext, raw: z.input<typeof Invit
   const id = await inAcademy(ctx, async (tx) => {
     await assertTeams(tx, input.teamIds);
     customNames = await assertCustomRoles(ctx, tx, input.customRoleIds);
+    await assertBranches(ctx, tx, input.branchIds);
     const [member] = await tx
       .select({ status: memberships.status })
       .from(memberships)
@@ -178,6 +203,7 @@ export async function inviteStaff(ctx: AcademyContext, raw: z.input<typeof Invit
         email,
         roles: [...new Set(input.roles)],
         customRoleIds: input.customRoleIds,
+        branchIds: input.branchIds,
         teamIds: [...new Set(input.teamIds)],
         invitedBy: ctx.userId,
         expiresAt: sql`now() + interval '14 days'` as unknown as Date,
@@ -226,7 +252,12 @@ export async function updateStaff(
   raw: z.input<typeof StaffUpdateInput>,
 ): Promise<void> {
   requirePermission(ctx, "staff.manage");
-  const input = { roles: raw.roles ?? [], customRoleIds: [...new Set(raw.customRoleIds ?? [])], teamIds: raw.teamIds ?? [] };
+  const input = {
+    roles: raw.roles ?? [],
+    customRoleIds: [...new Set(raw.customRoleIds ?? [])],
+    teamIds: raw.teamIds ?? [],
+    branchIds: [...new Set(raw.branchIds?.length ? raw.branchIds : (ctx.branchIds ?? []))],
+  };
   if (input.roles.length + input.customRoleIds.length === 0) {
     throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { roles: "Pilih minimal satu peran." });
   }
@@ -241,6 +272,13 @@ export async function updateStaff(
     // Peran custom yang sudah dipegang boleh tetap; yang baru ditambahkan harus lolos cek izin pemberi.
     const had = new Set(member.customRoles.map((c) => c.id));
     await assertCustomRoles(ctx, tx, input.customRoleIds.filter((id) => !had.has(id)));
+    await assertBranches(ctx, tx, input.branchIds);
+    // Staf cabang tidak boleh mengubah staf di luar cabangnya.
+    if (ctx.branchIds !== null && (member.branches.length === 0 || member.branches.some((b) => !ctx.branchIds!.includes(b.id)))) throw forbidden();
+    await tx.delete(staffBranches).where(eq(staffBranches.membershipId, membershipId));
+    if (input.branchIds.length) {
+      await tx.insert(staffBranches).values(input.branchIds.map((branchId) => ({ businessId: ctx.businessId, membershipId, branchId })));
+    }
     await tx.delete(staffCustomRoles).where(eq(staffCustomRoles.membershipId, membershipId));
     if (input.customRoleIds.length) {
       const stillActive = await tx
@@ -266,7 +304,7 @@ export async function updateStaff(
       action: "staff.updated",
       targetType: "membership",
       targetId: membershipId,
-      meta: { roles: next, customRoleIds: input.customRoleIds },
+      meta: { roles: next, customRoleIds: input.customRoleIds, branchIds: input.branchIds },
     });
   });
 }

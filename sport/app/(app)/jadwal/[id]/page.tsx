@@ -25,7 +25,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     throw e;
   });
   const { session: s } = sheet;
-  const match = s.kind === "match" ? await getMatch(ctx, id) : null;
+  const match = s.kind === "match" && ctx.modules.has("matches") ? await getMatch(ctx, id) : null;
   const title = s.kind === "match" ? (s.title ?? "Pertandingan") : (s.title ?? `Latihan ${s.teamName}`);
 
   return (

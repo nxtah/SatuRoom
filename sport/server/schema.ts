@@ -23,6 +23,7 @@ export const locations = bola.table("locations", {
   name: text("name").notNull(),
   address: text("address"),
   isPrimary: boolean("is_primary").notNull().default(false),
+  branchId: uuid("branch_id").notNull(),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -146,6 +147,7 @@ export const invitations = bola.table("invitations", {
   roles: staffRole("roles").array().notNull(),
   teamIds: uuid("team_ids").array().notNull().default([]),
   customRoleIds: uuid("custom_role_ids").array().notNull().default([]),
+  branchIds: uuid("branch_ids").array().notNull().default([]),
   invitedBy: uuid("invited_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -194,4 +196,36 @@ export const staffCustomRoles = bola.table(
     customRoleId: uuid("custom_role_id").notNull(),
   },
   (t) => [primaryKey({ columns: [t.membershipId, t.customRoleId] })],
+);
+
+export const branches = bola.table("branches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  name: text("name").notNull(),
+  address: text("address"),
+  phone: text("phone"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const staffBranches = bola.table(
+  "staff_branches",
+  {
+    businessId: uuid("business_id").notNull(),
+    membershipId: uuid("membership_id").notNull(),
+    branchId: uuid("branch_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.membershipId, t.branchId] })],
+);
+
+export const academyModules = bola.table(
+  "academy_modules",
+  {
+    businessId: uuid("business_id").notNull(),
+    module: text("module").notNull(),
+    enabled: boolean("enabled").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.businessId, t.module] })],
 );

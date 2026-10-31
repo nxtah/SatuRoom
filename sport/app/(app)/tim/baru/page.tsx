@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { requireAcademyPage } from "@/server/routing";
 import { TeamForm } from "../team-form";
+import { listLocations } from "@/server/locations";
 
 export const metadata: Metadata = { title: "Buat tim" };
 
@@ -15,7 +16,7 @@ export default async function TimBaruPage({ searchParams }: { searchParams: Prom
     <div className="max-w-xl">
       <PageHeader title="Buat tim" subtitle="Satu tim biasanya satu kelompok umur." back={{ href: "/tim", label: "Tim" }} />
       <div className="rise rounded-[2rem] bg-chalk p-6 sm:p-8">
-        <TeamForm next={fromSetup ? "/pemain/baru?tim={id}&dari=persiapan" : "/tim/{id}"} />
+        <TeamForm locations={await listLocations(ctx)} next={fromSetup ? "/pemain/baru?tim={id}&dari=persiapan" : "/tim/{id}"} />
       </div>
     </div>
   );

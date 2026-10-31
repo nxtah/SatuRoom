@@ -12,6 +12,7 @@ export const metadata: Metadata = { title: "Pendaftar" };
 
 export default async function PendaftarPage() {
   const ctx = await requireAcademyPage();
+  if (!ctx.modules.has("registrations")) redirect("/");
   // Data kontak wali ikut tampil di sini, jadi hanya peran yang boleh membaca kontak.
   if (!ctx.can("players.manage") || !ctx.can("guardians.read")) redirect("/pemain");
   const [link, pending, teams, academy] = await Promise.all([

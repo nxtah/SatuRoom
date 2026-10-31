@@ -4,7 +4,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { EvaluationInput } from "@/lib/schemas";
-import { inAcademy, requirePermission, type AcademyContext } from "./context";
+import { inAcademy, requirePermission, type AcademyContext, requireModule } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
 import { visiblePlayerIds } from "./players";
 
@@ -46,6 +46,7 @@ async function loadDraft(ctx: AcademyContext, tx: Tx, id: string) {
 }
 
 export async function listEvaluations(ctx: AcademyContext, playerId: string): Promise<EvaluationRow[]> {
+  requireModule(ctx, "evaluations");
   requirePermission(ctx, "evaluations.write");
   return inAcademy(ctx, async (tx) => {
     await assertPlayer(ctx, tx, playerId);
@@ -66,6 +67,7 @@ export async function listEvaluations(ctx: AcademyContext, playerId: string): Pr
 }
 
 export async function createEvaluation(ctx: AcademyContext, playerId: string, input: z.infer<typeof EvaluationInput>): Promise<string> {
+  requireModule(ctx, "evaluations");
   requirePermission(ctx, "evaluations.write");
   return inAcademy(ctx, async (tx) => {
     await assertPlayer(ctx, tx, playerId);
@@ -89,6 +91,7 @@ export async function createEvaluation(ctx: AcademyContext, playerId: string, in
 }
 
 export async function updateEvaluation(ctx: AcademyContext, id: string, input: z.infer<typeof EvaluationInput>): Promise<void> {
+  requireModule(ctx, "evaluations");
   requirePermission(ctx, "evaluations.write");
   await inAcademy(ctx, async (tx) => {
     await loadDraft(ctx, tx, id);
@@ -106,6 +109,7 @@ export async function updateEvaluation(ctx: AcademyContext, id: string, input: z
 }
 
 export async function sendEvaluation(ctx: AcademyContext, id: string): Promise<void> {
+  requireModule(ctx, "evaluations");
   requirePermission(ctx, "evaluations.write");
   await inAcademy(ctx, async (tx) => {
     await loadDraft(ctx, tx, id);
@@ -117,6 +121,7 @@ export async function sendEvaluation(ctx: AcademyContext, id: string): Promise<v
 }
 
 export async function deleteEvaluation(ctx: AcademyContext, id: string): Promise<void> {
+  requireModule(ctx, "evaluations");
   requirePermission(ctx, "evaluations.write");
   await inAcademy(ctx, async (tx) => {
     await loadDraft(ctx, tx, id);

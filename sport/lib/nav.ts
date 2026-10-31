@@ -1,3 +1,5 @@
+import { MODULES } from "./modules";
+
 /**
  * Menu aplikasi, dikelompokkan per kategori. `permission` kosong berarti semua staf. Tab bawah HP
  * maksimal 5: `mobile: false` tidak pernah tampil di sana, `"overflow"` dilepas bila tab lebih
@@ -17,6 +19,12 @@ export const NAV = [
 ] as const;
 
 export type NavItem = (typeof NAV)[number];
+
+/** Menu yang boleh tampil: punya izin dan modulnya menyala. */
+export function allowedHrefs(can: (p: NonNullable<NavItem["permission"]>) => boolean, modules: ReadonlySet<string>, extra: string[] = []) {
+  const off = new Set(MODULES.filter((m) => !modules.has(m.key)).flatMap((m) => [...m.hrefs] as string[]));
+  return [...NAV.filter((i) => !i.permission || can(i.permission)).map((i) => i.href as string), ...extra].filter((h) => !off.has(h));
+}
 
 /** Item tab bawah HP untuk href yang diizinkan. */
 export function mobileNav(allowed: string[]) {

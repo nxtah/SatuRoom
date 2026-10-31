@@ -6,12 +6,15 @@ import type { LocationInput } from "@/lib/schemas";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { AppError, notFound } from "./errors";
 import { locations } from "./schema";
+import { assertBranches, canUseBranch, primaryBranchId } from "./branches";
 
 export interface LocationRow {
   id: string;
   name: string;
   address: string | null;
   isPrimary: boolean;
+  branchId: string;
+  branchName: string;
   /** Sesi mendatang yang memakai lokasi ini (belum dibatalkan). */
   upcoming: number;
 }
@@ -20,12 +23,12 @@ export interface LocationRow {
 export function listLocations(ctx: AcademyContext): Promise<LocationRow[]> {
   return inAcademy(ctx, async (tx) =>
     (await tx.execute(sql`
-      SELECT l.id, l.name, l.address, l.is_primary AS "isPrimary",
+      SELECT l.id, l.name, l.address, l.is_primary AS "isPrimary", l.branch_id AS "branchId", b.name AS "branchName",
              (SELECT count(*)::int FROM bola.sessions s
                WHERE s.location_id = l.id AND s.status = 'scheduled' AND s.ends_at > now()) AS upcoming
-      FROM bola.locations l WHERE l.archived_at IS NULL
-      ORDER BY l.is_primary DESC, l.name`)) as unknown as LocationRow[],
-  );
+      FROM bola.locations l JOIN bola.branches b ON b.id = l.branch_id WHERE l.archived_at IS NULL
+      ORDER BY b.is_primary DESC, b.name, l.is_primary DESC, l.name`)) as unknown as LocationRow[],
+  ).then((rows) => rows.filter((r) => canUseBranch(ctx, r.branchId)));
 }
 
 const clash = (error: unknown) =>
@@ -35,9 +38,11 @@ export async function createLocation(ctx: AcademyContext, input: z.infer<typeof 
   requirePermission(ctx, "locations.manage");
   try {
     return await inAcademy(ctx, async (tx) => {
+      const branchId = input.branchId ?? (ctx.branchIds?.[0] ?? (await primaryBranchId(tx)));
+      await assertBranches(ctx, tx, [branchId]);
       const [row] = await tx
         .insert(locations)
-        .values({ businessId: ctx.businessId, name: input.name, address: input.address ?? null })
+        .values({ businessId: ctx.businessId, branchId, name: input.name, address: input.address ?? null })
         .returning({ id: locations.id });
       await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: "location.created", targetType: "location", targetId: row!.id });
       return row!.id;
@@ -52,9 +57,10 @@ export async function updateLocation(ctx: AcademyContext, id: string, input: z.i
   requirePermission(ctx, "locations.manage");
   try {
     await inAcademy(ctx, async (tx) => {
+      if (input.branchId) await assertBranches(ctx, tx, [input.branchId]);
       const updated = await tx
         .update(locations)
-        .set({ name: input.name, address: input.address ?? null })
+        .set({ name: input.name, address: input.address ?? null, ...(input.branchId ? { branchId: input.branchId } : {}) })
         .where(and(eq(locations.id, id), isNull(locations.archivedAt)))
         .returning({ id: locations.id });
       if (updated.length === 0) throw notFound("Lokasi");

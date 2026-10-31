@@ -7,6 +7,7 @@ import { requireAcademyPage } from "@/server/routing";
 import { getStaffMember } from "@/server/staff";
 import { listTeams } from "@/server/teams";
 import { listCustomRoles } from "@/server/roles";
+import { listBranches } from "@/server/branches";
 import { StaffForm } from "./staff-form";
 
 export const metadata: Metadata = { title: "Ubah staf" };
@@ -16,13 +17,14 @@ export default async function StaffMemberPage({ params }: { params: Promise<{ id
   const { id } = await params;
   if (!ctx.can("staff.manage") || id === ctx.membershipId) redirect("/staf");
   if (!isUuid(id)) notFound();
-  const [member, teams, customRoles] = await Promise.all([
+  const [member, teams, customRoles, branches] = await Promise.all([
     getStaffMember(ctx, id).catch((e) => {
       if (e instanceof AppError && e.status === 404) notFound();
       throw e;
     }),
     listTeams(ctx),
     listCustomRoles(ctx),
+    listBranches(ctx),
   ]);
   const isOwner = ctx.roles.includes("owner");
   // Hanya Pemilik yang boleh mengubah Pemilik lain.
@@ -36,6 +38,8 @@ export default async function StaffMemberPage({ params }: { params: Promise<{ id
         roles={member.roles}
         customRoles={customRoles}
         customRoleIds={member.customRoles.map((c) => c.id)}
+        branches={branches.map((b) => ({ id: b.id, name: b.name }))}
+        branchIds={member.branches.map((b) => b.id)}
         teamIds={member.teams.map((t) => t.id)}
         teams={teams}
         canGrantOwner={isOwner}

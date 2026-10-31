@@ -10,7 +10,7 @@ import { LocationInput } from "@/lib/schemas";
 import { useForm } from "@/lib/use-form";
 import type { LocationRow } from "@/server/locations";
 
-export function LocationManager({ locations, canManage }: { locations: LocationRow[]; canManage: boolean }) {
+export function LocationManager({ locations, canManage, branches }: { locations: LocationRow[]; canManage: boolean; branches: { id: string; name: string }[] }) {
   const router = useRouter();
   const form = useForm(LocationInput);
   const [editing, setEditing] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function LocationManager({ locations, canManage }: { locations: LocationR
     e.preventDefault();
     const formEl = e.currentTarget;
     const data = new FormData(formEl);
-    const done = await form.submit({ name: data.get("name"), address: data.get("address") }, (input) =>
+    const done = await form.submit({ name: data.get("name"), address: data.get("address"), branchId: data.get("branchId") ?? undefined }, (input) =>
       editing
         ? api<unknown>(`/locations/${editing}`, { method: "PATCH", body: input })
         : api<unknown>("/locations", { body: input }),
@@ -50,6 +50,7 @@ export function LocationManager({ locations, canManage }: { locations: LocationR
                 {l.name}
                 {l.isPrimary ? <span className="ml-2 rounded-full bg-ember px-2.5 py-0.5 text-xs font-extrabold text-ink">Utama</span> : null}
               </p>
+              {branches.length > 1 ? <p className="text-sm font-bold text-pitch">{l.branchName}</p> : null}
               <p className="text-sm text-ink-soft">{l.address ?? "Alamat belum diisi"}</p>
               <p className="text-sm text-ink-soft">{l.upcoming} sesi mendatang</p>
             </div>
@@ -67,6 +68,16 @@ export function LocationManager({ locations, canManage }: { locations: LocationR
           <h2 className="text-lg font-extrabold">{editing ? "Ubah lokasi" : "Tambah lokasi"}</h2>
           {form.error && !form.error.fields ? <Alert tone="error">{form.error.message}</Alert> : null}
           <Field label="Nama" name="name" defaultValue={current?.name} maxLength={80} error={form.fields.name} />
+          {branches.length > 1 ? (
+            <label className="grid gap-2 text-sm font-bold">
+              Cabang
+              <select name="branchId" defaultValue={current?.branchId ?? branches[0]?.id} className="h-12 rounded-2xl border-2 border-line bg-white px-4 text-base font-normal outline-none focus:border-pitch">
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <Field label="Alamat (boleh kosong)" name="address" defaultValue={current?.address ?? ""} maxLength={200} error={form.fields.address} />
           <div className="flex gap-2">
             <Button type="submit" disabled={form.pending}>{form.pending ? "Menyimpan…" : "Simpan"}</Button>

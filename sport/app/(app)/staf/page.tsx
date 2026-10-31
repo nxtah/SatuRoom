@@ -74,6 +74,11 @@ export default async function StafPage({ searchParams }: { searchParams: Promise
                       {c.name}
                     </span>
                   ))}
+                  {m.branches.map((b) => (
+                    <span key={b.id} className="rounded-full bg-ember-soft px-2.5 py-0.5 text-xs font-bold text-ember-deep">
+                      {b.name}
+                    </span>
+                  ))}
                   {m.teams.map((t) => (
                     <span key={t.id} className="rounded-full bg-mist px-2.5 py-0.5 text-xs font-bold text-ink-soft">
                       {t.name}

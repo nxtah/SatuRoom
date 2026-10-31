@@ -1,9 +1,11 @@
 import "server-only";
+import type { Tx } from "@saturoom/core/db";
 import { auditEvents } from "@saturoom/core/schema";
 import { and, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { InvoiceUpdateInput } from "@/lib/schemas";
-import { inAcademy, requirePermission, type AcademyContext } from "./context";
+import { teamIdsInBranches } from "./branches";
+import { inAcademy, requirePermission, type AcademyContext, requireModule } from "./context";
 import { AppError, notFound } from "./errors";
 import { invoices, teamFees, teams } from "./schema";
 import { academyToday } from "./schedule";
@@ -18,20 +20,34 @@ export interface TeamFee {
   playerCount: number;
 }
 
+/** Batas cabang untuk query iuran: tim dan pemain di cabang staf saja. */
+async function branchScope(ctx: AcademyContext, tx: Tx) {
+  if (ctx.branchIds === null) return { teams: sql``, players: sql`` };
+  const ids = await teamIdsInBranches(tx, ctx.branchIds);
+  const list = `{${ids.join(",")}}`;
+  return {
+    teams: sql`AND t.id = ANY (${list}::uuid[])`,
+    players: sql`AND p.id IN (SELECT player_id FROM bola.team_players WHERE team_id = ANY (${list}::uuid[]))`,
+  };
+}
+
 export async function listTeamFees(ctx: AcademyContext): Promise<TeamFee[]> {
+  requireModule(ctx, "billing");
   requirePermission(ctx, "billing.read");
-  return inAcademy(ctx, async (tx) =>
-    (await tx.execute(sql`
+  return inAcademy(ctx, async (tx) => {
+    const scope = await branchScope(ctx, tx);
+    return (await tx.execute(sql`
       SELECT t.id AS "teamId", t.name AS "teamName", f.amount,
              (SELECT count(*)::int FROM bola.team_players tp JOIN bola.players p ON p.id = tp.player_id
                WHERE tp.team_id = t.id AND p.status = 'active') AS "playerCount"
       FROM bola.teams t LEFT JOIN bola.team_fees f ON f.team_id = t.id
-      WHERE t.archived_at IS NULL
-      ORDER BY t.age_min NULLS LAST, t.name`)) as unknown as TeamFee[],
-  );
+      WHERE t.archived_at IS NULL ${scope.teams}
+      ORDER BY t.age_min NULLS LAST, t.name`)) as unknown as TeamFee[];
+  });
 }
 
 export async function setTeamFee(ctx: AcademyContext, teamId: string, amount: number): Promise<void> {
+  requireModule(ctx, "billing");
   requirePermission(ctx, "billing.manage");
   await inAcademy(ctx, async (tx) => {
     const [team] = await tx.select({ id: teams.id }).from(teams).where(eq(teams.id, teamId));
@@ -57,6 +73,7 @@ export async function setTeamFee(ctx: AcademyContext, teamId: string, amount: nu
  * punya tagihan bulan itu dilewati. Mengembalikan jumlah tagihan baru.
  */
 export async function generateInvoices(ctx: AcademyContext, month: string): Promise<number> {
+  requireModule(ctx, "billing");
   requirePermission(ctx, "billing.manage");
   return inAcademy(ctx, async (tx) => {
     const today = await academyToday(tx);
@@ -70,6 +87,7 @@ export async function generateInvoices(ctx: AcademyContext, month: string): Prom
     if (month < shift(-1) || month > shift(1)) {
       throw new AppError(422, "invalid", "Tagihan hanya bisa dibuat untuk bulan lalu, bulan ini, atau bulan depan.");
     }
+    const scope = await branchScope(ctx, tx);
     const rows = (await tx.execute(sql`
       INSERT INTO bola.invoices (business_id, player_id, period, amount, recorded_by)
       SELECT ${ctx.businessId}::uuid, p.id, ${periodOf(month)}::date, max(f.amount), ${ctx.userId}::uuid
@@ -77,7 +95,7 @@ export async function generateInvoices(ctx: AcademyContext, month: string): Prom
       JOIN bola.team_players tp ON tp.player_id = p.id
       JOIN bola.teams t ON t.id = tp.team_id AND t.archived_at IS NULL
       JOIN bola.team_fees f ON f.team_id = t.id
-      WHERE p.status = 'active'
+      WHERE p.status = 'active' ${scope.players}
       GROUP BY p.id
       ON CONFLICT (player_id, period) DO NOTHING
       RETURNING id`)) as unknown as { id: string }[];
@@ -119,9 +137,11 @@ export interface MonthSummary {
 }
 
 export async function monthSummary(ctx: AcademyContext, month: string): Promise<MonthSummary> {
+  requireModule(ctx, "billing");
   requirePermission(ctx, "billing.read");
   const showGuardian = ctx.can("guardians.read");
   return inAcademy(ctx, async (tx) => {
+    const scope = await branchScope(ctx, tx);
     const list = (await tx.execute(sql`
       SELECT i.id, p.id AS "playerId", p.full_name AS "fullName", i.amount, i.status, i.method,
              to_char(i.paid_at AT TIME ZONE b.timezone, 'YYYY-MM-DD') AS "paidOn",
@@ -133,7 +153,7 @@ export async function monthSummary(ctx: AcademyContext, month: string): Promise<
       FROM bola.invoices i
       JOIN bola.players p ON p.id = i.player_id
       JOIN core.businesses b ON b.id = i.business_id
-      WHERE i.period = ${periodOf(month)}::date
+      WHERE i.period = ${periodOf(month)}::date ${scope.players}
       ORDER BY (i.status = 'unpaid') DESC, p.full_name`)) as unknown as InvoiceRow[];
     const [gap] = (await tx.execute(sql`
       SELECT count(DISTINCT p.id)::int AS n
@@ -141,7 +161,7 @@ export async function monthSummary(ctx: AcademyContext, month: string): Promise<
       JOIN bola.team_players tp ON tp.player_id = p.id
       JOIN bola.teams t ON t.id = tp.team_id AND t.archived_at IS NULL
       JOIN bola.team_fees f ON f.team_id = t.id
-      WHERE p.status = 'active'
+      WHERE p.status = 'active' ${scope.players}
         AND NOT EXISTS (SELECT 1 FROM bola.invoices i WHERE i.player_id = p.id AND i.period = ${periodOf(month)}::date)`)) as unknown as {
       n: number;
     }[];
@@ -166,9 +186,13 @@ export async function updateInvoice(
   id: string,
   input: z.infer<typeof InvoiceUpdateInput>,
 ): Promise<void> {
+  requireModule(ctx, "billing");
   requirePermission(ctx, "billing.manage");
   await inAcademy(ctx, async (tx) => {
-    const [inv] = await tx.select({ status: invoices.status }).from(invoices).where(eq(invoices.id, id));
+    const scope = await branchScope(ctx, tx);
+    const [inv] = (await tx.execute(sql`
+      SELECT i.status FROM bola.invoices i JOIN bola.players p ON p.id = i.player_id
+      WHERE i.id = ${id}::uuid ${scope.players}`)) as unknown as { status: "unpaid" | "paid" | "waived" }[];
     if (!inv) throw notFound("Tagihan");
     const set =
       input.action === "pay"
@@ -200,7 +224,7 @@ export async function updateInvoice(
 export async function billingHome(
   ctx: AcademyContext,
 ): Promise<{ month: string; outstanding: number; unpaidCount: number; billed: number; collected: number } | null> {
-  if (!ctx.can("billing.read")) return null;
+  if (!ctx.can("billing.read") || !ctx.modules.has("billing")) return null;
   const month = (await inAcademy(ctx, academyToday)).slice(0, 7);
   const s = await monthSummary(ctx, month);
   return { month, outstanding: s.outstanding, unpaidCount: s.unpaidCount, billed: s.billed, collected: s.collected };
@@ -216,6 +240,7 @@ export interface PlayerInvoice {
 
 /** Riwayat iuran satu pemain (6 bulan terakhir) untuk halaman pemain. */
 export async function playerInvoices(ctx: AcademyContext, playerId: string): Promise<PlayerInvoice[]> {
+  requireModule(ctx, "billing");
   requirePermission(ctx, "billing.read");
   return inAcademy(
     ctx,

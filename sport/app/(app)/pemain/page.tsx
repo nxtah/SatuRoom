@@ -26,7 +26,7 @@ export default async function PemainPage({ searchParams }: { searchParams: Promi
     listTeams(ctx),
     pendingRegistrationCount(ctx),
   ]);
-  const canDesk = ctx.can("players.manage") && ctx.can("guardians.read");
+  const canDesk = ctx.can("players.manage") && ctx.can("guardians.read") && ctx.modules.has("registrations");
   const canManage = ctx.can("players.manage") && teams.length > 0;
   const filtered = Boolean(q || teamId || status === "inactive");
   const addButton = canManage ? (

@@ -4,7 +4,7 @@ import { auditEvents } from "@saturoom/core/schema";
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { AnnouncementInput } from "@/lib/schemas";
-import { inAcademy, type AcademyContext } from "./context";
+import { inAcademy, type AcademyContext, requireModule } from "./context";
 import { forbidden, notFound } from "./errors";
 import { uuidList } from "./schedule";
 import { visibleTeamIds } from "./teams";
@@ -35,7 +35,8 @@ const FROM = sql`
 `;
 
 /** Pengumuman yang boleh dilihat staf ini: seluruh akademi plus tim dalam cakupannya. */
-export function listAnnouncements(ctx: AcademyContext): Promise<AnnouncementRow[]> {
+export async function listAnnouncements(ctx: AcademyContext): Promise<AnnouncementRow[]> {
+  requireModule(ctx, "announcements");
   return inAcademy(ctx, async (tx) => {
     const scope = await visibleTeamIds(ctx, tx);
     const rows = (await tx.execute(sql`
@@ -52,10 +53,12 @@ export function listAnnouncements(ctx: AcademyContext): Promise<AnnouncementRow[
 
 /** Tim yang boleh menjadi tujuan pengumuman staf ini; null = semua tim dan seluruh akademi. */
 export async function announcementTargets(ctx: AcademyContext): Promise<{ all: boolean; teamIds: string[] | null }> {
+  requireModule(ctx, "announcements");
   return inAcademy(ctx, async (tx) => ({ all: ctx.can("announcements.manage"), teamIds: await visibleTeamIds(ctx, tx) }));
 }
 
 export async function createAnnouncement(ctx: AcademyContext, input: z.infer<typeof AnnouncementInput>): Promise<string> {
+  requireModule(ctx, "announcements");
   const teamId = input.teamId ?? null;
   return inAcademy(ctx, async (tx) => {
     if (!ctx.can("announcements.manage")) {
@@ -81,6 +84,7 @@ export async function createAnnouncement(ctx: AcademyContext, input: z.infer<typ
 }
 
 export async function archiveAnnouncement(ctx: AcademyContext, id: string): Promise<void> {
+  requireModule(ctx, "announcements");
   await inAcademy(ctx, async (tx) => {
     const scope = await visibleTeamIds(ctx, tx);
     const [row] = (await tx.execute(sql`

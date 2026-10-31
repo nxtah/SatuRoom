@@ -6,14 +6,16 @@ import type { z } from "zod";
 import type { TeamInput } from "@/lib/schemas";
 import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { AppError, notFound } from "./errors";
-import { locations, players, teamCoaches, teamPlayers, teams } from "./schema";
+import { branches, locations, players, teamCoaches, teamPlayers, teams } from "./schema";
+import { teamIdsInBranches } from "./branches";
 
 /**
  * Tim yang boleh dilihat: semua tim untuk peran dengan izin `teams.read_all`, atau hanya tim
  * yang ditugaskan untuk pelatih. `null` berarti tanpa batas.
  */
 export async function visibleTeamIds(ctx: AcademyContext, tx: Tx): Promise<string[] | null> {
-  if (ctx.can("teams.read_all")) return null;
+  // Staf dengan batas cabang hanya melihat tim di cabangnya, juga bila punya izin "semua".
+  if (ctx.can("teams.read_all")) return ctx.branchIds === null ? null : teamIdsInBranches(tx, ctx.branchIds);
   const rows = await tx
     .select({ id: teamCoaches.teamId })
     .from(teamCoaches)
@@ -26,6 +28,8 @@ export interface TeamSummary {
   name: string;
   ageMin: number | null;
   ageMax: number | null;
+  locationId: string;
+  branchName: string;
   playerCount: number;
   coaches: string[];
 }
@@ -40,8 +44,12 @@ export function listTeams(ctx: AcademyContext): Promise<TeamSummary[]> {
         name: teams.name,
         ageMin: teams.ageMin,
         ageMax: teams.ageMax,
+        locationId: teams.locationId,
+        branchName: branches.name,
       })
       .from(teams)
+      .innerJoin(locations, eq(locations.id, teams.locationId))
+      .innerJoin(branches, eq(branches.id, locations.branchId))
       .where(and(isNull(teams.archivedAt), scope ? inArray(teams.id, scope) : undefined))
       .orderBy(asc(teams.ageMin), asc(teams.name));
     const ids = rows.map((r) => r.id);
@@ -85,14 +93,33 @@ function duplicateName(error: unknown): never {
   throw error;
 }
 
+/** Lokasi tim: yang dipilih (harus di cabang staf), atau lokasi utama cabang staf / akademi. */
+async function pickLocation(ctx: AcademyContext, tx: Tx, locationId: string | null): Promise<{ id: string }> {
+  const rows = await tx
+    .select({ id: locations.id, branchId: locations.branchId, isPrimary: locations.isPrimary })
+    .from(locations)
+    .where(isNull(locations.archivedAt));
+  const allowed = rows.filter((r) => ctx.branchIds === null || ctx.branchIds.includes(r.branchId));
+  if (locationId) {
+    const found = allowed.find((r) => r.id === locationId);
+    if (!found) throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { locationId: "Lokasi tidak ditemukan." });
+    return found;
+  }
+  const loc = allowed.find((r) => r.isPrimary) ?? allowed[0];
+  if (!loc) throw new AppError(409, "no_location", "Lokasi utama akademi belum ada.");
+  return loc;
+}
+
+/** Staf yang dibatasi cabang hanya boleh mengubah tim di cabangnya. */
+async function assertTeamInScope(ctx: AcademyContext, tx: Tx, id: string) {
+  if (ctx.branchIds === null) return;
+  if (!(await teamIdsInBranches(tx, ctx.branchIds)).includes(id)) throw notFound("Tim");
+}
+
 export async function createTeam(ctx: AcademyContext, input: TeamData): Promise<string> {
   requirePermission(ctx, "teams.manage");
   return inAcademy(ctx, async (tx) => {
-    const [loc] = await tx
-      .select({ id: locations.id })
-      .from(locations)
-      .where(and(eq(locations.isPrimary, true), isNull(locations.archivedAt)));
-    if (!loc) throw new AppError(409, "no_location", "Lokasi utama akademi belum ada.");
+    const loc = await pickLocation(ctx, tx, input.locationId ?? null);
     const [row] = await tx
       .insert(teams)
       .values({ businessId: ctx.businessId, locationId: loc.id, name: input.name, ageMin: input.ageMin, ageMax: input.ageMax })
@@ -112,9 +139,11 @@ export async function createTeam(ctx: AcademyContext, input: TeamData): Promise<
 export async function updateTeam(ctx: AcademyContext, id: string, input: TeamData): Promise<void> {
   requirePermission(ctx, "teams.manage");
   await inAcademy(ctx, async (tx) => {
+    await assertTeamInScope(ctx, tx, id);
+    const loc = input.locationId ? await pickLocation(ctx, tx, input.locationId) : null;
     const updated = await tx
       .update(teams)
-      .set({ name: input.name, ageMin: input.ageMin, ageMax: input.ageMax })
+      .set({ name: input.name, ageMin: input.ageMin, ageMax: input.ageMax, ...(loc ? { locationId: loc.id } : {}) })
       .where(and(eq(teams.id, id), isNull(teams.archivedAt)))
       .returning({ id: teams.id })
       .catch(duplicateName);
@@ -133,6 +162,7 @@ export async function updateTeam(ctx: AcademyContext, id: string, input: TeamDat
 export async function archiveTeam(ctx: AcademyContext, id: string): Promise<void> {
   requirePermission(ctx, "teams.manage");
   await inAcademy(ctx, async (tx) => {
+    await assertTeamInScope(ctx, tx, id);
     const updated = await tx
       .update(teams)
       .set({ archivedAt: new Date() })

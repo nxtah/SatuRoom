@@ -18,6 +18,7 @@ export const metadata: Metadata = { title: "Iuran" };
 
 export default async function IuranPage({ searchParams }: { searchParams: Promise<{ bulan?: string }> }) {
   const ctx = await requireAcademyPage();
+  if (!ctx.modules.has("billing")) redirect("/");
   if (!ctx.can("billing.read")) redirect("/");
   const sp = await searchParams;
   const current = (await inAcademy(ctx, academyToday)).slice(0, 7);
