@@ -213,6 +213,27 @@ export const DOCS: DocPage[] = [
     ],
   },
   {
+    slug: "penilaian", group: "Latihan harian", title: "Penilaian dan target", summary: "Template penilaian per cabang olahraga, tes fisik, perkembangan, dan target pemain.",
+    blocks: [
+      { t: "h", text: "Siapkan template (Pemilik atau Kepala pelatih)" },
+      { t: "steps", items: [
+        "Buka **Penilaian** di menu.",
+        "Klik **Pakai template siap pakai**. Isinya sudah sesuai cabang olahraga akademi: keterampilan (nilai 1-5), tes fisik (angka), dan sikap.",
+        "Mau menyesuaikan? Klik **Ubah**, tambah atau hapus ukuran, lalu **Simpan dan terbitkan**.",
+      ] },
+      { t: "tip", text: "Template yang sudah dipakai tidak berubah diam-diam. Perubahan menjadi versi baru, jadi penilaian lama tetap terbaca sesuai versinya." },
+      { t: "h", text: "Menilai pemain" },
+      { t: "steps", items: [
+        "Buka halaman pemain, bagian **Penilaian dan perkembangan**, klik **Nilai**.",
+        "Pilih angka 1-5 untuk keterampilan, isi hasil tes untuk ukuran angka. Ukuran yang tidak dites boleh dikosongkan.",
+        "Klik **Kirim ke pemain**, atau **Simpan draf** bila belum selesai.",
+      ] },
+      { t: "p", text: "Setelah ada dua penilaian terkirim, tanda panah menunjukkan membaik atau menurun. Untuk lari, waktu lebih kecil berarti membaik." },
+      { t: "h", text: "Target perkembangan" },
+      { t: "p", text: "Di bagian yang sama klik **Tambah target**, misalnya \"Juggling 50 kali\". Centang **Tampilkan ke pemain/orang tua** agar terlihat di akun pemain. Tandai **Tercapai** saat berhasil." },
+    ],
+  },
+  {
     slug: "program", group: "Pemain dan tim", title: "Program latihan", summary: "Mengelompokkan tim ke program seperti Reguler, Elite, atau Kiper.",
     blocks: [
       { t: "steps", items: [

@@ -9,6 +9,7 @@ export const NAV = [
   { href: "/", label: "Beranda", icon: "home", group: "", permission: null, mobile: true },
   { href: "/jadwal", label: "Jadwal", icon: "schedule", group: "Latihan", permission: null, mobile: true },
   { href: "/program", label: "Program", icon: "programs", group: "Latihan", permission: null, mobile: false },
+  { href: "/penilaian", label: "Penilaian", icon: "assess", group: "Latihan", permission: "evaluations.write", mobile: false },
   { href: "/pemain", label: "Pemain", icon: "players", group: "Pemain dan tim", permission: null, mobile: true },
   { href: "/tim", label: "Tim", icon: "teams", group: "Pemain dan tim", permission: null, mobile: "overflow" },
   { href: "/iuran", label: "Iuran", icon: "billing", group: "Keuangan", permission: "billing.read", mobile: true },

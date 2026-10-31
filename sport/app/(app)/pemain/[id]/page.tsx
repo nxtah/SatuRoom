@@ -16,6 +16,8 @@ import { monthLabel, rupiah } from "@/lib/money";
 import { inAcademy } from "@/server/context";
 import { playerInvoices } from "@/server/fees";
 import { listEvaluations } from "@/server/evaluations";
+import { listAssessments, listGoals, progressOf, publishedTemplates } from "@/server/assessments";
+import { AssessmentPanel } from "./assessment-panel";
 import { playerAccount } from "@/server/player-account";
 import { academyToday, addDays, listSessions } from "@/server/schedule";
 import { EvaluationPanel } from "./evaluation-panel";
@@ -41,14 +43,18 @@ export default async function PlayerPage({
   const canManage = ctx.can("players.manage");
   const today = await inAcademy(ctx, academyToday);
   const teamIds = new Set(p.teams.map((t) => t.id));
-  const [history, sessions, invoices, account, evaluations] = await Promise.all([
+  const canAssess = ctx.can("evaluations.write") && ctx.modules.has("evaluations");
+  const [history, sessions, invoices, account, evaluations, templates, assessments, goals] = await Promise.all([
     playerAttendance(ctx, id),
     p.status === "active" && teamIds.size
       ? listSessions(ctx, { from: today, to: addDays(today, 14) })
       : [],
     ctx.can("billing.read") && ctx.modules.has("billing") ? playerInvoices(ctx, id) : null,
     canManage && p.status === "active" ? playerAccount(ctx, id) : null,
-    ctx.can("evaluations.write") && ctx.modules.has("evaluations") ? listEvaluations(ctx, id) : null,
+    canAssess ? listEvaluations(ctx, id) : null,
+    canAssess ? publishedTemplates(ctx) : [],
+    canAssess ? listAssessments(ctx, id) : [],
+    canAssess ? listGoals(ctx, id) : [],
   ]);
   const upcoming = sessions
     .filter((s) => teamIds.has(s.teamId) && s.status === "scheduled")
@@ -152,6 +158,18 @@ export default async function PlayerPage({
           ) : null}
 
           {account ? <PlayerAccount playerId={id} info={account} /> : null}
+          {canAssess ? (
+            <AssessmentPanel
+              playerId={id}
+              firstName={p.fullName.split(" ")[0]!}
+              today={today}
+              templates={templates}
+              items={assessments}
+              progress={progressOf(assessments)}
+              goals={goals}
+              canManageTemplates={ctx.can("evaluations.manage_all")}
+            />
+          ) : null}
           {evaluations ? <EvaluationPanel playerId={id} firstName={p.fullName.split(" ")[0]!} items={evaluations} /> : null}
         </div>
         <div className="grid grid-cols-1 gap-4">

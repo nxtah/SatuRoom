@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ProgressList } from "@/components/progress-list";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { STATUS_STYLE } from "@/components/attendance-badge";
@@ -88,6 +89,7 @@ export default async function SayaPage() {
 
       <Matches me={me} />
 
+      <Development me={me} />
       <Reports me={me} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-start">
@@ -437,6 +439,46 @@ export function Matches({ me }: { me: PlayerHome }) {
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+/** Penilaian terkirim, perkembangan tiap ukuran, dan target dari pelatih. */
+export function Development({ me }: { me: PlayerHome }) {
+  const a = me.assessments;
+  if (!a || (a.latest.length === 0 && a.goals.length === 0)) return null;
+  return (
+    <section className="rise mt-4 rounded-[2rem] bg-chalk p-6" aria-labelledby="perkembangan">
+      <h2 id="perkembangan" className="text-lg font-extrabold">Perkembangan</h2>
+      {a.progress.length ? (
+        <div className="mt-3">
+          <ProgressList progress={a.progress} />
+        </div>
+      ) : null}
+      {a.latest[0]?.note ? (
+        <p className="mt-3 rounded-2xl bg-mist p-3 text-sm break-words whitespace-pre-line">
+          <b>Catatan pelatih:</b> {a.latest[0].note}
+        </p>
+      ) : null}
+      {a.goals.length ? (
+        <>
+          <h3 className="mt-5 font-extrabold">Target</h3>
+          <ul className="mt-2 grid gap-2">
+            {a.goals.map((g) => (
+              <li key={g.id} className="flex items-start gap-3 rounded-2xl bg-mist p-3">
+                <span aria-hidden className={`mt-1 size-3 shrink-0 rounded-full ${g.status === "achieved" ? "bg-turf" : "bg-ember"}`} />
+                <span className="min-w-0">
+                  <span className={`block font-bold ${g.status === "achieved" ? "line-through decoration-2" : ""}`}>{g.title}</span>
+                  <span className="block text-sm text-ink-soft">
+                    {g.status === "achieved" ? "Tercapai" : g.dueOn ? `Sampai ${dayLabel(g.dueOn)}` : "Sedang dilatih"}
+                  </span>
+                  {g.detail ? <span className="block text-sm">{g.detail}</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </section>
   );
 }

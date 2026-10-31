@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CalendarDays, Clock3, History, Layers, House, IdCard, KeyRound, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, Clock3, History, Layers, House, IdCard, KeyRound, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { activeHref, mobileNav, navGroups } from "@/lib/nav";
@@ -18,6 +18,7 @@ const ICONS = {
   announce: Megaphone,
   programs: Layers,
   clock: Clock3,
+  assess: ClipboardCheck,
 } as const;
 
 const linkClass = (on: boolean) =>

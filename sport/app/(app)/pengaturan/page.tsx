@@ -29,6 +29,7 @@ export default async function PengaturanPage() {
     "/iuran": { title: "Iuran", hint: "Tarif, tagihan bulanan, dan pembayaran." },
     "/staf/peran": { title: "Peran dan izin", hint: "Buat jabatan sendiri dan atur aksesnya." },
     "/aktivitas": { title: "Jejak aktivitas", hint: "Siapa mengubah apa dan kapan." },
+    "/penilaian": { title: "Penilaian", hint: "Template penilaian dan tes fisik." },
     "/program": { title: "Program latihan", hint: "Reguler, Elite, Kiper, dan tim di dalamnya." },
     "/absensi-staf": { title: "Absensi staf", hint: "Absen masuk/pulang, cuti, lembur, rekap." },
     "/pengaturan/cabang": { title: "Cabang", hint: "Tempat latihan di kota atau area lain." },

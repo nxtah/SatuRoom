@@ -315,3 +315,34 @@ export const StaffRequestDecisionInput = z.object({
   decision: z.enum(["approved", "rejected"]),
   note: z.preprocess(emptyToNull, z.string().trim().max(200).nullable()).optional(),
 });
+
+const metricSchema = z.object({
+  key: z.string().regex(/^[a-z0-9_]{2,40}$/, "Kode ukuran tidak valid."),
+  label: z.string().trim().min(2, "Isi nama ukuran.").max(60),
+  type: z.enum(["rating", "number"]),
+  unit: z.preprocess(emptyToNull, z.string().trim().max(20).nullable()).optional(),
+  better: z.enum(["higher", "lower"]).default("higher"),
+});
+export const TemplateInput = z.object({
+  name: z.string().trim().min(2, "Nama template minimal 2 huruf.").max(80),
+  description: z.preprocess(emptyToNull, z.string().trim().max(300).nullable()).optional(),
+  metrics: z
+    .array(metricSchema)
+    .min(1, "Tambahkan minimal satu ukuran.")
+    .max(30, "Maksimal 30 ukuran.")
+    .refine((m) => new Set(m.map((x) => x.key)).size === m.length, "Ada ukuran yang kembar."),
+});
+export const AssessmentInput = z.object({
+  templateId: z.string().uuid(),
+  assessedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pilih tanggal."),
+  values: z.record(z.string(), z.coerce.number().finite()),
+  note: z.preprocess(emptyToNull, z.string().trim().max(1000).nullable()).optional(),
+  send: z.boolean().optional(),
+});
+export const GoalInput = z.object({
+  title: z.string().trim().min(2, "Tulis targetnya.").max(120),
+  detail: z.preprocess(emptyToNull, z.string().trim().max(500).nullable()).optional(),
+  dueOn: z.preprocess(emptyToNull, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable()).optional(),
+  shared: z.boolean().default(true),
+});
+export const GoalStatusInput = z.object({ status: z.enum(["open", "achieved", "dropped"]) });

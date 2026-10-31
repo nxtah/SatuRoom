@@ -11,6 +11,7 @@ import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
 import { announcementsForPlayer } from "./announcements";
 import { evaluationsForPlayer } from "./evaluations";
+import { assessmentsForPlayer } from "./assessments";
 import { AppError, notFound, unverifiedEmail } from "./errors";
 import { sendPlayerInvite } from "./mail";
 import { formatBusinessCode } from "@/lib/business-code";
@@ -102,6 +103,8 @@ export interface PlayerHome {
   outstanding: number;
   announcements: { id: string; title: string; body: string; teamName: string | null; createdAt: string }[];
   evaluations: Awaited<ReturnType<typeof evaluationsForPlayer>>;
+  /** Penilaian terkirim, perkembangan per ukuran, dan target; null bila modul rapor mati. */
+  assessments: Awaited<ReturnType<typeof assessmentsForPlayer>> | null;
   /** Pertandingan tim pemain: yang akan datang dan hasil terbaru. */
   matches: PlayerMatch[];
 }
@@ -201,6 +204,11 @@ async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
     outstanding: invoices.filter((i) => i.status === "unpaid").reduce((s, i) => s + i.amount, 0),
     announcements: await announcementsForPlayer(tx, playerId),
     evaluations: await evaluationsForPlayer(tx, playerId),
+    assessments: (
+      (await tx.execute(sql`SELECT 1 AS x FROM bola.academy_modules WHERE module = 'evaluations' AND NOT enabled`)) as unknown as unknown[]
+    ).length
+      ? null
+      : await assessmentsForPlayer(tx, playerId),
     matches: await matchesForPlayer(tx, playerId),
   };
 }
