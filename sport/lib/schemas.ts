@@ -52,6 +52,8 @@ export const TeamInput = z
     ageMax: optionalAge,
     /** Lokasi latihan utama tim; menentukan cabang. Kosong = lokasi utama. */
     locationId: z.preprocess(emptyToNull, z.string().uuid().nullable()).optional(),
+    /** Program latihan tim; kosong = tanpa program. */
+    programId: z.preprocess(emptyToNull, z.string().uuid().nullable()).optional(),
   })
   .refine((t) => t.ageMin === null || t.ageMax === null || t.ageMin <= t.ageMax, {
     path: ["ageMax"],
@@ -281,3 +283,35 @@ export const BranchInput = z.object({
   phone: z.preprocess(emptyToNull, z.string().trim().max(30, "Nomor terlalu panjang.").nullable()).optional(),
 });
 export const ModuleToggleInput = z.object({ module: z.string().regex(/^[a-z_]{2,40}$/), enabled: z.boolean() });
+
+export const ProgramInput = z.object({
+  name: z.string().trim().min(2, "Nama program minimal 2 huruf.").max(80, "Nama program terlalu panjang."),
+  level: z.preprocess(emptyToNull, z.string().trim().max(40, "Level terlalu panjang.").nullable()).optional(),
+  description: z.preprocess(emptyToNull, z.string().trim().max(500, "Keterangan terlalu panjang.").nullable()).optional(),
+  monthlyFee: z.preprocess(
+    (v) => (typeof v === "string" ? (v.replace(/[^0-9]/g, "") === "" ? null : Number(v.replace(/[^0-9]/g, ""))) : v),
+    z.number().int().min(0).max(100_000_000, "Nominal terlalu besar.").nullable(),
+  ).optional(),
+});
+
+const hhmm = z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/, "Format jam 07:30.");
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pilih tanggal.");
+
+export const ShiftsInput = z.object({
+  shifts: z
+    .array(z.object({ weekday: z.coerce.number().int().min(1).max(7), start: hhmm, end: hhmm }))
+    .max(7)
+    .refine((list) => list.every((s) => s.end > s.start), "Jam pulang harus setelah jam masuk.")
+    .refine((list) => new Set(list.map((s) => s.weekday)).size === list.length, "Satu hari hanya satu jadwal."),
+});
+
+export const StaffRequestInput = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("correction"), date: day, clockIn: hhmm, clockOut: z.preprocess(emptyToNull, hhmm.nullable()), reason: z.string().trim().min(3, "Tulis alasannya.").max(300) }),
+  z.object({ kind: z.literal("leave"), dateFrom: day, dateTo: day, leaveType: z.enum(["annual", "sick", "personal", "unpaid"]), reason: z.string().trim().min(3, "Tulis alasannya.").max(300) }),
+  z.object({ kind: z.literal("overtime"), date: day, minutes: z.coerce.number().int().min(15, "Minimal 15 menit.").max(960, "Maksimal 16 jam."), reason: z.string().trim().min(3, "Tulis alasannya.").max(300) }),
+]);
+
+export const StaffRequestDecisionInput = z.object({
+  decision: z.enum(["approved", "rejected"]),
+  note: z.preprocess(emptyToNull, z.string().trim().max(200).nullable()).optional(),
+});

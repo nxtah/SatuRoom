@@ -50,6 +50,7 @@ export const teams = bola.table("teams", {
   name: text("name").notNull(),
   ageMin: smallint("age_min"),
   ageMax: smallint("age_max"),
+  programId: uuid("program_id"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

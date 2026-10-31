@@ -17,14 +17,16 @@ const PRESETS = [
 ];
 
 interface Props {
-  team?: { id: string; name: string; ageMin: number | null; ageMax: number | null; locationId?: string };
+  team?: { id?: string; name?: string; ageMin?: number | null; ageMax?: number | null; locationId?: string; programId?: string | null };
+  /** Program latihan; pilihan tampil bila ada. */
+  programs?: { id: string; name: string }[];
   /** Lokasi latihan; pilihan tampil bila lebih dari satu. */
   locations: { id: string; name: string; branchName: string }[];
   /** Ke mana setelah tersimpan. `{id}` diganti id tim. */
   next: string;
 }
 
-export function TeamForm({ team, next, locations }: Props) {
+export function TeamForm({ team, next, locations, programs = [] }: Props) {
   const router = useRouter();
   const form = useForm(TeamInput);
   const ref = useRef<HTMLFormElement>(null);
@@ -40,7 +42,7 @@ export function TeamForm({ team, next, locations }: Props) {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const done = await form.submit(formValues(e.currentTarget), (input) =>
-      team
+      team?.id
         ? api<{ id?: string }>(`/teams/${team.id}`, { method: "PATCH", body: input })
         : api<{ id?: string }>("/teams", { body: input }),
     );
@@ -51,9 +53,9 @@ export function TeamForm({ team, next, locations }: Props) {
   }
 
   return (
-    <form ref={ref} onSubmit={onSubmit} noValidate className="grid gap-5" aria-label={team ? "Ubah tim" : "Buat tim"}>
+    <form ref={ref} onSubmit={onSubmit} noValidate className="grid gap-5" aria-label={team?.id ? "Ubah tim" : "Buat tim"}>
       {form.error && !form.error.fields ? <Alert tone="error">{form.error.message}</Alert> : null}
-      {!team ? (
+      {!team?.id ? (
         <div>
           <p className="mb-2 text-sm font-bold">Pakai kelompok umur PSSI</p>
           <div className="flex flex-wrap gap-2">
@@ -96,6 +98,17 @@ export function TeamForm({ team, next, locations }: Props) {
           error={form.fields.ageMax}
         />
       </div>
+      {programs.length ? (
+        <label className="grid gap-2 text-sm font-bold">
+          Program latihan
+          <select name="programId" defaultValue={team?.programId ?? ""} className="h-12 rounded-2xl border-2 border-line bg-white px-4 text-base font-normal outline-none focus:border-pitch">
+            <option value="">Tanpa program</option>
+            {programs.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {locations.length > 1 ? (
         <label className="grid gap-2 text-sm font-bold">
           Tempat latihan utama
@@ -110,7 +123,7 @@ export function TeamForm({ team, next, locations }: Props) {
         </label>
       ) : null}
       <Button type="submit" disabled={form.pending} className="justify-self-start">
-        {form.pending ? "Menyimpan…" : team ? "Simpan perubahan" : "Buat tim"}
+        {form.pending ? "Menyimpan…" : team?.id ? "Simpan perubahan" : "Buat tim"}
       </Button>
     </form>
   );

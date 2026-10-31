@@ -29,6 +29,7 @@ export interface TeamSummary {
   ageMin: number | null;
   ageMax: number | null;
   locationId: string;
+  programId: string | null;
   branchName: string;
   playerCount: number;
   coaches: string[];
@@ -45,6 +46,7 @@ export function listTeams(ctx: AcademyContext): Promise<TeamSummary[]> {
         ageMin: teams.ageMin,
         ageMax: teams.ageMax,
         locationId: teams.locationId,
+        programId: teams.programId,
         branchName: branches.name,
       })
       .from(teams)
@@ -110,6 +112,14 @@ async function pickLocation(ctx: AcademyContext, tx: Tx, locationId: string | nu
   return loc;
 }
 
+/** Program harus ada dan aktif; null = tanpa program. */
+async function pickProgram(tx: Tx, programId: string | null | undefined): Promise<string | null> {
+  if (!programId) return null;
+  const [row] = (await tx.execute(sql`SELECT id FROM bola.programs WHERE id = ${programId}::uuid AND archived_at IS NULL`)) as unknown as { id: string }[];
+  if (!row) throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { programId: "Program tidak ditemukan." });
+  return row.id;
+}
+
 /** Staf yang dibatasi cabang hanya boleh mengubah tim di cabangnya. */
 async function assertTeamInScope(ctx: AcademyContext, tx: Tx, id: string) {
   if (ctx.branchIds === null) return;
@@ -122,7 +132,7 @@ export async function createTeam(ctx: AcademyContext, input: TeamData): Promise<
     const loc = await pickLocation(ctx, tx, input.locationId ?? null);
     const [row] = await tx
       .insert(teams)
-      .values({ businessId: ctx.businessId, locationId: loc.id, name: input.name, ageMin: input.ageMin, ageMax: input.ageMax })
+      .values({ businessId: ctx.businessId, locationId: loc.id, programId: await pickProgram(tx, input.programId), name: input.name, ageMin: input.ageMin, ageMax: input.ageMax })
       .returning({ id: teams.id })
       .catch(duplicateName);
     await tx.insert(auditEvents).values({
@@ -143,7 +153,13 @@ export async function updateTeam(ctx: AcademyContext, id: string, input: TeamDat
     const loc = input.locationId ? await pickLocation(ctx, tx, input.locationId) : null;
     const updated = await tx
       .update(teams)
-      .set({ name: input.name, ageMin: input.ageMin, ageMax: input.ageMax, ...(loc ? { locationId: loc.id } : {}) })
+      .set({
+        name: input.name,
+        ageMin: input.ageMin,
+        ageMax: input.ageMax,
+        ...(loc ? { locationId: loc.id } : {}),
+        ...(input.programId !== undefined ? { programId: await pickProgram(tx, input.programId) } : {}),
+      })
       .where(and(eq(teams.id, id), isNull(teams.archivedAt)))
       .returning({ id: teams.id })
       .catch(duplicateName);

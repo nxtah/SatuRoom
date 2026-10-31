@@ -71,6 +71,11 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
           <Link href="/jadwal" className="inline-flex h-11 shrink-0 items-center rounded-full bg-ember px-5 font-extrabold text-ink transition hover:-translate-y-0.5 hover:brightness-110">
             Absen latihan
           </Link>
+          {ctx.modules.has("staff_attendance") ? (
+            <Link href="/absensi-staf" className="inline-flex h-11 shrink-0 items-center rounded-full bg-white/12 px-5 font-bold text-white transition hover:bg-white/20">
+              Absen kerja
+            </Link>
+          ) : null}
           {ctx.can("players.manage") ? (
             <Link href="/pemain/baru" className="inline-flex h-11 shrink-0 items-center rounded-full bg-white/12 px-5 font-bold text-white transition hover:bg-white/20">
               Tambah pemain

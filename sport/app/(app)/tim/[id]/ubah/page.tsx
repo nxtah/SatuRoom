@@ -6,6 +6,7 @@ import { requireAcademyPage } from "@/server/routing";
 import { getTeam } from "@/server/teams";
 import { TeamForm } from "../../team-form";
 import { listLocations } from "@/server/locations";
+import { programOptions } from "@/server/programs";
 import { ArchiveTeam } from "./archive-team";
 
 export const metadata: Metadata = { title: "Ubah tim" };
@@ -22,7 +23,7 @@ export default async function UbahTimPage({ params }: { params: Promise<{ id: st
     <div className="max-w-xl">
       <PageHeader title="Ubah tim" back={{ href: `/tim/${id}`, label: team.name }} />
       <div className="rise rounded-[2rem] bg-chalk p-6 sm:p-8">
-        <TeamForm locations={await listLocations(ctx)} team={team} next="/tim/{id}" />
+        <TeamForm locations={await listLocations(ctx)} programs={await programOptions(ctx)} team={team} next="/tim/{id}" />
       </div>
       <ArchiveTeam id={id} name={team.name} />
     </div>

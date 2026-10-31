@@ -213,6 +213,39 @@ export const DOCS: DocPage[] = [
     ],
   },
   {
+    slug: "program", group: "Pemain dan tim", title: "Program latihan", summary: "Mengelompokkan tim ke program seperti Reguler, Elite, atau Kiper.",
+    blocks: [
+      { t: "steps", items: [
+        "Buka **Program** di menu (di HP lewat **Pengaturan**).",
+        "Klik **Program baru**. Boleh klik contoh **Reguler**, **Elite**, atau **Kiper** supaya terisi otomatis.",
+        "Isi **Nama program**, lalu bila perlu **Level** dan **Iuran bulanan anjuran**. Klik **Simpan program**.",
+        "Pasang program ke tim: buka tim → **Ubah**, pilih **Program latihan**. Atau klik **Buat tim di program ini** dari kartu program.",
+      ] },
+      { t: "tip", text: "Mengarsipkan program tidak menghapus tim. Timnya hanya dilepas dari program." },
+    ],
+  },
+  {
+    slug: "absensi-staf", group: "Akademi dan staf", title: "Absensi staf", summary: "Absen masuk/pulang, jadwal kerja, koreksi, cuti, lembur, dan rekap bulanan.",
+    blocks: [
+      { t: "h", text: "Untuk semua staf" },
+      { t: "steps", items: [
+        "Buka **Absensi staf** (atau tombol **Absen kerja** di Beranda).",
+        "Saat datang klik **Absen masuk**. Saat pulang klik **Absen pulang**. Satu kali per hari.",
+        "Lupa absen atau jam salah? Di **Buat pengajuan** pilih **Koreksi absen**, isi tanggal, jam, dan alasan.",
+        "Mau izin atau cuti? Pilih **Cuti / izin**, jenisnya, tanggal, dan alasan.",
+        "Kerja di luar jadwal? Pilih **Lembur**, isi lama dalam menit.",
+      ] },
+      { t: "p", text: "Status pengajuan terlihat di **Pengajuan saya**. Selama masih **Menunggu**, Anda bisa **Batalkan**." },
+      { t: "h", text: "Untuk pengelola (Pemilik dan Admin)" },
+      { t: "list", items: [
+        "**Hari ini**: siapa hadir, terlambat, belum datang, cuti, atau libur. Klik **Jadwal kerja** untuk mengatur hari dan jam kerja tiap staf.",
+        "**Pengajuan**: klik **Setujui** atau **Tolak**. Koreksi yang disetujui langsung mengganti catatan absen hari itu.",
+        "**Rekap bulanan**: hari hadir, terlambat, jam kerja, lembur, dan cuti per staf. Rekap ini dipakai untuk gaji.",
+      ] },
+      { t: "tip", text: "Terlambat dihitung bila absen masuk lebih dari 10 menit setelah jam masuk jadwal. Pengajuan sendiri diputuskan pengelola lain, kecuali Pemilik." },
+    ],
+  },
+  {
     slug: "staf", group: "Akademi dan staf", title: "Staf, peran, dan izin", summary: "Mengundang pelatih, peran bawaan, membuat peran sendiri, dan jejak aktivitas.",
     blocks: [
       { t: "h", text: "Mengundang staf" },
@@ -287,6 +320,7 @@ export const DOCS: DocPage[] = [
       ] },
       { t: "h", text: "Akses dan staf" },
       { t: "fix", items: [
+        { problem: "Anda sudah absen masuk hari ini.", cause: "Absen masuk hanya sekali per hari.", fix: "Klik **Absen pulang** saat selesai. Jam salah? Buat pengajuan **Koreksi absen**." },
         { problem: "Modul ... sedang dimatikan.", cause: "Pemilik mematikan modul itu di Pengaturan → Modul.", fix: "Minta Pemilik menyalakannya lagi. Data lama tetap ada." },
         { problem: "Anda belum punya akses untuk tindakan ini. Minta pemilik akademi memberi izin.", cause: "Peran Anda tidak punya izin untuk aksi itu.", fix: "Minta Pemilik menambah peran atau izin di **Staf** atau **Peran dan izin**." },
         { problem: "Anda hanya bisa memberi izin yang Anda miliki sendiri.", cause: "Mencoba memberi staf peran yang izinnya melebihi milik Anda.", fix: "Minta Pemilik yang memasang peran tersebut." },

@@ -8,11 +8,13 @@ import { MODULES } from "./modules";
 export const NAV = [
   { href: "/", label: "Beranda", icon: "home", group: "", permission: null, mobile: true },
   { href: "/jadwal", label: "Jadwal", icon: "schedule", group: "Latihan", permission: null, mobile: true },
+  { href: "/program", label: "Program", icon: "programs", group: "Latihan", permission: null, mobile: false },
   { href: "/pemain", label: "Pemain", icon: "players", group: "Pemain dan tim", permission: null, mobile: true },
   { href: "/tim", label: "Tim", icon: "teams", group: "Pemain dan tim", permission: null, mobile: "overflow" },
   { href: "/iuran", label: "Iuran", icon: "billing", group: "Keuangan", permission: "billing.read", mobile: true },
   { href: "/pengumuman", label: "Pengumuman", icon: "announce", group: "Komunikasi", permission: null, mobile: "overflow" },
   { href: "/staf", label: "Staf", icon: "staff", group: "Tim kerja dan akses", permission: "staff.read", mobile: false },
+  { href: "/absensi-staf", label: "Absensi staf", icon: "clock", group: "Tim kerja dan akses", permission: null, mobile: "overflow" },
   { href: "/staf/peran", label: "Peran dan izin", icon: "roles", group: "Tim kerja dan akses", permission: "roles.manage", mobile: false },
   { href: "/aktivitas", label: "Jejak aktivitas", icon: "audit", group: "Tim kerja dan akses", permission: "audit.read", mobile: false },
   { href: "/pengaturan", label: "Pengaturan", icon: "settings", group: "Akademi", permission: null, mobile: true },
