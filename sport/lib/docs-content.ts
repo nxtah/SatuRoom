@@ -301,6 +301,30 @@ export const DOCS: DocPage[] = [
     ],
   },
   {
+    slug: "analitik", group: "Uang dan kabar", title: "Analitik dan perbandingan cabang", summary: "Tren pemain, kehadiran, uang, dan perbandingan antar cabang.",
+    blocks: [
+      { t: "p", text: "Buka **Analitik**, pilih periode **Bulan ini**, **3 bulan**, atau **Tahun ini**." },
+      { t: "list", items: [
+        "**Perbandingan cabang**: pemain aktif, baru, berhenti, sesi, kehadiran, iuran masuk, pengeluaran, tunggakan per cabang.",
+        "Grafik 6 bulan: pemain aktif, kehadiran, uang masuk dan keluar.",
+        "**Perlu diperhatikan**: pemain dengan kehadiran di bawah 75%.",
+        "Staf yang dibatasi cabang hanya melihat cabangnya dan tanpa angka uang.",
+      ] },
+    ],
+  },
+  {
+    slug: "analitik", group: "Uang dan kabar", title: "Analitik dan perbandingan cabang", summary: "Tren pemain, kehadiran, uang, dan perbandingan antar cabang.",
+    blocks: [
+      { t: "p", text: "Buka **Analitik**, pilih periode **Bulan ini**, **3 bulan**, atau **Tahun ini**." },
+      { t: "list", items: [
+        "**Perbandingan cabang**: pemain aktif, baru, berhenti, sesi, kehadiran, iuran masuk, pengeluaran, tunggakan per cabang.",
+        "Grafik 6 bulan: pemain aktif, kehadiran, uang masuk dan keluar.",
+        "**Perlu diperhatikan**: pemain dengan kehadiran di bawah 75%.",
+        "Staf yang dibatasi cabang hanya melihat cabangnya dan tanpa angka uang.",
+      ] },
+    ],
+  },
+  {
     slug: "pengumuman-rapor", group: "Uang dan kabar", title: "Pengumuman dan rapor", summary: "Kabar untuk pemain dan penilaian perkembangan dari pelatih.",
     blocks: [
       { t: "h", text: "Pengumuman" },

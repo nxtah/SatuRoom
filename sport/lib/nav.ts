@@ -12,6 +12,7 @@ export const NAV = [
   { href: "/penilaian", label: "Penilaian", icon: "assess", group: "Latihan", permission: "evaluations.write", mobile: false },
   { href: "/pemain", label: "Pemain", icon: "players", group: "Pemain dan tim", permission: null, mobile: true },
   { href: "/tim", label: "Tim", icon: "teams", group: "Pemain dan tim", permission: null, mobile: "overflow" },
+  { href: "/analitik", label: "Analitik", icon: "analytics", group: "", permission: "analytics.read", mobile: false },
   { href: "/iuran", label: "Iuran", icon: "billing", group: "Keuangan", permission: "billing.read", mobile: true },
   { href: "/keuangan", label: "Keuangan", icon: "ledger", group: "Keuangan", permission: "accounting.read", mobile: "overflow" },
   { href: "/gaji", label: "Gaji", icon: "payroll", group: "Keuangan", permission: "payroll.manage", mobile: false },

@@ -37,6 +37,7 @@ export default async function PengaturanPage() {
     "/gaji": { title: "Gaji", hint: "Hitung, setujui, dan bayar gaji staf." },
     "/stok": { title: "Stok dan aset", hint: "Barang, pembelian, stok opname, aset tetap." },
     "/toko": { title: "Toko", hint: "Jual jersey dan pesanan dari orang tua." },
+    "/analitik": { title: "Analitik", hint: "Bandingkan cabang, tren pemain, kehadiran, uang." },
     "/event": { title: "Event dan turnamen", hint: "Clinic, trial, turnamen, klasemen." },
     "/layanan": { title: "Layanan orang tua", hint: "Pertanyaan, keluhan, dan masukan." },
     "/pengaturan/modul": { title: "Modul", hint: "Pilih fitur yang dipakai akademi." },

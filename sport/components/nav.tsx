@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, BookText, Banknote, Boxes, ShoppingBag, Trophy, MessagesSquare, CalendarDays, ClipboardCheck, Clock3, History, Layers, House, IdCard, KeyRound, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
+import { BookOpen, BookText, Banknote, Boxes, ShoppingBag, Trophy, MessagesSquare, ChartColumnBig, CalendarDays, ClipboardCheck, Clock3, History, Layers, House, IdCard, KeyRound, Megaphone, Settings, Shirt, UsersRound, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { activeHref, mobileNav, navGroups } from "@/lib/nav";
@@ -24,6 +24,7 @@ const ICONS = {
   stock: Boxes,
   store: ShoppingBag,
   event: Trophy,
+  analytics: ChartColumnBig,
   support: MessagesSquare,
 } as const;
 
