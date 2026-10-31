@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Ellipsis, LogOut, X } from "lucide-react";
+import { BookOpen, ChevronDown, Ellipsis, LogOut, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -98,6 +98,7 @@ export function AppShell({ children, hidden = [], profile }: { children: React.R
           <div className="mt-auto grid gap-2">
             <div className="hidden items-center gap-3 rounded-2xl bg-white/8 p-3 lg:flex"><BizMark p={profile} /><div className="min-w-0"><p className="truncate font-extrabold">{profile.name}</p>{profile.city ? <p className="truncate text-xs text-white/60">{profile.city}</p> : null}</div></div>
             <div className="mx-auto lg:hidden"><BizMark p={profile} size="size-11" /></div>
+            <a href="/docs" target="_blank" rel="noopener" className="flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-white/75 hover:bg-white/10 hover:text-white lg:justify-start lg:px-4"><BookOpen aria-hidden className="size-5 shrink-0" /><span className="hidden lg:inline">Panduan</span><span className="sr-only lg:hidden">Panduan</span></a>
             <button type="button" onClick={signOut} className="flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-white/75 hover:bg-white/10 hover:text-white lg:justify-start lg:px-4"><LogOut aria-hidden className="size-5 shrink-0" /><span className="hidden lg:inline">Keluar</span><span className="sr-only lg:hidden">Keluar</span></button>
           </div>
         </div>
@@ -137,6 +138,7 @@ export function AppShell({ children, hidden = [], profile }: { children: React.R
                 {(isGroup(e) ? e.children : [e]).map((c) => link(c, "flex items-center gap-3 rounded-2xl px-4 py-3 font-bold " + (on(c.href) ? "" : "text-white/85 active:bg-white/10")))}
               </div>
             ))}
+            <a href="/docs" target="_blank" rel="noopener" className="mt-1 flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-bold text-white/85 active:bg-white/10"><BookOpen aria-hidden className="size-5 shrink-0" />Panduan</a>
             <button type="button" onClick={signOut} className="mt-1 flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-bold text-white/85 active:bg-white/10"><LogOut aria-hidden className="size-5 shrink-0" />Keluar</button>
           </div>
         ) : null}

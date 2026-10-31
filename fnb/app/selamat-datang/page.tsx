@@ -49,7 +49,7 @@ export default function RasaLanding() {
             <span className="hidden rounded-full bg-tomato px-2 py-0.5 text-xs font-bold text-white sm:inline">Rasa</span>
           </Link>
           <ul className="mx-auto hidden items-center gap-1 lg:flex">
-            {[["Alur", "#alur"], ["Menu", "#menu"], ["Dapur", "#dapur"], ["Tanya jawab", "#tanya"]].map(([l, h]) => (
+            {[["Alur", "#alur"], ["Menu", "#menu"], ["Dapur", "#dapur"], ["Tanya jawab", "#tanya"], ["Panduan", "/docs"]].map(([l, h]) => (
               <li key={h}><a href={h} className="rounded-full px-4 py-2 text-sm font-semibold text-kitchen/70 transition hover:bg-cream hover:text-kitchen">{l}</a></li>
             ))}
           </ul>
@@ -204,6 +204,7 @@ export default function RasaLanding() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-8">
           <p className="max-w-xs text-white/70">SatuRoom Rasa, aplikasi usaha makanan dan minuman dari SatuRoom.</p>
           <nav aria-label="Pintasan" className="flex flex-wrap gap-x-6 gap-y-3 font-semibold">
+            <Link href="/docs" className="hover:text-saffron">Panduan</Link>
             <Link href="/masuk" className="hover:text-saffron">Masuk</Link>
             <Link href="/daftar" className="hover:text-saffron">Daftar</Link>
             <a href="https://saturoom.com" className="hover:text-saffron">saturoom.com</a>
