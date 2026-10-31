@@ -143,7 +143,7 @@ export function PlayerForm({ positions, teams, showGuardian, player, defaultTeam
       {showGuardian ? (
         <details className="rounded-[1.5rem] bg-mist p-5" open={Boolean(player?.guardianName || player?.guardianPhone)}>
           <summary className="cursor-pointer font-extrabold marker:text-ink-soft">Kontak orang tua/wali (boleh nanti)</summary>
-          <p className="mt-2 text-sm text-ink-soft">Hanya terlihat oleh Pemilik dan Admin.</p>
+          <p className="mt-2 text-sm text-ink-soft">Hanya terlihat oleh Pemilik, Admin, dan Bendahara.</p>
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <Field label="Nama wali" name="guardianName" defaultValue={player?.guardianName ?? ""} error={form.fields.guardianName} />
             <Field

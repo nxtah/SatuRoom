@@ -44,7 +44,7 @@ export default async function StafPage({ searchParams }: { searchParams: Promise
         </div>
       ) : null}
 
-      <ul className="rise grid gap-2">
+      <ul className="rise grid grid-cols-[minmax(0,1fr)] gap-2">
         {members.map((m) => {
           const content = (
             <>
@@ -106,7 +106,7 @@ export default async function StafPage({ searchParams }: { searchParams: Promise
           <h2 id="menunggu" className="mb-2 text-sm font-extrabold text-ink-soft">
             Menunggu diterima
           </h2>
-          <ul className="grid gap-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
             {invites.map((i) => (
               <li key={i.id} className="flex items-center gap-4 rounded-[1.5rem] border-2 border-dashed border-line p-4">
                 <Mail aria-hidden className="size-5 shrink-0 text-ink-soft" />

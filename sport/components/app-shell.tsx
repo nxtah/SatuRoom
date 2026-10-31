@@ -18,7 +18,7 @@ interface Props {
 
 export function AppShell({ academyName, logoUrl, academies, activeAcademyId, user, roleLabel, allowed, accent, children }: Props) {
   return (
-    <div style={{ "--color-ember": accent } as React.CSSProperties} className="min-h-dvh md:grid md:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div style={{ "--color-ember": accent } as React.CSSProperties} className="min-h-dvh md:grid md:grid-cols-[104px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
       <a
         href="#isi"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-pitch focus:px-4 focus:py-2 focus:text-white"
@@ -27,7 +27,7 @@ export function AppShell({ academyName, logoUrl, academies, activeAcademyId, use
       </a>
       {/* Tablet: rel ikon ringkas. Desktop: sidebar penuh. HP: menu bawah. */}
       <aside className="hidden md:block">
-        <div className="sticky top-0 flex h-dvh flex-col gap-8 overflow-y-auto p-3 lg:p-5">
+        <div className="sticky top-0 flex h-dvh flex-col gap-6 overflow-y-auto p-3 lg:p-5">
           <div className="hidden px-2 pt-1 lg:block">
             <Brand />
           </div>

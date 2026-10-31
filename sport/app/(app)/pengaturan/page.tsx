@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { BookOpen, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { mobileNav, NAV } from "@/lib/nav";
@@ -23,6 +23,8 @@ export default async function PengaturanPage() {
     "/pengumuman": { title: "Pengumuman", hint: "Kabar libur, ganti jam, dan info untuk pemain." },
     "/pengaturan/lokasi": { title: "Lokasi", hint: "Lapangan atau cabang tempat latihan." },
     "/iuran": { title: "Iuran", hint: "Tarif, tagihan bulanan, dan pembayaran." },
+    "/staf/peran": { title: "Peran dan izin", hint: "Buat jabatan sendiri dan atur aksesnya." },
+    "/aktivitas": { title: "Jejak aktivitas", hint: "Siapa mengubah apa dan kapan." },
   };
   const more = allowed.filter((h) => !inTabs.has(h) && HINTS[h]).map((h) => ({ href: h, ...HINTS[h]! }));
   return (
@@ -46,6 +48,20 @@ export default async function PengaturanPage() {
           ))}
         </nav>
       ) : null}
+
+      <a
+        href="/docs"
+        target="_blank"
+        rel="noopener"
+        className="rise group flex items-center gap-4 rounded-[2rem] bg-ember/15 p-5 transition hover:-translate-y-0.5"
+      >
+        <BookOpen aria-hidden className="size-6 shrink-0 text-ink" />
+        <span className="flex-1">
+          <span className="block text-lg font-extrabold">Panduan pemakaian</span>
+          <span className="block text-sm text-ink-soft">Cara pakai tiap menu, langkah demi langkah, dan solusi bila ada masalah.</span>
+        </span>
+        <ChevronRight aria-hidden className="size-5" />
+      </a>
 
       {ctx.can("locations.manage") ? (
         <Link href="/pengaturan/lokasi" className="rise group hidden items-center gap-4 rounded-[2rem] bg-chalk p-5 transition hover:-translate-y-0.5 md:flex">

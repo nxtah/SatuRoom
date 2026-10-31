@@ -47,7 +47,7 @@ export function AppHeader({ academyName, logoUrl, academies, activeAcademyId, us
       <MenuButton
         label={`Akademi aktif: ${academyName}. Ganti akademi`}
         align="left"
-        buttonClassName="flex min-w-0 items-center gap-3 rounded-2xl py-2 pr-3 pl-2 text-left transition hover:bg-chalk"
+        buttonClassName="flex max-w-full min-w-0 items-center gap-3 rounded-2xl py-2 pr-3 pl-2 text-left transition hover:bg-chalk"
         button={
           <>
             <AcademyMark name={academyName} logoUrl={logoUrl} />
@@ -82,7 +82,7 @@ export function AppHeader({ academyName, logoUrl, academies, activeAcademyId, us
         )}
       </MenuButton>
 
-      <div className="ml-auto">
+      <div className="ml-auto shrink-0">
         <MenuButton
           label={`Akun: ${user.name}`}
           align="right"

@@ -46,7 +46,7 @@ export default function SportLanding() {
             <span className="hidden rounded-full bg-ember px-2 py-0.5 text-xs font-extrabold text-ink sm:inline">Sport</span>
           </Link>
           <ul className="mx-auto hidden items-center gap-1 lg:flex">
-            {[["Cabang", "#cabang"], ["Hari latihan", "#hari"], ["Peran", "#peran"], ["Tampilan", "#tampilan"], ["Tanya jawab", "#tanya"]].map(([l, h]) => (
+            {[["Cabang", "#cabang"], ["Hari latihan", "#hari"], ["Peran", "#peran"], ["Tampilan", "#tampilan"], ["Tanya jawab", "#tanya"], ["Panduan", "/docs"]].map(([l, h]) => (
               <li key={h}><a href={h} className="rounded-full px-4 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white">{l}</a></li>
             ))}
           </ul>
@@ -241,6 +241,7 @@ export default function SportLanding() {
           <nav aria-label="Pintasan" className="flex flex-wrap gap-x-6 gap-y-3 font-semibold">
             <Link href="/masuk" className="hover:text-ember">Masuk</Link>
             <Link href="/daftar" className="hover:text-ember">Daftar</Link>
+            <Link href="/docs" className="hover:text-ember">Panduan</Link>
             <a href="https://saturoom.com" className="hover:text-ember">saturoom.com</a>
             <a href="https://rasa.saturoom.com" className="hover:text-ember">SatuRoom Rasa</a>
           </nav>

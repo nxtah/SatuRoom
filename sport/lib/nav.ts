@@ -1,17 +1,19 @@
 /**
- * Menu aplikasi. `permission` kosong berarti semua staf. Tab bawah HP maksimal 5: `mobile: false`
- * tidak pernah tampil di sana, `"overflow"` dilepas bila tab lebih dari 5 (keduanya bisa dibuka
- * dari Pengaturan). Hanya kenyamanan: server tetap memeriksa izin.
+ * Menu aplikasi, dikelompokkan per kategori. `permission` kosong berarti semua staf. Tab bawah HP
+ * maksimal 5: `mobile: false` tidak pernah tampil di sana, `"overflow"` dilepas bila tab lebih
+ * dari 5 (keduanya bisa dibuka dari Pengaturan). Hanya kenyamanan: server tetap memeriksa izin.
  */
 export const NAV = [
-  { href: "/", label: "Beranda", icon: "home", permission: null, mobile: true },
-  { href: "/jadwal", label: "Jadwal", icon: "schedule", permission: null, mobile: true },
-  { href: "/tim", label: "Tim", icon: "teams", permission: null, mobile: "overflow" },
-  { href: "/pemain", label: "Pemain", icon: "players", permission: null, mobile: true },
-  { href: "/pengumuman", label: "Pengumuman", icon: "announce", permission: null, mobile: "overflow" },
-  { href: "/iuran", label: "Iuran", icon: "billing", permission: "billing.read", mobile: true },
-  { href: "/staf", label: "Staf", icon: "staff", permission: "staff.read", mobile: false },
-  { href: "/pengaturan", label: "Pengaturan", icon: "settings", permission: null, mobile: true },
+  { href: "/", label: "Beranda", icon: "home", group: "", permission: null, mobile: true },
+  { href: "/jadwal", label: "Jadwal", icon: "schedule", group: "Latihan", permission: null, mobile: true },
+  { href: "/pemain", label: "Pemain", icon: "players", group: "Pemain dan tim", permission: null, mobile: true },
+  { href: "/tim", label: "Tim", icon: "teams", group: "Pemain dan tim", permission: null, mobile: "overflow" },
+  { href: "/iuran", label: "Iuran", icon: "billing", group: "Keuangan", permission: "billing.read", mobile: true },
+  { href: "/pengumuman", label: "Pengumuman", icon: "announce", group: "Komunikasi", permission: null, mobile: "overflow" },
+  { href: "/staf", label: "Staf", icon: "staff", group: "Tim kerja dan akses", permission: "staff.read", mobile: false },
+  { href: "/staf/peran", label: "Peran dan izin", icon: "roles", group: "Tim kerja dan akses", permission: "roles.manage", mobile: false },
+  { href: "/aktivitas", label: "Jejak aktivitas", icon: "audit", group: "Tim kerja dan akses", permission: "audit.read", mobile: false },
+  { href: "/pengaturan", label: "Pengaturan", icon: "settings", group: "Akademi", permission: null, mobile: true },
 ] as const;
 
 export type NavItem = (typeof NAV)[number];
@@ -20,4 +22,22 @@ export type NavItem = (typeof NAV)[number];
 export function mobileNav(allowed: string[]) {
   const items = NAV.filter((i) => i.mobile !== false && allowed.includes(i.href));
   return items.length > 5 ? items.filter((i) => i.mobile !== "overflow") : items;
+}
+
+/** Menu yang diizinkan, dikelompokkan sesuai urutan NAV. */
+export function navGroups(allowed: string[]) {
+  const groups: { title: string; items: NavItem[] }[] = [];
+  for (const item of NAV) {
+    if (!allowed.includes(item.href)) continue;
+    const last = groups.at(-1);
+    if (last && last.title === item.group) last.items.push(item);
+    else groups.push({ title: item.group, items: [item] });
+  }
+  return groups;
+}
+
+/** Menu aktif: awalan terpanjang yang cocok, supaya /staf/peran tidak ikut menyalakan /staf. */
+export function activeHref(pathname: string, hrefs: readonly string[]) {
+  if (pathname === "/") return "/";
+  return hrefs.filter((h) => h !== "/" && (pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0];
 }
