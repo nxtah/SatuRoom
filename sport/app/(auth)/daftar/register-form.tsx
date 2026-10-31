@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import { RegisterInput } from "@/lib/schemas";
 import { formValues, useForm } from "@/lib/use-form";
 
-export function RegisterForm({ google }: { google: boolean }) {
+export function RegisterForm({ google, defaultEmail = "", invited = false }: { google: boolean; defaultEmail?: string; invited?: boolean }) {
   const form = useForm(RegisterInput);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -18,18 +18,22 @@ export function RegisterForm({ google }: { google: boolean }) {
     const values = formValues(e.currentTarget);
     const done = await form.submit(values, (input) => api("/auth/register", { body: input }));
     // Langsung masuk; tujuan akhir ditentukan server lewat redirect.
-    if (done) window.location.replace("/");
+    if (done) window.location.replace(invited ? "/undangan" : "/");
   }
 
   return (
     <div className="rise">
       <h1 className="text-3xl font-extrabold tracking-tight">Buat akun</h1>
-      <p className="mt-2 text-ink-soft">Gratis. Setelah ini Anda langsung bisa menyiapkan akademi.</p>
+      <p className="mt-2 text-ink-soft">
+        {invited
+          ? "Anda diundang ke sebuah akademi. Buat akun dengan email yang menerima undangan, lalu terima undangannya."
+          : "Gratis. Setelah ini Anda langsung bisa menyiapkan akademi."}
+      </p>
 
       <div className="mt-8 grid gap-5">
         {google ? (
           <>
-            <GoogleButton label="Daftar dengan Google" />
+            <GoogleButton label="Daftar dengan Google" next={invited ? "undangan" : undefined} />
             <OrDivider />
           </>
         ) : null}
@@ -44,6 +48,7 @@ export function RegisterForm({ google }: { google: boolean }) {
           type="email"
           autoComplete="email"
           inputMode="email"
+          defaultValue={defaultEmail}
           hint="Kami kirim link konfirmasi. Dibutuhkan untuk menerima undangan akademi."
           error={form.fields.email}
         />
@@ -61,7 +66,7 @@ export function RegisterForm({ google }: { google: boolean }) {
 
       <p className="mt-8 text-center text-ink-soft">
         Sudah punya akun?{" "}
-        <Link href="/masuk" className="font-bold text-ink underline decoration-pitch decoration-2 underline-offset-4">
+        <Link href={invited ? "/masuk?lanjut=undangan" : "/masuk"} className="font-bold text-ink underline decoration-pitch decoration-2 underline-offset-4">
           Masuk
         </Link>
       </p>

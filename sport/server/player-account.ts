@@ -13,6 +13,7 @@ import { announcementsForPlayer } from "./announcements";
 import { evaluationsForPlayer } from "./evaluations";
 import { AppError, notFound, unverifiedEmail } from "./errors";
 import { sendPlayerInvite } from "./mail";
+import { formatBusinessCode } from "@/lib/business-code";
 import { visiblePlayerIds } from "./players";
 import { addDays, academyToday } from "./schedule";
 
@@ -330,7 +331,7 @@ export function playerAccount(ctx: AcademyContext, playerId: string): Promise<Pl
 
 /** Mengundang email untuk menjadi akun pemain ini. Undangan lama yang belum diterima diganti. */
 export async function invitePlayerAccount(ctx: AcademyContext, playerId: string, email: string): Promise<void> {
-  const { academyName, playerName } = await inAcademy(ctx, async (tx) => {
+  const { academyName, playerName, code } = await inAcademy(ctx, async (tx) => {
     await assertAccountAdmin(ctx, tx, playerId);
     const [linked] = (await tx.execute(sql`
       SELECT 1 FROM bola.player_accounts WHERE player_id = ${playerId}::uuid`)) as unknown as unknown[];
@@ -349,13 +350,13 @@ export async function invitePlayerAccount(ctx: AcademyContext, playerId: string,
       targetId: playerId,
     });
     const [row] = (await tx.execute(sql`
-      SELECT b.name AS "academyName", p.full_name AS "playerName"
+      SELECT b.name AS "academyName", p.full_name AS "playerName", b.code AS "code"
       FROM bola.players p JOIN core.businesses b ON b.id = p.business_id
-      WHERE p.id = ${playerId}::uuid`)) as unknown as { academyName: string; playerName: string }[];
+      WHERE p.id = ${playerId}::uuid`)) as unknown as { academyName: string; playerName: string; code: string }[];
     return row!;
   });
   try {
-    await sendPlayerInvite(email, academyName, playerName);
+    await sendPlayerInvite(email, academyName, playerName, formatBusinessCode(code));
   } catch (error) {
     // Undangan tetap sah; bisa dibuka dari /undangan setelah masuk.
     console.error("gagal mengirim email undangan akun pemain", error);

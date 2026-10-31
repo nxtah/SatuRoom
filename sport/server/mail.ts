@@ -52,31 +52,52 @@ export function sendResetPassword(to: string, token: string) {
   );
 }
 
-export function sendStaffInvite(to: string, academyName: string, inviterName: string, roleLabels: string) {
-  const url = `${env().APP_URL}/undangan`;
+/** Kotak ID bisnis, tombol daftar, dan tautan masuk untuk email undangan. */
+function inviteHtml(title: string, body: string, to: string, businessCode: string, ctaLabel: string): { html: string; signup: string; login: string } {
+  const base = env().APP_URL;
+  const signup = `${base}/daftar?undangan=1&email=${encodeURIComponent(to)}`;
+  const login = `${base}/masuk?lanjut=undangan`;
+  const codeHtml = businessCode
+    ? `<p style="margin:0 0 20px;font-size:15px;color:#4d5a52">ID bisnis<br><span style="display:inline-block;margin-top:6px;background:#fff1e3;border-radius:12px;padding:8px 14px;font-size:22px;font-weight:800;letter-spacing:2px;color:#17201b">${escapeHtml(businessCode)}</span></p>`
+    : "";
+  const html = layout(title, body, { label: ctaLabel, url: escapeHtml(signup) })
+    .replace('<a href="', `${codeHtml}<a href="`)
+    .replace(
+      '<p style="font-size:12px',
+      `<p style="font-size:14px;margin:20px 0 0"><a href="${login}" style="color:#17201b;font-weight:700">Sudah punya akun? Masuk</a>. Saat masuk, ID bisnis boleh dikosongkan, lalu isi email dan password Anda.</p><p style="font-size:12px`,
+    );
+  return { html, signup, login };
+}
+
+export function sendStaffInvite(to: string, academyName: string, inviterName: string, roleLabels: string, businessCode = "") {
+  const { html, signup, login } = inviteHtml(
+    `Anda diundang ke ${escapeHtml(academyName)}`,
+    `${escapeHtml(inviterName)} mengundang Anda sebagai ${escapeHtml(roleLabels)} di SatuRoom Sport. Belum punya akun? Buat akun dengan email ini (${escapeHtml(to)}) dan atur password Anda sendiri, lalu terima undangannya. Undangan berlaku 14 hari.`,
+    to,
+    businessCode,
+    "Buat akun dan terima undangan",
+  );
   return send(
     to,
     `Undangan bergabung ke ${academyName}`,
-    layout(
-      `Anda diundang ke ${escapeHtml(academyName)}`,
-      `${escapeHtml(inviterName)} mengundang Anda sebagai ${escapeHtml(roleLabels)} di SatuRoom Sport. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Undangan berlaku 14 hari.`,
-      { label: "Lihat undangan", url },
-    ),
-    `${inviterName} mengundang Anda ke ${academyName} sebagai ${roleLabels}. Masuk atau daftar dengan email ${to}: ${url}`,
+    html,
+    `${inviterName} mengundang Anda ke ${academyName} sebagai ${roleLabels}.${businessCode ? ` ID bisnis: ${businessCode}.` : ""} Belum punya akun? Buat akun dengan email ${to} dan atur password Anda: ${signup} . Sudah punya akun? Masuk: ${login}`,
   );
 }
 
-export function sendPlayerInvite(to: string, academyName: string, playerName: string) {
-  const url = `${env().APP_URL}/undangan`;
+export function sendPlayerInvite(to: string, academyName: string, playerName: string, businessCode = "") {
+  const { html, signup, login } = inviteHtml(
+    `Akun pemain untuk ${escapeHtml(playerName)}`,
+    `${escapeHtml(academyName)} membuatkan akun pemain untuk ${escapeHtml(playerName)}. Dari akun ini bisa dilihat jadwal latihan, mengirim izin atau sakit, kehadiran, dan status iuran. Belum punya akun? Buat akun dengan email ini (${escapeHtml(to)}) dan atur password Anda, lalu terima undangannya. Bila pemain di bawah 18 tahun, undangan diterima oleh atau dengan izin orang tua/wali. Undangan berlaku 14 hari.`,
+    to,
+    businessCode,
+    "Buat akun dan buka undangan",
+  );
   return send(
     to,
     `Akun pemain ${playerName} di ${academyName}`,
-    layout(
-      `Akun pemain untuk ${escapeHtml(playerName)}`,
-      `${escapeHtml(academyName)} membuatkan akun pemain untuk ${escapeHtml(playerName)}. Dari akun ini bisa dilihat jadwal latihan, mengirim izin atau sakit, kehadiran, dan status iuran. Masuk atau daftar dengan email ini (${escapeHtml(to)}), lalu terima undangannya. Bila pemain di bawah 18 tahun, undangan diterima oleh atau dengan izin orang tua/wali. Undangan berlaku 14 hari.`,
-      { label: "Buka undangan", url },
-    ),
-    `${academyName} membuatkan akun pemain untuk ${playerName}. Masuk atau daftar dengan email ${to}: ${url}`,
+    html,
+    `${academyName} membuatkan akun pemain untuk ${playerName}.${businessCode ? ` ID bisnis: ${businessCode}.` : ""} Belum punya akun? Buat akun dengan email ${to}: ${signup} . Sudah punya akun? Masuk: ${login}`,
   );
 }
 

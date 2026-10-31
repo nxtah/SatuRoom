@@ -10,6 +10,7 @@ import { inAcademy, requirePermission, type AcademyContext } from "./context";
 import { db } from "./db";
 import { AppError, forbidden, notFound, unverifiedEmail } from "./errors";
 import { sendStaffInvite } from "./mail";
+import { formatBusinessCode } from "@/lib/business-code";
 import { ROLE_LABEL, ROLES, type Role } from "./permissions";
 import { invitations, staffRoles, teamCoaches, teams } from "./schema";
 
@@ -151,7 +152,7 @@ export async function inviteStaff(ctx: AcademyContext, input: z.infer<typeof Inv
   });
   const academy = await getAcademy(ctx);
   // Gagal kirim email tidak membatalkan undangan; penerima tetap bisa melihatnya di /undangan.
-  await sendStaffInvite(email, academy.name, ctx.session.name, roleLabels(input.roles)).catch((error: unknown) => {
+  await sendStaffInvite(email, academy.name, ctx.session.name, roleLabels(input.roles), formatBusinessCode(academy.code)).catch((error: unknown) => {
     console.error("gagal kirim undangan", error instanceof Error ? error.message : error);
   });
   return id;

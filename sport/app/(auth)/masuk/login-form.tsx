@@ -77,7 +77,7 @@ export function LoginForm({ next = "/", lanjut, google, notice }: { next?: strin
 
       <p className="mt-8 text-center text-ink-soft">
         Belum punya akun?{" "}
-        <Link href="/daftar" className="font-bold text-ink underline decoration-pitch decoration-2 underline-offset-4">
+        <Link href={lanjut ? `/daftar?undangan=1` : "/daftar"} className="font-bold text-ink underline decoration-pitch decoration-2 underline-offset-4">
           Daftar gratis
         </Link>
       </p>
