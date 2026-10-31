@@ -14,13 +14,15 @@ interface Props {
   id: string;
   name: string;
   roles: Role[];
+  customRoles: { id: string; name: string; description: string | null }[];
+  customRoleIds: string[];
   teamIds: string[];
   teams: { id: string; name: string }[];
   canGrantOwner: boolean;
   active: boolean;
 }
 
-export function StaffForm({ id, name, roles, teamIds, teams, canGrantOwner, active }: Props) {
+export function StaffForm({ id, name, roles, customRoles, customRoleIds, teamIds, teams, canGrantOwner, active }: Props) {
   const router = useRouter();
   const form = useForm(StaffUpdateInput);
   const [saved, setSaved] = useState(false);
@@ -31,7 +33,7 @@ export function StaffForm({ id, name, roles, teamIds, teams, canGrantOwner, acti
     e.preventDefault();
     setSaved(false);
     const data = new FormData(e.currentTarget);
-    const done = await form.submit({ roles: data.getAll("roles"), teamIds: data.getAll("teamIds") }, (input) =>
+    const done = await form.submit({ roles: data.getAll("roles"), customRoleIds: data.getAll("customRoleIds"), teamIds: data.getAll("teamIds") }, (input) =>
       api<void>(`/staff/${id}`, { method: "PATCH", body: input }),
     );
     if (!done) return;
@@ -52,7 +54,7 @@ export function StaffForm({ id, name, roles, teamIds, teams, canGrantOwner, acti
       <form onSubmit={onSubmit} noValidate className="rise grid gap-6 rounded-[2rem] bg-chalk p-6 sm:p-8" aria-label="Peran dan tim">
         {form.error && !form.error.fields ? <Alert tone="error">{form.error.message}</Alert> : null}
         {saved ? <Alert tone="success">Peran dan tim tersimpan.</Alert> : null}
-        <RoleFields canGrantOwner={canGrantOwner} roles={roles} teams={teams} teamIds={teamIds} errors={form.fields} />
+        <RoleFields canGrantOwner={canGrantOwner} roles={roles} customRoles={customRoles} customRoleIds={customRoleIds} teams={teams} teamIds={teamIds} errors={form.fields} />
         <Button type="submit" disabled={form.pending} className="justify-self-start">
           {form.pending ? "Menyimpan…" : "Simpan perubahan"}
         </Button>

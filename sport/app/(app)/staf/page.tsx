@@ -1,4 +1,4 @@
-import { ChevronRight, Mail, UserPlus } from "lucide-react";
+import { ChevronRight, KeyRound, Mail, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -24,11 +24,18 @@ export default async function StafPage({ searchParams }: { searchParams: Promise
         title="Staf"
         subtitle={`${members.filter((m) => m.status === "active").length} staf aktif`}
         action={
-          canManage ? (
-            <ButtonLink href="/staf/undang">
-              <UserPlus aria-hidden className="size-5" /> Undang staf
-            </ButtonLink>
-          ) : null
+          <div className="flex flex-wrap gap-2">
+            {ctx.can("roles.manage") ? (
+              <ButtonLink href="/staf/peran" variant="outline">
+                <KeyRound aria-hidden className="size-5" /> Peran dan izin
+              </ButtonLink>
+            ) : null}
+            {canManage ? (
+              <ButtonLink href="/staf/undang">
+                <UserPlus aria-hidden className="size-5" /> Undang staf
+              </ButtonLink>
+            ) : null}
+          </div>
         }
       />
       {sp.terkirim === "1" ? (
@@ -60,6 +67,11 @@ export default async function StafPage({ searchParams }: { searchParams: Promise
                   {m.roles.map((r) => (
                     <span key={r} className="rounded-full bg-turf-soft px-2.5 py-0.5 text-xs font-bold text-pitch">
                       {ROLE_LABEL[r]}
+                    </span>
+                  ))}
+                  {m.customRoles.map((c) => (
+                    <span key={c.id} className="rounded-full bg-turf-soft px-2.5 py-0.5 text-xs font-bold text-pitch">
+                      {c.name}
                     </span>
                   ))}
                   {m.teams.map((t) => (
@@ -100,7 +112,7 @@ export default async function StafPage({ searchParams }: { searchParams: Promise
                 <Mail aria-hidden className="size-5 shrink-0 text-ink-soft" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-bold">{i.email}</span>
-                  <span className="block text-sm text-ink-soft">{roleLabels(i.roles)}</span>
+                  <span className="block text-sm text-ink-soft">{roleLabels(i.roles, i.customRoleNames)}</span>
                 </span>
                 {canManage ? <RevokeButton id={i.id} email={i.email} /> : null}
               </li>

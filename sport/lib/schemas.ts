@@ -197,14 +197,24 @@ export const AttendanceInput = z.object({
 });
 export const AttendanceQrScanInput = z.object({ token: z.string().min(20).max(200) });
 
-const staffRoles = z
-  .array(z.enum(["owner", "admin", "head_coach", "coach", "treasurer"]))
-  .min(1, "Pilih minimal satu peran.")
-  .max(5);
+const staffRoles = z.array(z.enum(["owner", "admin", "head_coach", "coach", "treasurer"])).max(5).default([]);
 const teamIdList = z.array(z.string().uuid()).max(50).default([]);
+const customRoleIdList = z.array(z.string().uuid()).max(20).default([]);
+const atLeastOneRole = (v: { roles: unknown[]; customRoleIds: unknown[] }) => v.roles.length + v.customRoleIds.length > 0;
+const roleMessage = { message: "Pilih minimal satu peran.", path: ["roles"] };
 
-export const InviteInput = z.object({ email, roles: staffRoles, teamIds: teamIdList });
-export const StaffUpdateInput = z.object({ roles: staffRoles, teamIds: teamIdList });
+export const InviteInput = z
+  .object({ email, roles: staffRoles, customRoleIds: customRoleIdList, teamIds: teamIdList })
+  .refine(atLeastOneRole, roleMessage);
+export const StaffUpdateInput = z
+  .object({ roles: staffRoles, customRoleIds: customRoleIdList, teamIds: teamIdList })
+  .refine(atLeastOneRole, roleMessage);
+
+export const CustomRoleInput = z.object({
+  name: z.string().trim().min(2, "Nama peran minimal 2 huruf.").max(40, "Nama peran terlalu panjang."),
+  description: z.string().trim().max(160, "Keterangan terlalu panjang.").optional(),
+  permissions: z.array(z.string().min(3).max(40)).min(1, "Pilih minimal satu izin.").max(40),
+});
 export const StaffStatusInput = z.object({ status: z.enum(["active", "suspended"]) });
 export const InvitationIdInput = z.object({ invitationId: z.string().uuid() });
 

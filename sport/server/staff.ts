@@ -12,7 +12,8 @@ import { AppError, forbidden, notFound, unverifiedEmail } from "./errors";
 import { sendStaffInvite } from "./mail";
 import { formatBusinessCode } from "@/lib/business-code";
 import { ROLE_LABEL, ROLES, type Role } from "./permissions";
-import { invitations, staffRoles, teamCoaches, teams } from "./schema";
+import { assertCanGrant } from "./roles";
+import { customRoles, invitations, staffCustomRoles, staffRoles, teamCoaches, teams } from "./schema";
 
 export interface StaffMember {
   membershipId: string;
@@ -21,6 +22,7 @@ export interface StaffMember {
   email: string;
   status: "active" | "suspended" | "removed";
   roles: Role[];
+  customRoles: { id: string; name: string }[];
   teams: { id: string; name: string }[];
 }
 
@@ -28,11 +30,13 @@ export interface PendingInvite {
   id: string;
   email: string;
   roles: Role[];
+  customRoleNames: string[];
   expiresAt: Date;
 }
 
 const byRank = (a: Role, b: Role) => ROLES.indexOf(a) - ROLES.indexOf(b);
-export const roleLabels = (roles: Role[]) => [...roles].sort(byRank).map((r) => ROLE_LABEL[r]).join(", ");
+export const roleLabels = (roles: Role[], custom: string[] = []) =>
+  [...[...roles].sort(byRank).map((r) => ROLE_LABEL[r]), ...custom].join(", ") || "Anggota";
 
 export async function listStaff(ctx: AcademyContext): Promise<{ members: StaffMember[]; invites: PendingInvite[] }> {
   requirePermission(ctx, "staff.read");
@@ -50,8 +54,16 @@ export async function listStaff(ctx: AcademyContext): Promise<{ members: StaffMe
       .where(and(eq(memberships.businessId, ctx.businessId), ne(memberships.status, "removed")))
       .orderBy(users.name);
     const ids = rows.map((r) => r.membershipId);
-    const [roles, assigned, invites] = await Promise.all([
+    const [roles, custom, assigned, invites, activeCustom] = await Promise.all([
       ids.length ? tx.select().from(staffRoles).where(inArray(staffRoles.membershipId, ids)) : [],
+      ids.length
+        ? tx
+            .select({ membershipId: staffCustomRoles.membershipId, id: customRoles.id, name: customRoles.name })
+            .from(staffCustomRoles)
+            .innerJoin(customRoles, eq(customRoles.id, staffCustomRoles.customRoleId))
+            .where(and(inArray(staffCustomRoles.membershipId, ids), isNull(customRoles.archivedAt)))
+            .orderBy(customRoles.name)
+        : [],
       ids.length
         ? tx
             .select({ membershipId: teamCoaches.membershipId, id: teams.id, name: teams.name })
@@ -61,19 +73,28 @@ export async function listStaff(ctx: AcademyContext): Promise<{ members: StaffMe
             .orderBy(teams.name)
         : [],
       tx
-        .select({ id: invitations.id, email: invitations.email, roles: invitations.roles, expiresAt: invitations.expiresAt })
+        .select({ id: invitations.id, email: invitations.email, roles: invitations.roles, customRoleIds: invitations.customRoleIds, expiresAt: invitations.expiresAt })
         .from(invitations)
         .where(and(isNull(invitations.acceptedAt), isNull(invitations.revokedAt), sql`${invitations.expiresAt} > now()`))
         .orderBy(invitations.createdAt),
+      tx.select({ id: customRoles.id, name: customRoles.name }).from(customRoles).where(isNull(customRoles.archivedAt)),
     ]);
     const members = rows.map((r) => ({
       ...r,
       roles: roles.filter((x) => x.membershipId === r.membershipId).map((x) => x.role).sort(byRank),
+      customRoles: custom.filter((x) => x.membershipId === r.membershipId).map(({ id, name }) => ({ id, name })),
       teams: assigned.filter((x) => x.membershipId === r.membershipId).map(({ id, name }) => ({ id, name })),
     }));
     // Pemilik dulu, lalu urut peran tertinggi, lalu nama.
     members.sort((a, b) => byRank(a.roles[0] ?? "coach", b.roles[0] ?? "coach") || a.name.localeCompare(b.name));
-    return { members, invites };
+    const nameOf = new Map(activeCustom.map((c) => [c.id, c.name]));
+    return {
+      members,
+      invites: invites.map(({ customRoleIds, ...i }) => ({
+        ...i,
+        customRoleNames: customRoleIds.map((id) => nameOf.get(id)).filter((n): n is string => Boolean(n)),
+      })),
+    };
   });
 }
 
@@ -86,6 +107,20 @@ export async function getStaffMember(ctx: AcademyContext, membershipId: string):
 /** Hanya Pemilik yang boleh memberi/mencabut peran Pemilik atau mengubah anggota yang Pemilik. */
 function assertCanTouchOwner(ctx: AcademyContext, roles: Role[], current: Role[] = []) {
   if ((roles.includes("owner") || current.includes("owner")) && !ctx.roles.includes("owner")) throw forbidden();
+}
+
+/** Peran custom harus aktif di akademi ini, dan izinnya harus dimiliki pemberi. Mengembalikan namanya. */
+async function assertCustomRoles(ctx: AcademyContext, tx: Tx, ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const found = await tx
+    .select({ id: customRoles.id, name: customRoles.name, permissions: customRoles.permissions })
+    .from(customRoles)
+    .where(and(inArray(customRoles.id, ids), isNull(customRoles.archivedAt)));
+  if (found.length !== new Set(ids).size) {
+    throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { roles: "Peran tidak ditemukan." });
+  }
+  for (const r of found) assertCanGrant(ctx, r.permissions);
+  return found.map((r) => r.name);
 }
 
 async function assertTeams(tx: Tx, ids: string[]) {
@@ -111,12 +146,18 @@ async function assertAnotherOwner(tx: Tx, membershipId: string) {
   }
 }
 
-export async function inviteStaff(ctx: AcademyContext, input: z.infer<typeof InviteInput>): Promise<string> {
+export async function inviteStaff(ctx: AcademyContext, raw: z.input<typeof InviteInput>): Promise<string> {
   requirePermission(ctx, "staff.manage");
+  const input = { ...raw, roles: raw.roles ?? [], customRoleIds: [...new Set(raw.customRoleIds ?? [])], teamIds: raw.teamIds ?? [] };
+  if (input.roles.length + input.customRoleIds.length === 0) {
+    throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { roles: "Pilih minimal satu peran." });
+  }
   assertCanTouchOwner(ctx, input.roles);
   const email = input.email.toLowerCase();
+  let customNames: string[] = [];
   const id = await inAcademy(ctx, async (tx) => {
     await assertTeams(tx, input.teamIds);
+    customNames = await assertCustomRoles(ctx, tx, input.customRoleIds);
     const [member] = await tx
       .select({ status: memberships.status })
       .from(memberships)
@@ -136,6 +177,7 @@ export async function inviteStaff(ctx: AcademyContext, input: z.infer<typeof Inv
         businessId: ctx.businessId,
         email,
         roles: [...new Set(input.roles)],
+        customRoleIds: input.customRoleIds,
         teamIds: [...new Set(input.teamIds)],
         invitedBy: ctx.userId,
         expiresAt: sql`now() + interval '14 days'` as unknown as Date,
@@ -152,7 +194,7 @@ export async function inviteStaff(ctx: AcademyContext, input: z.infer<typeof Inv
   });
   const academy = await getAcademy(ctx);
   // Gagal kirim email tidak membatalkan undangan; penerima tetap bisa melihatnya di /undangan.
-  await sendStaffInvite(email, academy.name, ctx.session.name, roleLabels(input.roles), formatBusinessCode(academy.code)).catch((error: unknown) => {
+  await sendStaffInvite(email, academy.name, ctx.session.name, roleLabels(input.roles, customNames), formatBusinessCode(academy.code)).catch((error: unknown) => {
     console.error("gagal kirim undangan", error instanceof Error ? error.message : error);
   });
   return id;
@@ -181,9 +223,13 @@ export async function revokeInvitation(ctx: AcademyContext, id: string): Promise
 export async function updateStaff(
   ctx: AcademyContext,
   membershipId: string,
-  input: z.infer<typeof StaffUpdateInput>,
+  raw: z.input<typeof StaffUpdateInput>,
 ): Promise<void> {
   requirePermission(ctx, "staff.manage");
+  const input = { roles: raw.roles ?? [], customRoleIds: [...new Set(raw.customRoleIds ?? [])], teamIds: raw.teamIds ?? [] };
+  if (input.roles.length + input.customRoleIds.length === 0) {
+    throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { roles: "Pilih minimal satu peran." });
+  }
   const member = await getStaffMember(ctx, membershipId);
   const next = [...new Set(input.roles)];
   assertCanTouchOwner(ctx, next, member.roles);
@@ -191,7 +237,23 @@ export async function updateStaff(
     await assertTeams(tx, input.teamIds);
     if (member.roles.includes("owner") && !next.includes("owner")) await assertAnotherOwner(tx, membershipId);
     await tx.delete(staffRoles).where(eq(staffRoles.membershipId, membershipId));
-    await tx.insert(staffRoles).values(next.map((role) => ({ businessId: ctx.businessId, membershipId, role })));
+    if (next.length) await tx.insert(staffRoles).values(next.map((role) => ({ businessId: ctx.businessId, membershipId, role })));
+    // Peran custom yang sudah dipegang boleh tetap; yang baru ditambahkan harus lolos cek izin pemberi.
+    const had = new Set(member.customRoles.map((c) => c.id));
+    await assertCustomRoles(ctx, tx, input.customRoleIds.filter((id) => !had.has(id)));
+    await tx.delete(staffCustomRoles).where(eq(staffCustomRoles.membershipId, membershipId));
+    if (input.customRoleIds.length) {
+      const stillActive = await tx
+        .select({ id: customRoles.id })
+        .from(customRoles)
+        .where(and(inArray(customRoles.id, input.customRoleIds), isNull(customRoles.archivedAt)));
+      if (stillActive.length !== input.customRoleIds.length) {
+        throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { roles: "Peran tidak ditemukan." });
+      }
+      await tx
+        .insert(staffCustomRoles)
+        .values(input.customRoleIds.map((customRoleId) => ({ businessId: ctx.businessId, membershipId, customRoleId })));
+    }
     await tx.delete(teamCoaches).where(eq(teamCoaches.membershipId, membershipId));
     if (input.teamIds.length) {
       await tx
@@ -204,7 +266,7 @@ export async function updateStaff(
       action: "staff.updated",
       targetType: "membership",
       targetId: membershipId,
-      meta: { roles: next },
+      meta: { roles: next, customRoleIds: input.customRoleIds },
     });
   });
 }

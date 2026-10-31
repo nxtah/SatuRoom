@@ -145,6 +145,7 @@ export const invitations = bola.table("invitations", {
   email: text("email").notNull(),
   roles: staffRole("roles").array().notNull(),
   teamIds: uuid("team_ids").array().notNull().default([]),
+  customRoleIds: uuid("custom_role_ids").array().notNull().default([]),
   invitedBy: uuid("invited_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -174,3 +175,23 @@ export const invoices = bola.table("invoices", {
   recordedBy: uuid("recorded_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const customRoles = bola.table("custom_roles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessId: uuid("business_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  permissions: text("permissions").array().notNull(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const staffCustomRoles = bola.table(
+  "staff_custom_roles",
+  {
+    businessId: uuid("business_id").notNull(),
+    membershipId: uuid("membership_id").notNull(),
+    customRoleId: uuid("custom_role_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.membershipId, t.customRoleId] })],
+);

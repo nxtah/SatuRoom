@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       academies={academies}
       activeAcademyId={ctx.businessId}
       user={{ name: ctx.session.name, email: ctx.session.email }}
-      roleLabel={top ? ROLE_LABEL[top] : "Anggota"}
+      roleLabel={top ? ROLE_LABEL[top] : (ctx.customRoleNames[0] ?? "Anggota")}
       accent={sportOf(ctx.sport).accent}
       allowed={NAV.filter((i) => !i.permission || ctx.can(i.permission)).map((i) => i.href)}
     >

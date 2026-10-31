@@ -14,12 +14,16 @@ export const ROLE_INFO: { id: Role; label: string; hint: string }[] = [
 export function RoleFields({
   canGrantOwner,
   roles = [],
+  customRoles = [],
+  customRoleIds = [],
   teams,
   teamIds = [],
   errors,
 }: {
   canGrantOwner: boolean;
   roles?: Role[];
+  customRoles?: { id: string; name: string; description: string | null }[];
+  customRoleIds?: string[];
   teams: { id: string; name: string }[];
   teamIds?: string[];
   errors: Record<string, string>;
@@ -40,6 +44,20 @@ export function RoleFields({
                 <span>
                   <span className="block font-extrabold">{r.label}</span>
                   <span className="block text-sm text-ink-soft">{r.hint}</span>
+                </span>
+              </span>
+            </label>
+          ))}
+          {customRoles.map((r) => (
+            <label key={r.id} className="cursor-pointer">
+              <input type="checkbox" name="customRoleIds" value={r.id} defaultChecked={customRoleIds.includes(r.id)} className="peer sr-only" />
+              <span className="flex h-full gap-3 rounded-[1.25rem] border-2 border-line bg-chalk p-4 transition peer-checked:border-pitch peer-checked:bg-turf-soft peer-focus-visible:outline-2 peer-focus-visible:outline-pitch hover:border-ink-soft/30 [&_svg]:invisible peer-checked:[&_svg]:visible">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border-2 border-pitch">
+                  <Check aria-hidden className="size-3.5 text-pitch" strokeWidth={3} />
+                </span>
+                <span>
+                  <span className="block font-extrabold">{r.name}</span>
+                  <span className="block text-sm text-ink-soft">{r.description ?? "Peran buatan akademi."}</span>
                 </span>
               </span>
             </label>

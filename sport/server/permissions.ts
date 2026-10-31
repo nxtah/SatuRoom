@@ -30,6 +30,8 @@ export const PERMISSIONS = [
   "announcements.manage",
   "evaluations.write",
   "evaluations.manage_all",
+  "roles.manage",
+  "audit.read",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -49,6 +51,7 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     "billing.read",
     "billing.manage",
     "announcements.manage",
+    "audit.read",
   ],
   head_coach: [
     "staff.read",
@@ -68,6 +71,11 @@ const GRANTS: Record<Role, readonly Permission[]> = {
   treasurer: ["teams.read_all", "players.read_all", "guardians.read", "billing.read", "billing.manage"],
 };
 
-export function permissionsFor(roles: readonly Role[]): Set<Permission> {
-  return new Set(roles.flatMap((r) => GRANTS[r]));
+/** Izin efektif: gabungan peran bawaan dan peran custom. Izin custom yang tidak dikenal diabaikan. */
+export function permissionsFor(roles: readonly Role[], custom: readonly (readonly string[])[] = []): Set<Permission> {
+  const all = new Set<Permission>(roles.flatMap((r) => GRANTS[r]));
+  for (const list of custom) for (const p of list) if ((PERMISSIONS as readonly string[]).includes(p)) all.add(p as Permission);
+  return all;
 }
+
+export const grantsOf = (role: Role): readonly Permission[] => GRANTS[role];
