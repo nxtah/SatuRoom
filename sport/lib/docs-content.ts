@@ -179,7 +179,7 @@ export const DOCS: DocPage[] = [
       { t: "steps", items: [
         "Buka **Iuran**. Isi **Tarif per tim** (misal 150.000).",
         "Klik **Buat tagihan** untuk bulan ini. Semua pemain aktif di tim bertarif langsung tertagih.",
-        "Saat orang tua membayar, klik **Tandai lunas** dan pilih **Tunai**, **Transfer**, atau **Lainnya**.",
+        "Saat orang tua membayar, klik **Catat bayar**, periksa jumlahnya, lalu pilih **Tunai**, **Transfer**, atau **Lainnya**. Jumlah lebih kecil dari sisa tercatat sebagai cicilan.",
         "Untuk mengingatkan, klik **Ingatkan**: WhatsApp terbuka dengan pesan siap kirim.",
       ] },
       { t: "h", text: "Aturan penting" },
@@ -188,9 +188,39 @@ export const DOCS: DocPage[] = [
         "Pemain di beberapa tim ditagih sekali dengan tarif tertinggi.",
         "Klik lagi **Buat tagihan yang kurang** untuk pemain baru; tagihan lama tidak dobel.",
         "Mengubah tarif tidak mengubah tagihan yang sudah dibuat. Pakai **Ubah nominal** untuk satu tagihan.",
-        "**Bebaskan bulan ini** untuk beasiswa atau libur; **Batalkan lunas** bila salah tandai.",
+        "**Lainnya → Beri potongan** untuk potongan sekali; **Bebaskan bulan ini** untuk libur. **Batalkan pembayaran** bila salah catat.",
+        "**Beasiswa dan potongan rutin**: isi sekali (persen atau rupiah, dengan tanggal mulai/selesai), lalu otomatis memotong tagihan setiap bulan.",
       ] },
       { t: "p", text: "Unduh rekap dengan **Unduh iuran (Excel)**. Yang bisa melihat iuran: Pemilik, Admin, Bendahara." },
+    ],
+  },
+  {
+    slug: "keuangan", group: "Uang dan kabar", title: "Keuangan dan laporan", summary: "Pengeluaran, laporan laba rugi, neraca, arus kas, piutang, jurnal, rekonsiliasi, dan tutup buku.",
+    blocks: [
+      { t: "p", text: "Pembukuan berjalan otomatis. Setiap tagihan iuran, pembayaran, pengeluaran, gaji, pembelian barang, dan penjualan toko langsung tercatat sebagai jurnal. Anda tidak perlu paham akuntansi untuk memakainya." },
+      { t: "h", text: "Mencatat pengeluaran" },
+      { t: "steps", items: [
+        "Buka **Keuangan → Pengeluaran**.",
+        "Isi **Untuk apa**, **Jumlah**, pilih **Jenis biaya** (misalnya Sewa lapangan) dan **Dibayar dari** (Kas atau Bank).",
+        "Klik **Simpan pengeluaran**. Salah catat? Klik ikon tempat sampah untuk membatalkan; angkanya dibalik otomatis.",
+      ] },
+      { t: "h", text: "Membaca laporan" },
+      { t: "table", head: ["Laporan", "Menjawab"], rows: [
+        ["Laba rugi", "Bulan ini untung atau rugi berapa?"],
+        ["Neraca", "Berapa harta, utang, dan modal akademi sekarang?"],
+        ["Arus kas", "Uang tunai dan bank masuk dari mana, keluar ke mana?"],
+        ["Neraca saldo", "Daftar saldo semua akun (untuk akuntan)."],
+        ["Buku besar", "Riwayat satu akun beserta saldo berjalan."],
+        ["Piutang", "Siapa yang menunggak dan sudah berapa lama."],
+      ] },
+      { t: "h", text: "Jurnal manual" },
+      { t: "p", text: "Untuk setoran modal awal, saldo awal, atau pindah uang kas ke bank. Buka **Keuangan → Jurnal → Jurnal manual**, pilih akun, isi debit atau kredit sampai **seimbang**. Jurnal tidak bisa diubah atau dihapus; koreksi dengan **Balik jurnal**." },
+      { t: "h", text: "Rekonsiliasi dan tutup buku" },
+      { t: "list", items: [
+        "**Rekonsiliasi**: pilih Kas atau Bank, isi saldo di rekening koran, centang transaksi yang sudah muncul, klik **Cocokkan**. Selisih 0 berarti catatan sudah benar.",
+        "**Tutup buku** (Pemilik): tutup bulan yang sudah lewat supaya laporannya tidak berubah lagi. Bisa dibuka kembali bila perlu.",
+      ] },
+      { t: "tip", text: "Staf yang dibatasi ke cabang tertentu tidak membuka Keuangan, karena laporan berlaku untuk seluruh akademi." },
     ],
   },
   {
@@ -341,6 +371,8 @@ export const DOCS: DocPage[] = [
       ] },
       { t: "h", text: "Akses dan staf" },
       { t: "fix", items: [
+        { problem: "Bulan ini sudah ditutup bukunya.", cause: "Tanggal catatan jatuh di bulan yang sudah ditutup.", fix: "Pakai tanggal bulan berjalan, atau minta Pemilik membuka tutup buku di **Keuangan → Rekonsiliasi dan tutup buku**." },
+        { problem: "Debit dan kredit harus sama besar.", cause: "Jurnal manual belum seimbang.", fix: "Samakan total debit dan kredit sampai muncul tulisan **seimbang**." },
         { problem: "Anda sudah absen masuk hari ini.", cause: "Absen masuk hanya sekali per hari.", fix: "Klik **Absen pulang** saat selesai. Jam salah? Buat pengajuan **Koreksi absen**." },
         { problem: "Modul ... sedang dimatikan.", cause: "Pemilik mematikan modul itu di Pengaturan → Modul.", fix: "Minta Pemilik menyalakannya lagi. Data lama tetap ada." },
         { problem: "Anda belum punya akses untuk tindakan ini. Minta pemilik akademi memberi izin.", cause: "Peran Anda tidak punya izin untuk aksi itu.", fix: "Minta Pemilik menambah peran atau izin di **Staf** atau **Peran dan izin**." },

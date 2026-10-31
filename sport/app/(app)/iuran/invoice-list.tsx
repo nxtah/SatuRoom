@@ -33,7 +33,7 @@ export function InvoiceList({
   const router = useRouter();
   const [open, setOpen] = useState<{
     id: string;
-    mode: "pay" | "more" | "amount";
+    mode: "pay" | "more" | "amount" | "discount";
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -62,7 +62,7 @@ export function InvoiceList({
             i.status === "unpaid" && i.guardianPhone
               ? whatsappLink(
                   i.guardianPhone,
-                  `Halo${i.guardianName ? ` ${i.guardianName}` : ""}, kami dari ${academyName} ingin mengingatkan iuran bulan ${monthLabel(month)} untuk ${i.fullName} sebesar ${rupiah(i.amount)}. Terima kasih.`,
+                  `Halo${i.guardianName ? ` ${i.guardianName}` : ""}, kami dari ${academyName} ingin mengingatkan iuran bulan ${monthLabel(month)} untuk ${i.fullName} sebesar ${rupiah(i.remaining)}. Terima kasih.`,
                 )
               : null;
           return (
@@ -83,8 +83,16 @@ export function InvoiceList({
                   <span
                     className={`block font-extrabold ${i.status === "waived" ? "text-ink-soft line-through" : ""}`}
                   >
-                    {rupiah(i.amount)}
+                    {rupiah(i.net)}
                   </span>
+                  {i.discount > 0 ? (
+                    <span className="block text-xs text-ink-soft" title={i.discountNote ?? undefined}>
+                      <s>{rupiah(i.amount)}</s> potongan {rupiah(i.discount)}
+                    </span>
+                  ) : null}
+                  {i.status === "unpaid" && i.paid > 0 ? (
+                    <span className="block text-xs font-bold text-pitch">Dicicil {rupiah(i.paid)}, sisa {rupiah(i.remaining)}</span>
+                  ) : null}
                   <span
                     className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS[i.status].tone}`}
                   >
@@ -110,7 +118,7 @@ export function InvoiceList({
                           )
                         }
                       >
-                        Tandai lunas
+                        Catat bayar
                       </Button>
                       {reminder ? (
                         <a
@@ -144,29 +152,51 @@ export function InvoiceList({
                       disabled={busy}
                       onClick={() => act(i.id, { action: "unpay" })}
                     >
-                      {i.status === "paid" ? "Batalkan lunas" : "Tagih lagi"}
+                      {i.status === "paid" ? "Batalkan pembayaran" : "Tagih lagi"}
                     </Button>
                   )}
                 </div>
               ) : null}
 
               {isOpen && open.mode === "pay" ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-mist p-3">
-                  <span className="text-sm font-bold text-ink-soft">
-                    Dibayar lewat
-                  </span>
-                  {PAYMENT_METHODS.map((m) => (
-                    <Button
-                      key={m.id}
-                      size="sm"
-                      variant="dark"
-                      disabled={busy}
-                      onClick={() => act(i.id, { action: "pay", method: m.id })}
-                    >
-                      {m.label}
-                    </Button>
-                  ))}
-                </div>
+                <form
+                  className="mt-3 grid gap-3 rounded-2xl bg-mist p-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = new FormData(e.currentTarget);
+                    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+                    act(i.id, { action: "pay", method: submitter?.value ?? "cash", amount: f.get("amount") || undefined, paidOn: f.get("paidOn") || undefined });
+                  }}
+                >
+                  <div className="flex flex-wrap items-end gap-2">
+                    <label className="grid gap-1 text-sm font-bold">
+                      Jumlah dibayar
+                      <input
+                        name="amount"
+                        inputMode="numeric"
+                        defaultValue={i.remaining}
+                        className="h-10 w-36 rounded-xl border-2 border-line bg-chalk px-3 outline-none focus:border-pitch"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-bold">
+                      Tanggal
+                      <input
+                        type="date"
+                        name="paidOn"
+                        className="h-10 rounded-xl border-2 border-line bg-chalk px-2 outline-none focus:border-pitch"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-ink-soft">Kurang dari sisa = dicatat sebagai cicilan. Tanggal kosong = hari ini.</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-ink-soft">Dibayar lewat</span>
+                    {PAYMENT_METHODS.map((m) => (
+                      <Button key={m.id} size="sm" variant="dark" type="submit" value={m.id} disabled={busy}>
+                        {m.label}
+                      </Button>
+                    ))}
+                  </div>
+                </form>
               ) : null}
               {isOpen && open.mode === "more" ? (
                 <div className="mt-3 flex flex-wrap gap-2 rounded-2xl bg-mist p-3">
@@ -180,12 +210,39 @@ export function InvoiceList({
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => setOpen({ id: i.id, mode: "discount" })}
+                  >
+                    Beri potongan
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     disabled={busy}
                     onClick={() => act(i.id, { action: "waive" })}
                   >
                     Bebaskan bulan ini
                   </Button>
                 </div>
+              ) : null}
+              {isOpen && open.mode === "discount" ? (
+                <form
+                  className="mt-3 flex flex-wrap items-end gap-2 rounded-2xl bg-mist p-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = new FormData(e.currentTarget);
+                    act(i.id, { action: "discount", discount: f.get("discount"), note: f.get("note") });
+                  }}
+                >
+                  <label className="grid gap-1 text-sm font-bold">
+                    Potongan (Rp)
+                    <input name="discount" inputMode="numeric" defaultValue={i.discount || ""} autoFocus className="h-10 w-36 rounded-xl border-2 border-line bg-chalk px-3 outline-none focus:border-pitch" />
+                  </label>
+                  <label className="grid min-w-0 flex-1 basis-40 gap-1 text-sm font-bold">
+                    Alasan
+                    <input name="note" defaultValue={i.discountNote ?? ""} placeholder="Kakak beradik" className="h-10 w-full rounded-xl border-2 border-line bg-chalk px-3 outline-none focus:border-pitch" />
+                  </label>
+                  <Button size="sm" type="submit" variant="dark" disabled={busy}>Simpan</Button>
+                </form>
               ) : null}
               {isOpen && open.mode === "amount" ? (
                 <form

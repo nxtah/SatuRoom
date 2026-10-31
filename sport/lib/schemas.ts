@@ -236,9 +236,14 @@ export const TeamFeeInput = z.object({ teamId: z.string().uuid(), amount: rupiah
 export const GenerateInvoicesInput = z.object({ month });
 export const InvoicePayInput = z.object({ method: z.enum(["cash", "transfer", "other"]) });
 export const InvoiceUpdateInput = z.object({
-  action: z.enum(["pay", "unpay", "waive", "amount"]),
+  action: z.enum(["pay", "unpay", "waive", "amount", "discount"]),
   method: z.enum(["cash", "transfer", "other"]).optional(),
+  /** pay: jumlah dibayar (kosong = lunasi sisa); amount: tarif baru. */
   amount: rupiah.optional(),
+  discount: rupiah.optional(),
+  paidOn: z.preprocess(emptyToNull, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable()).optional(),
+  accountId: z.preprocess(emptyToNull, z.string().uuid().nullable()).optional(),
+  note: z.preprocess(emptyToNull, z.string().trim().max(120).nullable()).optional(),
 });
 
 export const PAYMENT_METHODS = [
@@ -346,3 +351,47 @@ export const GoalInput = z.object({
   shared: z.boolean().default(true),
 });
 export const GoalStatusInput = z.object({ status: z.enum(["open", "achieved", "dropped"]) });
+
+const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pilih tanggal.");
+const money = z.preprocess(
+  (v) => (typeof v === "string" ? (v.replace(/[^0-9]/g, "") === "" ? undefined : Number(v.replace(/[^0-9]/g, ""))) : v),
+  z.number({ message: "Isi nominal." }).int().min(1, "Isi nominal.").max(1_000_000_000, "Nominal terlalu besar."),
+);
+export const AccountInput = z.object({
+  code: z.string().trim().regex(/^[0-9][0-9-]{0,9}$/, "Kode akun berupa angka, contoh 6-450."),
+  name: z.string().trim().min(2, "Isi nama akun.").max(80),
+  type: z.enum(["asset", "liability", "equity", "income", "expense"]),
+  isCash: z.boolean().default(false),
+});
+export const ExpenseInput = z.object({
+  spentOn: ymd,
+  accountId: z.string().uuid({ message: "Pilih jenis biaya." }),
+  paidFrom: z.string().uuid({ message: "Pilih dibayar dari mana." }),
+  amount: money,
+  vendor: z.preprocess(emptyToNull, z.string().trim().max(80).nullable()).optional(),
+  note: z.string().trim().min(2, "Tulis untuk apa.").max(200),
+  branchId: z.preprocess(emptyToNull, z.string().uuid().nullable()).optional(),
+});
+export const ManualJournalInput = z.object({
+  date: ymd,
+  memo: z.string().trim().min(2, "Tulis keterangan.").max(200),
+  lines: z
+    .array(z.object({ accountId: z.string().uuid(), debit: z.coerce.number().int().min(0).default(0), credit: z.coerce.number().int().min(0).default(0) }))
+    .min(2, "Minimal dua baris.")
+    .max(20),
+});
+export const ScholarshipInput = z.object({
+  playerId: z.string().uuid(),
+  kind: z.enum(["percent", "amount"]),
+  value: z.coerce.number().int().min(1, "Isi besarnya."),
+  reason: z.string().trim().min(2, "Tulis alasannya.").max(120),
+  startsOn: ymd,
+  endsOn: z.preprocess(emptyToNull, ymd.nullable()).optional(),
+});
+export const PeriodLockInput = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/), locked: z.boolean() });
+export const ReconcileInput = z.object({
+  accountId: z.string().uuid(),
+  statementDate: ymd,
+  statementBalance: z.coerce.number().int(),
+  lineIds: z.array(z.string().uuid()).max(2000),
+});

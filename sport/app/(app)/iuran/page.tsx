@@ -13,6 +13,9 @@ import { academyToday } from "@/server/schedule";
 import { FeeSettings } from "./fee-settings";
 import { GenerateButton } from "./generate-button";
 import { InvoiceList } from "./invoice-list";
+import { Scholarships } from "./scholarships";
+import { listScholarships } from "@/server/accounting";
+import { listPlayers } from "@/server/players";
 
 export const metadata: Metadata = { title: "Iuran" };
 
@@ -23,7 +26,14 @@ export default async function IuranPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const current = (await inAcademy(ctx, academyToday)).slice(0, 7);
   const month = sp.bulan && /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.bulan) ? sp.bulan : current;
-  const [summary, fees, academy] = await Promise.all([monthSummary(ctx, month), listTeamFees(ctx), getAcademy(ctx)]);
+  const [summary, fees, academy, scholarships, players] = await Promise.all([
+    monthSummary(ctx, month),
+    listTeamFees(ctx),
+    getAcademy(ctx),
+    listScholarships(ctx),
+    listPlayers(ctx, {}),
+  ]);
+  const today = await inAcademy(ctx, academyToday);
   const canManage = ctx.can("billing.manage");
   const hasFees = fees.some((f) => f.amount !== null);
   const canGenerate = canManage && month >= shiftMonth(current, -1) && month <= shiftMonth(current, 1);
@@ -93,6 +103,20 @@ export default async function IuranPage({ searchParams }: { searchParams: Promis
         </p>
         <FeeSettings fees={fees} canManage={canManage} />
       </details>
+
+      <details className="rise mt-4 rounded-[2rem] bg-chalk p-6" open={scholarships.length > 0}>
+        <summary className="cursor-pointer text-lg font-extrabold marker:text-ink-soft">Beasiswa dan potongan rutin ({scholarships.length})</summary>
+        <p className="mt-1 mb-4 text-sm text-ink-soft">Otomatis menjadi potongan setiap tagihan bulanan dibuat. Untuk potongan sekali, pakai Lainnya → Beri potongan di tagihannya.</p>
+        <Scholarships items={scholarships} players={players.filter((p) => p.status === "active").map((p) => ({ id: p.id, name: p.fullName }))} canManage={canManage} today={today} />
+      </details>
+
+      {ctx.modules.has("accounting") && ctx.can("accounting.read") && ctx.branchIds === null ? (
+        <p className="mt-4 text-sm">
+          <Link href="/keuangan?tab=piutang" className="font-bold underline decoration-pitch decoration-2 underline-offset-4">Lihat umur tunggakan semua bulan</Link>
+          {" · "}
+          <Link href="/keuangan" className="font-bold underline decoration-pitch decoration-2 underline-offset-4">Laporan keuangan</Link>
+        </p>
+      ) : null}
     </div>
   );
 }

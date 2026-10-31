@@ -23,13 +23,16 @@ export const PERMISSION_LABEL: Record<Permission, { label: string; hint: string 
   "branches.manage": { label: "Kelola cabang", hint: "Tambah cabang dan atur lokasinya." },
   "modules.manage": { label: "Nyalakan/matikan modul", hint: "Memilih fitur yang dipakai akademi." },
   "programs.manage": { label: "Kelola program latihan", hint: "Membuat program dan level, lalu memasangnya ke tim." },
+  "accounting.read": { label: "Lihat laporan keuangan", hint: "Laba rugi, neraca, arus kas, buku besar, piutang." },
+  "accounting.manage": { label: "Catat keuangan", hint: "Pengeluaran, jurnal manual, akun, beasiswa, rekonsiliasi." },
+  "accounting.close": { label: "Tutup buku", hint: "Mengunci bulan supaya angka tidak berubah lagi." },
   "staff_attendance.manage": { label: "Kelola absensi staf", hint: "Atur jadwal kerja, lihat rekap, setujui koreksi, cuti, dan lembur." },
 };
 
 export const PERMISSION_GROUPS: { title: string; perms: Permission[] }[] = [
   { title: "Pemain dan tim", perms: ["players.read_all", "players.manage", "guardians.read", "teams.read_all", "teams.manage"] },
   { title: "Latihan", perms: ["programs.manage", "schedule.manage_all", "attendance.record_all", "evaluations.write", "evaluations.manage_all"] },
-  { title: "Keuangan", perms: ["billing.read", "billing.manage"] },
+  { title: "Keuangan", perms: ["billing.read", "billing.manage", "accounting.read", "accounting.manage", "accounting.close"] },
   { title: "Komunikasi", perms: ["announcements.manage"] },
   { title: "Tim kerja dan akses", perms: ["staff.read", "staff.manage", "staff_attendance.manage", "roles.manage", "audit.read"] },
   { title: "Akademi", perms: ["academy.update", "locations.manage", "branches.manage", "modules.manage"] },

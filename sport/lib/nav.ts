@@ -13,6 +13,7 @@ export const NAV = [
   { href: "/pemain", label: "Pemain", icon: "players", group: "Pemain dan tim", permission: null, mobile: true },
   { href: "/tim", label: "Tim", icon: "teams", group: "Pemain dan tim", permission: null, mobile: "overflow" },
   { href: "/iuran", label: "Iuran", icon: "billing", group: "Keuangan", permission: "billing.read", mobile: true },
+  { href: "/keuangan", label: "Keuangan", icon: "ledger", group: "Keuangan", permission: "accounting.read", mobile: "overflow" },
   { href: "/pengumuman", label: "Pengumuman", icon: "announce", group: "Komunikasi", permission: null, mobile: "overflow" },
   { href: "/staf", label: "Staf", icon: "staff", group: "Tim kerja dan akses", permission: "staff.read", mobile: false },
   { href: "/absensi-staf", label: "Absensi staf", icon: "clock", group: "Tim kerja dan akses", permission: null, mobile: "overflow" },

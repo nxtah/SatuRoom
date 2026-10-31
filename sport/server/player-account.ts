@@ -179,7 +179,7 @@ async function homeOf(tx: Tx, playerId: string): Promise<PlayerHome> {
     ORDER BY s.starts_at DESC`)) as unknown as PlayerHome["attendance"]["recent"];
 
   const invoices = (await tx.execute(sql`
-    SELECT i.id, to_char(i.period, 'YYYY-MM') AS period, i.amount, i.status,
+    SELECT i.id, to_char(i.period, 'YYYY-MM') AS period, CASE WHEN i.status = 'unpaid' THEN i.amount - i.discount - coalesce((SELECT sum(x.amount) FROM bola.payments x WHERE x.invoice_id = i.id AND x.voided_at IS NULL), 0) ELSE i.amount - i.discount END::int AS amount, i.status,
            to_char(i.paid_at AT TIME ZONE b.timezone, 'YYYY-MM-DD') AS "paidOn"
     FROM bola.invoices i JOIN core.businesses b ON b.id = i.business_id
     WHERE i.player_id = ${playerId}::uuid

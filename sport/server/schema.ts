@@ -172,6 +172,8 @@ export const invoices = bola.table("invoices", {
   playerId: uuid("player_id").notNull(),
   period: date("period").notNull(),
   amount: integer("amount").notNull(),
+  discount: integer("discount").notNull().default(0),
+  discountNote: text("discount_note"),
   status: invoiceStatus("status").notNull().default("unpaid"),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   method: paymentMethod("method"),

@@ -2,7 +2,7 @@ import "server-only";
 import { setActiveBusiness, type SessionInfo } from "@saturoom/core/auth";
 import { withContext } from "@saturoom/core/db";
 import { auditEvents, businesses, memberships } from "@saturoom/core/schema";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import { AcademyInput } from "@/lib/schemas";
@@ -35,6 +35,7 @@ export async function createAcademy(session: SessionInfo, input: AcademyInput): 
       .returning({ id: memberships.id });
     await tx.insert(staffRoles).values({ businessId, membershipId: m!.id, role: "owner" });
     await tx.insert(academySettings).values({ businessId, sport: input.sport ?? "football" });
+    await tx.execute(sql`SELECT bola.seed_accounts(${businessId}::uuid)`);
     const [branch] = await tx.insert(branches).values({ businessId, name: "Cabang utama", isPrimary: true }).returning({ id: branches.id });
     await tx.insert(locations).values({ businessId, branchId: branch!.id, name: sportOf(input.sport ?? "football").venueDefault, isPrimary: true });
     await tx.insert(onboarding).values({ businessId });
