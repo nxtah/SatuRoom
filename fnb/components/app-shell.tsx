@@ -72,7 +72,7 @@ export function AppShell({ children, hidden = [], profile }: { children: React.R
           <nav aria-label="Menu utama" className="hidden gap-1 lg:grid">
             {entries.map((e) => {
               if (!isGroup(e)) return link(e, sideCls + (on(e.href) ? "" : idle));
-              const open = manual[e.label] ?? groupOn(e);
+              const open = manual[e.label] ?? (groupOn(e) || e.label === "Operasional");
               return (
                 <div key={e.label}>
                   <button type="button" aria-expanded={open} onClick={() => setManual((m) => ({ ...m, [e.label]: !open }))} className={`flex w-full items-center gap-3 text-left rounded-2xl px-4 py-2.5 font-bold transition ${groupOn(e) ? "text-saffron" : "text-white/75 hover:bg-white/10 hover:text-white"}`}>
@@ -131,7 +131,7 @@ export function AppShell({ children, hidden = [], profile }: { children: React.R
         </button>
         {sheet ? (
           <div id="menu-lainnya" className="absolute right-0 bottom-full mb-2 max-h-[70dvh] w-72 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-[1.5rem] bg-kitchen p-2 shadow-xl">
-            {entries.filter((e) => isGroup(e) || !MAIN.includes(e.href)).map((e) => (
+            {entries.flatMap((e): NavEntry[] => (isGroup(e) ? (e.children.some((c) => MAIN.includes(c.href)) ? [{ ...e, children: e.children.filter((c) => !MAIN.includes(c.href)) }] : [e]) : MAIN.includes(e.href) ? [] : [e])).filter((e) => !isGroup(e) || e.children.length).map((e) => (
               <div key={isGroup(e) ? e.label : e.href} className="mb-1">
                 {isGroup(e) ? <p className="px-4 pt-2 pb-1 text-xs font-bold tracking-wide text-saffron uppercase">{e.label}</p> : null}
                 {(isGroup(e) ? e.children : [e]).map((c) => link(c, "flex items-center gap-3 rounded-2xl px-4 py-3 font-bold " + (on(c.href) ? "" : "text-white/85 active:bg-white/10")))}

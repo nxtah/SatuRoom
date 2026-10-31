@@ -8,9 +8,12 @@ export const isGroup = (e: NavEntry): e is NavGroup => "children" in e;
 /** Nama menu dibuat sehari-hari. Halaman yang belum dibangun tidak boleh dimasukkan di sini. */
 export const NAV: readonly NavEntry[] = [
   { href: "/", label: "Beranda", icon: Home },
-  { href: "/pos", label: "Kasir", icon: Store },
-  { href: "/pesanan", label: "Pesanan", icon: ClipboardList },
-  { href: "/dapur", label: "Dapur", icon: ChefHat },
+  { label: "Operasional", icon: Store, children: [
+    { href: "/pos", label: "Kasir", icon: Store },
+    { href: "/pesanan", label: "Pesanan", icon: ClipboardList },
+    { href: "/dapur", label: "Dapur", icon: ChefHat },
+    { href: "/grup-meja", label: "Meja", icon: Armchair },
+  ] },
   { label: "Keuangan", icon: Wallet, children: [
     { href: "/kas", label: "Kas dan shift", icon: Landmark },
     { href: "/riwayat", label: "Riwayat transaksi", icon: History },
@@ -30,31 +33,32 @@ export const NAV: readonly NavEntry[] = [
     { href: "/laporan/kas", label: "Pencatatan kas", icon: Banknote },
     { href: "/laporan/dibatalkan", label: "Pesanan dihapus", icon: Trash2 },
   ] },
-  { label: "Produk", icon: UtensilsCrossed, children: [
-    { href: "/produk/kategori", label: "Kategori", icon: Layers },
+  { label: "Menu dan produk", icon: UtensilsCrossed, children: [
     { href: "/produk/menu", label: "Menu", icon: BookOpen },
+    { href: "/produk/kategori", label: "Kategori", icon: Layers },
     { href: "/produk/addon", label: "Add-on dan varian", icon: Boxes },
+    { href: "/promo", label: "Diskon dan voucher", icon: Percent },
+    { href: "/menu-digital", label: "Menu digital (QR)", icon: QrCode },
   ] },
-  { href: "/promo", label: "Diskon dan voucher", icon: Percent },
-  { href: "/tipe-pesanan", label: "Tipe pesanan", icon: ListOrdered },
-  { label: "Inventaris", icon: Package, children: [
+  { label: "Stok dan pembelian", icon: Package, children: [
     { href: "/stok", label: "Daftar bahan", icon: Package },
-    { href: "/transfer-stok", label: "Transfer stok", icon: ArrowLeftRight },
     { href: "/pembelian", label: "Pembelian", icon: ShoppingBasket },
+    { href: "/transfer-stok", label: "Transfer stok", icon: ArrowLeftRight },
   ] },
-  { label: "Akses pengguna", icon: UserCog, children: [
+  { label: "Pelanggan dan cabang", icon: Building2, children: [
+    { href: "/pelanggan", label: "Pelanggan", icon: UserRound },
+    { href: "/cabang", label: "Cabang", icon: Store },
+    { href: "/cabang/barang", label: "Barang per cabang", icon: Boxes },
+  ] },
+  { label: "Tim dan akses", icon: UserCog, children: [
     { href: "/staf", label: "Pegawai", icon: Users },
     { href: "/peran", label: "Peran dan izin", icon: UserCog },
   ] },
-  { label: "Manajemen bisnis", icon: Building2, children: [
-    { href: "/cabang", label: "Cabang", icon: Store },
-    { href: "/cabang/barang", label: "Barang per cabang", icon: Boxes },
-    { href: "/pelanggan", label: "Pelanggan", icon: UserRound },
-    { href: "/grup-meja", label: "Meja dan grup meja", icon: Armchair },
-    { href: "/menu-digital", label: "Menu digital (QR)", icon: QrCode },
+  { label: "Pengaturan", icon: Settings, children: [
+    { href: "/pengaturan", label: "Profil dan alur pesanan", icon: Settings },
+    { href: "/tipe-pesanan", label: "Tipe pesanan", icon: ListOrdered },
     { href: "/pengaturan-struk", label: "Struk", icon: ReceiptText },
-    { href: "/printer", label: "Manajemen printer", icon: Printer },
+    { href: "/printer", label: "Printer", icon: Printer },
     { href: "/audit", label: "Jejak aktivitas", icon: History },
-    { href: "/pengaturan", label: "Pengaturan", icon: Settings },
   ] },
 ];

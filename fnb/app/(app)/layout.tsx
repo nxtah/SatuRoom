@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import type { Permission } from "@/lib/permissions";
+import { getSettings } from "@/server/settings";
 import { getProfile } from "@/server/business-profile";
 import { can } from "@/server/context";
 import { REPORTS } from "@/server/report-center";
@@ -40,6 +41,7 @@ const NEEDS: Record<string, Permission[]> = {
 export default async function FnbAppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireFnbPage();
   const hidden = Object.entries(NEEDS).filter(([, any]) => !any.some((p) => can(ctx, p))).map(([href]) => href);
-  const profile = await getProfile(ctx);
+  const [profile, settings] = await Promise.all([getProfile(ctx), getSettings(ctx)]);
+  if (!settings.kitchenEnabled) hidden.push("/dapur");
   return <AppShell hidden={hidden} profile={{ name: profile.name, city: profile.city, logoUrl: profile.logoUrl }}>{children}</AppShell>;
 }

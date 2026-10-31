@@ -161,6 +161,7 @@ export const SettingsInput = z.object({
   receiptPrefix: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,8}$/, "Awalan nomor struk 1 sampai 8 huruf atau angka."),
   receiptHeader: z.string().trim().max(200).nullish(),
   receiptFooter: z.string().trim().max(200).nullish(),
+  kitchenEnabled: z.boolean().optional(),
 });
 export const CashMovementInput = z.object({
   kind: z.enum(["in", "out"]),

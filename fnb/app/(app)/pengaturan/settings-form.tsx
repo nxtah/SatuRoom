@@ -11,6 +11,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
     taxPercent: String(initial.taxPercent), servicePercent: String(initial.servicePercent), receiptPrefix: initial.receiptPrefix,
     receiptHeader: initial.receiptHeader ?? "", receiptFooter: initial.receiptFooter ?? "",
   });
+  const [kitchen, setKitchen] = useState(initial.kitchenEnabled);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -19,7 +20,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
     setBusy(true); setError(""); setSaved(false);
     const res = await fetch("/api/v1/settings", {
       method: "PUT", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...v, taxPercent: Number(v.taxPercent || 0), servicePercent: Number(v.servicePercent || 0), receiptHeader: v.receiptHeader || null, receiptFooter: v.receiptFooter || null }),
+      body: JSON.stringify({ ...v, taxPercent: Number(v.taxPercent || 0), servicePercent: Number(v.servicePercent || 0), receiptHeader: v.receiptHeader || null, receiptFooter: v.receiptFooter || null, kitchenEnabled: kitchen }),
     }).catch(() => null);
     setBusy(false);
     if (!res) return setError("Koneksi terputus. Coba lagi.");
@@ -27,7 +28,21 @@ export function SettingsForm({ initial }: { initial: Settings }) {
     setSaved(true); router.refresh();
   }
 
+  const flows = [
+    { on: true, title: "Lewat dapur", text: "Pesanan masuk ke layar Dapur dulu. Dapur menandai Dimasak lalu Siap, baru disajikan. Cocok untuk restoran dan kafe dengan dapur." },
+    { on: false, title: "Langsung disajikan", text: "Tanpa layar Dapur. Pesanan baru langsung berstatus Disajikan, kasir tinggal menerima pembayaran. Cocok untuk kedai kecil, minuman, atau jual cepat." },
+  ];
   return <section className="mt-6 grid gap-4 rounded-[2rem] bg-white p-6">
+    <fieldset className="grid gap-2">
+      <legend className="font-bold">Alur pesanan</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {flows.map((f) => <label key={f.title} className={`grid cursor-pointer gap-1 rounded-2xl border-2 p-4 ${kitchen === f.on ? "border-saffron bg-saffron/10" : "border-stone-200"}`}>
+          <span className="flex items-center gap-2 font-extrabold"><input type="radio" name="alur" checked={kitchen === f.on} onChange={() => { setKitchen(f.on); setSaved(false); }} className="size-5 accent-kitchen" />{f.title}</span>
+          <span className="text-sm text-stone-600">{f.text}</span>
+        </label>)}
+      </div>
+      <p className="text-xs text-stone-500">Berlaku untuk pesanan berikutnya. Pesanan yang sudah masuk dapur tetap bisa diselesaikan.</p>
+    </fieldset>
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="grid gap-1 font-bold">Pajak (%)<input type="number" min="0" max="100" step="0.01" className={field} value={v.taxPercent} onChange={(e) => setV({ ...v, taxPercent: e.target.value })} /><span className="text-sm font-normal text-stone-600">Dihitung dari harga setelah diskon ditambah service charge. Isi 0 bila tidak ada.</span></label>
       <label className="grid gap-1 font-bold">Service charge (%)<input type="number" min="0" max="100" step="0.01" className={field} value={v.servicePercent} onChange={(e) => setV({ ...v, servicePercent: e.target.value })} /><span className="text-sm font-normal text-stone-600">Dihitung dari harga setelah diskon.</span></label>

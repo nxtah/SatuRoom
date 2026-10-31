@@ -164,7 +164,7 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
     const [order] = (await tx.execute(sql`
       INSERT INTO fnb.orders (business_id, outlet_id, table_id, type, status, customer_name, subtotal, discount, discount_reason, service_charge, tax,
                               service_percent, tax_percent, total, notes, opened_by, receipt_no, idempotency_key, customer_id, voucher_id, voucher_code, order_type_id, order_type_name, discount_id)
-      VALUES (${ctx.businessId}::uuid, ${outlet[0].id}::uuid, ${tableId}::uuid, ${ot.kind}::fnb.order_type, 'confirmed',
+      VALUES (${ctx.businessId}::uuid, ${outlet[0].id}::uuid, ${tableId}::uuid, ${ot.kind}::fnb.order_type, ${settings.kitchenEnabled ? "confirmed" : "served"}::fnb.order_status,
               ${customerName}, ${subtotal}, ${totals.discount}, ${discountReason}, ${totals.service}, ${totals.tax},
               ${servicePercent}, ${taxPercent}, ${totals.total}, ${input.notes ?? null}, ${ctx.userId}::uuid, ${receiptNo}, ${input.idempotencyKey ?? null},
               ${input.customerId ?? null}::uuid, ${voucher?.id ?? null}::uuid, ${voucher?.code ?? null}, ${ot.id}::uuid, ${ot.name}, ${discountId}::uuid)
@@ -175,7 +175,7 @@ function insertOrder(ctx: FnbContext, input: z.input<typeof OrderInput>, wantsDi
       const [created] = (await tx.execute(sql`
         INSERT INTO fnb.order_lines (business_id, order_id, menu_item_id, station_id, item_name, unit_price, unit_cost, taxable, quantity, notes, status)
         VALUES (${ctx.businessId}::uuid, ${order!.id}::uuid, ${item.id}::uuid, ${item.stationId}::uuid, ${item.name}, ${unitPrice}, ${unitCost}, ${item.taxable},
-                ${line.quantity}, ${line.notes ?? null}, 'confirmed')
+                ${line.quantity}, ${line.notes ?? null}, ${settings.kitchenEnabled ? "confirmed" : "ready"}::fnb.order_status)
         RETURNING id
       `)) as unknown as { id: string }[];
       for (const m of mods.rows) {
@@ -220,7 +220,7 @@ export async function repriceOrder(tx: Tx, orderId: string) {
 
 const NEXT: Record<string, OrderStatus[]> = {
   open: ["confirmed", "cancelled"], confirmed: ["preparing", "cancelled"], preparing: ["ready", "cancelled"],
-  ready: ["served"], served: ["completed"], completed: [], cancelled: [],
+  ready: ["served", "cancelled"], served: ["completed", "cancelled"], completed: [], cancelled: [],
 };
 
 export async function updateOrderStatus(ctx: FnbContext, id: string, status: OrderStatus, reason?: string) {
