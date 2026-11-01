@@ -2,23 +2,15 @@
 
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { uploadImage } from "@/lib/upload";
 import { thumb } from "@/lib/images";
 import { Img } from "./img";
 
 const MAX = 5 * 1024 * 1024;
 
-interface Sign {
-  uploadUrl: string;
-  apiKey: string;
-  timestamp: number;
-  folder: string;
-  allowedFormats: string;
-  signature: string;
-}
 
 /** Unggah gambar langsung ke Cloudinary dengan tanda tangan dari server. URL hasil dikirim lewat onChange. */
-export function ImageField({ value, onChange, label = "Logo", hint }: { value: string | null; onChange: (url: string | null) => void; label?: string; hint?: string }) {
+export function ImageField({ value, onChange, label = "Logo", hint, kind = "logo" }: { value: string | null; onChange: (url: string | null) => void; label?: string; hint?: string; kind?: "logo" | "item" }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -30,19 +22,7 @@ export function ImageField({ value, onChange, label = "Logo", hint }: { value: s
     if (file.size > MAX) return setError("Ukuran gambar maksimal 5 MB.");
     setBusy(true);
     try {
-      const sign = await api<Sign>("/uploads/sign", { body: { kind: "logo" } });
-      if (!sign.ok) throw new Error(sign.error.message);
-      const form = new FormData();
-      form.set("file", file);
-      form.set("api_key", sign.data.apiKey);
-      form.set("timestamp", String(sign.data.timestamp));
-      form.set("folder", sign.data.folder);
-      form.set("allowed_formats", sign.data.allowedFormats);
-      form.set("signature", sign.data.signature);
-      const up = await fetch(sign.data.uploadUrl, { method: "POST", body: form });
-      const data = await up.json().catch(() => ({}));
-      if (!up.ok || !data.secure_url) throw new Error(data.error?.message ?? "Gambar gagal diunggah. Coba lagi.");
-      onChange(data.secure_url);
+      onChange(await uploadImage(file, kind));
     } catch (e) {
       setError((e as Error).message);
     }

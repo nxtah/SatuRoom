@@ -6,6 +6,7 @@ import type { z } from "zod";
 import type { ShiftsInput, StaffRequestDecisionInput, StaffRequestInput } from "@/lib/schemas";
 import { inAcademy, requireModule, requirePermission, type AcademyContext } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
+import { cleanImageUrl, imagesEnabled } from "./cloudinary";
 import { notify, staffWith } from "./notifications";
 
 const KIND_LABEL = { correction: "koreksi absen", leave: "cuti", overtime: "lembur" } as const;
@@ -122,13 +123,28 @@ export async function myAttendance(ctx: AcademyContext): Promise<MyAttendance> {
 }
 
 /** Absen masuk hari ini. Sekali per hari. */
-export async function clockIn(ctx: AcademyContext): Promise<void> {
+export interface ClockProof {
+  photoUrl?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  accuracy?: number | null;
+}
+
+async function checkProof(ctx: AcademyContext, tx: Tx, p: ClockProof): Promise<{ photo: string | null; lat: number | null; lng: number | null; acc: number | null }> {
+  const [s] = (await tx.execute(sql`SELECT clock_photo_required AS req FROM bola.academy_settings WHERE business_id = ${ctx.businessId}::uuid`)) as unknown as { req: boolean }[];
+  const photo = cleanImageUrl(ctx, p.photoUrl);
+  if (s?.req && imagesEnabled() && !photo) throw new AppError(422, "photo_required", "Ambil foto selfie dulu untuk absen.");
+  return { photo, lat: p.lat ?? null, lng: p.lng ?? null, acc: p.accuracy == null ? null : Math.round(p.accuracy) };
+}
+
+export async function clockIn(ctx: AcademyContext, proof: ClockProof = {}): Promise<void> {
   requireModule(ctx, "staff_attendance");
   await inAcademy(ctx, async (tx) => {
     const today = await academyToday(tx);
+    const pr = await checkProof(ctx, tx, proof);
     const rows = (await tx.execute(sql`
-      INSERT INTO bola.staff_clock (business_id, membership_id, work_date, clock_in)
-      VALUES (${ctx.businessId}::uuid, ${ctx.membershipId}::uuid, ${today}::date, now())
+      INSERT INTO bola.staff_clock (business_id, membership_id, work_date, clock_in, in_photo, in_lat, in_lng, in_accuracy)
+      VALUES (${ctx.businessId}::uuid, ${ctx.membershipId}::uuid, ${today}::date, now(), ${pr.photo}, ${pr.lat}, ${pr.lng}, ${pr.acc})
       ON CONFLICT (membership_id, work_date) DO NOTHING RETURNING id`)) as unknown as { id: string }[];
     if (!rows.length) throw new AppError(409, "already", "Anda sudah absen masuk hari ini.");
     await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: "staff.clock_in", targetType: "membership", targetId: ctx.membershipId });
@@ -136,12 +152,14 @@ export async function clockIn(ctx: AcademyContext): Promise<void> {
 }
 
 /** Absen pulang hari ini. Harus sudah absen masuk. */
-export async function clockOut(ctx: AcademyContext): Promise<void> {
+export async function clockOut(ctx: AcademyContext, proof: ClockProof = {}): Promise<void> {
   requireModule(ctx, "staff_attendance");
   await inAcademy(ctx, async (tx) => {
     const today = await academyToday(tx);
+    const pr = await checkProof(ctx, tx, proof);
     const rows = (await tx.execute(sql`
-      UPDATE bola.staff_clock SET clock_out = greatest(now(), clock_in + interval '1 minute')
+      UPDATE bola.staff_clock SET clock_out = greatest(now(), clock_in + interval '1 minute'),
+        out_photo = ${pr.photo}, out_lat = ${pr.lat}, out_lng = ${pr.lng}, out_accuracy = ${pr.acc}
       WHERE membership_id = ${ctx.membershipId}::uuid AND work_date = ${today}::date AND clock_out IS NULL
       RETURNING id`)) as unknown as { id: string }[];
     if (!rows.length) throw new AppError(409, "not_in", "Absen masuk dulu, atau Anda sudah absen pulang hari ini.");
@@ -231,12 +249,47 @@ export interface BoardRow {
   clockIn: string | null;
   clockOut: string | null;
   status: DayStatus;
+  inPhoto: string | null;
+  outPhoto: string | null;
+  inLoc: { lat: number; lng: number; accuracy: number | null } | null;
+  outLoc: { lat: number; lng: number; accuracy: number | null } | null;
+  /** Diizinkan memantau absensi oleh admin/pemilik. */
+  monitor: boolean;
 }
 
-/** Papan absensi staf untuk satu tanggal. */
-export async function attendanceBoard(ctx: AcademyContext, date?: string): Promise<{ date: string; today: string; rows: BoardRow[] }> {
+/** Pengelola absensi, atau staf yang diberi izin memantau oleh admin/pemilik. */
+export async function canMonitorAttendance(ctx: AcademyContext): Promise<boolean> {
+  if (!ctx.modules.has("staff_attendance")) return false;
+  if (ctx.can("staff_attendance.manage")) return true;
+  return inAcademy(ctx, async (tx) => {
+    const [r] = (await tx.execute(sql`SELECT 1 AS x FROM bola.attendance_monitors WHERE membership_id = ${ctx.membershipId}::uuid`)) as unknown as unknown[];
+    return Boolean(r);
+  });
+}
+
+/** Admin/pemilik memberi atau mencabut izin memantau absensi kerja untuk satu staf. */
+export async function setMonitor(ctx: AcademyContext, membershipId: string, on: boolean): Promise<void> {
   requireModule(ctx, "staff_attendance");
   requirePermission(ctx, "staff_attendance.manage");
+  await inAcademy(ctx, async (tx) => {
+    const [m] = (await tx.execute(sql`SELECT user_id AS u FROM core.memberships WHERE id = ${membershipId}::uuid AND business_id = ${ctx.businessId}::uuid AND status = 'active'`)) as unknown as { u: string }[];
+    if (!m) throw new AppError(404, "not_found", "Staf tidak ditemukan.");
+    if (on) {
+      await tx.execute(sql`
+        INSERT INTO bola.attendance_monitors (membership_id, business_id, granted_by) VALUES (${membershipId}::uuid, ${ctx.businessId}::uuid, ${ctx.userId}::uuid)
+        ON CONFLICT DO NOTHING`);
+      await notify(tx, ctx.businessId, [m.u], { title: "Anda diberi izin memantau absensi staf", href: "/absensi-staf?tab=tim" });
+    } else {
+      await tx.execute(sql`DELETE FROM bola.attendance_monitors WHERE membership_id = ${membershipId}::uuid`);
+    }
+    await tx.insert(auditEvents).values({ businessId: ctx.businessId, actorUserId: ctx.userId, action: on ? "attendance_monitor.granted" : "attendance_monitor.revoked", targetType: "membership", targetId: membershipId });
+  });
+}
+
+/** Papan absensi staf untuk satu tanggal: jam, foto, dan lokasi absen. */
+export async function attendanceBoard(ctx: AcademyContext, date?: string): Promise<{ date: string; today: string; rows: BoardRow[] }> {
+  requireModule(ctx, "staff_attendance");
+  if (!(await canMonitorAttendance(ctx))) requirePermission(ctx, "staff_attendance.manage");
   return inAcademy(ctx, async (tx) => {
     const today = await academyToday(tx);
     const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : today;
@@ -254,9 +307,15 @@ export async function attendanceBoard(ctx: AcademyContext, date?: string): Promi
     const clocks = (await tx.execute(sql`
       SELECT c.membership_id AS "membershipId",
              to_char(c.clock_in AT TIME ZONE b.timezone, 'HH24:MI') AS "clockIn",
-             to_char(c.clock_out AT TIME ZONE b.timezone, 'HH24:MI') AS "clockOut"
+             to_char(c.clock_out AT TIME ZONE b.timezone, 'HH24:MI') AS "clockOut",
+             c.in_photo AS "inPhoto", c.out_photo AS "outPhoto", c.in_lat AS "inLat", c.in_lng AS "inLng", c.in_accuracy AS "inAcc",
+             c.out_lat AS "outLat", c.out_lng AS "outLng", c.out_accuracy AS "outAcc"
       FROM bola.staff_clock c JOIN core.businesses b ON b.id = c.business_id
-      WHERE c.work_date = ${day}::date`)) as unknown as { membershipId: string; clockIn: string; clockOut: string | null }[];
+      WHERE c.work_date = ${day}::date`)) as unknown as {
+      membershipId: string; clockIn: string; clockOut: string | null; inPhoto: string | null; outPhoto: string | null;
+      inLat: number | null; inLng: number | null; inAcc: number | null; outLat: number | null; outLng: number | null; outAcc: number | null;
+    }[];
+    const monitors = (await tx.execute(sql`SELECT membership_id AS m FROM bola.attendance_monitors`)) as unknown as { m: string }[];
     const leaves = (await tx.execute(sql`
       SELECT membership_id AS "membershipId" FROM bola.staff_requests
       WHERE kind = 'leave' AND status = 'approved' AND ${day}::date BETWEEN date_from AND date_to`)) as unknown as { membershipId: string }[];
@@ -275,7 +334,13 @@ export async function attendanceBoard(ctx: AcademyContext, date?: string): Promi
             : day < today || (day === today && minutesOf(shift.end) <= nowMin)
               ? "absent"
               : "waiting";
-      return { ...p, shift, shifts: mine, clockIn: c?.clockIn ?? null, clockOut: c?.clockOut ?? null, status };
+      return {
+        ...p, shift, shifts: mine, clockIn: c?.clockIn ?? null, clockOut: c?.clockOut ?? null, status,
+        inPhoto: c?.inPhoto ?? null, outPhoto: c?.outPhoto ?? null,
+        inLoc: c?.inLat != null && c.inLng != null ? { lat: c.inLat, lng: c.inLng, accuracy: c.inAcc } : null,
+        outLoc: c?.outLat != null && c.outLng != null ? { lat: c.outLat, lng: c.outLng, accuracy: c.outAcc } : null,
+        monitor: monitors.some((x) => x.m === p.membershipId),
+      };
     });
     return { date: day, today, rows };
   });

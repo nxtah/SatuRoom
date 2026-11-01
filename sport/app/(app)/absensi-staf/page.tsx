@@ -5,7 +5,9 @@ import { PageHeader } from "@/components/page-header";
 import { monthLabel, rupiah } from "@/lib/money";
 import { mySlips } from "@/server/payroll";
 import { requireAcademyPage } from "@/server/routing";
-import { attendanceBoard, listStaffRequests, monthlyRecap, myAttendance } from "@/server/staff-attendance";
+import { attendanceBoard, canMonitorAttendance, listStaffRequests, monthlyRecap, myAttendance } from "@/server/staff-attendance";
+import { getAcademy } from "@/server/academy";
+import { imagesEnabled } from "@/server/cloudinary";
 import { ApprovalList, ClockCard, MyRequests, RecapTable, RequestForm, TeamBoard } from "./parts";
 
 export const metadata: Metadata = { title: "Absensi staf" };
@@ -22,7 +24,10 @@ export default async function AbsensiStafPage({ searchParams }: { searchParams: 
   if (!ctx.modules.has("staff_attendance")) redirect("/");
   const params = await searchParams;
   const manage = ctx.can("staff_attendance.manage");
-  const tab = manage && TABS.some((t) => t.key === params.tab) ? params.tab! : "saya";
+  const monitor = manage || (await canMonitorAttendance(ctx));
+  const tabs = manage ? TABS : monitor ? TABS.filter((t) => t.key === "saya" || t.key === "tim") : [];
+  const tab = tabs.some((t) => t.key === params.tab) ? params.tab! : "saya";
+  const academy = await getAcademy(ctx);
   const me = await myAttendance(ctx);
   const pending = manage ? await listStaffRequests(ctx, "pending") : [];
   const slips = tab === "saya" ? await mySlips(ctx) : [];
@@ -30,9 +35,9 @@ export default async function AbsensiStafPage({ searchParams }: { searchParams: 
   return (
     <div className="max-w-4xl">
       <PageHeader title="Absensi staf" subtitle="Absen masuk dan pulang, ajukan koreksi, cuti, atau lembur. Pengelola menyetujui dan melihat rekap." />
-      {manage ? (
+      {tabs.length ? (
         <nav aria-label="Bagian absensi staf" className="rise mb-5 flex gap-2 overflow-x-auto pb-1">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <Link
               key={t.key}
               href={`/absensi-staf?tab=${t.key}`}
@@ -51,7 +56,7 @@ export default async function AbsensiStafPage({ searchParams }: { searchParams: 
       {tab === "saya" ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="grid content-start gap-5">
-            <ClockCard me={me} />
+            <ClockCard me={me} academy={academy.name} person={ctx.session.name} camera={imagesEnabled()} />
             <MyRequests requests={me.requests} />
             {slips.length ? (
               <section className="rise rounded-[2rem] bg-chalk p-5">
@@ -80,7 +85,7 @@ export default async function AbsensiStafPage({ searchParams }: { searchParams: 
           <RequestForm today={me.today} />
         </div>
       ) : null}
-      {tab === "tim" ? <TeamBoard board={await attendanceBoard(ctx, params.tanggal)} /> : null}
+      {tab === "tim" ? <TeamBoard board={await attendanceBoard(ctx, params.tanggal)} manage={manage} /> : null}
       {tab === "pengajuan" ? <ApprovalList pending={pending} done={await listStaffRequests(ctx, "done")} selfId={ctx.membershipId} isOwner={ctx.roles.includes("owner")} /> : null}
       {tab === "rekap" ? <RecapTable month={/^\d{4}-\d{2}$/.test(params.bulan ?? "") ? params.bulan! : me.today.slice(0, 7)} rows={await monthlyRecap(ctx, /^\d{4}-\d{2}$/.test(params.bulan ?? "") ? params.bulan! : me.today.slice(0, 7))} /> : null}
     </div>

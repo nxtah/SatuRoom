@@ -64,6 +64,7 @@ export const DOCS: DocPage[] = [
     slug: "jadwal", group: "Latihan harian", title: "Jadwal latihan", summary: "Jadwal rutin mingguan, sesi tambahan, pertandingan, dan membatalkan latihan.",
     blocks: [
       { t: "h", text: "Jadwal rutin (paling sering dipakai)" },
+      { t: "p", text: "Kepala pelatih dan pelatih membuat jadwal timnya sendiri; pemilik dan admin memantau semua tim." },
       { t: "steps", items: [
         "Buka **Jadwal → Jadwal rutin**.",
         "Pilih **tim**, centang **hari** (boleh lebih dari satu), isi **Jam mulai** dan durasi (15–300 menit).",
@@ -83,6 +84,21 @@ export const DOCS: DocPage[] = [
       { t: "p", text: "Buka sesinya, klik **Batalkan sesi ini**, isi alasan bila perlu, lalu **Ya, batalkan sesi**. Salah batal? Klik **Batalkan pembatalan**." },
       { t: "warn", text: "Satu lokasi tidak bisa dipakai dua tim di jam yang sama. Aplikasi akan menolak dan menyebut tim yang bentrok." },
       { t: "p", text: "Siapa yang bisa mengatur jadwal: Pemilik, Admin, Kepala pelatih, dan Pelatih untuk tim yang dipegangnya. Bendahara tidak." },
+    ],
+  },
+  {
+    slug: "rencana-latihan", group: "Latihan harian", title: "Topik dan rencana latihan", summary: "Pelatih mengisi topik dan susunan latihan tiap sesi; admin dan pemilik memantau.",
+    blocks: [
+      { t: "steps", items: [
+        "Saat membuat sesi di **Jadwal → Sesi tambahan**, isi **Topik latihan** (boleh kosong).",
+        "Untuk sesi dari jadwal rutin: buka sesinya di **Jadwal**, lalu di kotak **Rencana latihan** klik **Isi rencana**.",
+        "Tulis topik (mis. Passing pendek) dan rencana: pemanasan, latihan inti, permainan, pendinginan.",
+      ] },
+      { t: "list", items: [
+        "Topik tampil di kartu sesi pada Jadwal dan Beranda.",
+        "Beranda pelatih menunjukkan berapa sesi 7 hari ke depan yang sudah punya topik, dan mana yang belum.",
+        "Pemilik dan admin bisa membuka sesi mana pun untuk melihat rencananya.",
+      ] },
     ],
   },
   {
@@ -234,12 +250,14 @@ export const DOCS: DocPage[] = [
     slug: "gaji", group: "Uang dan kabar", title: "Gaji staf", summary: "Atur gaji per staf, hitung otomatis dari sesi dan absensi, setujui, bayar, slip gaji.",
     blocks: [
       { t: "steps", items: [
-        "Buka **Gaji → Pengaturan gaji**, klik **Atur gaji** pada setiap staf. Isi gaji pokok, honor per sesi, tunjangan, lembur, dan potongan yang berlaku saja.",
+        "Buka **Gaji → Pengaturan gaji**, klik **Atur gaji** pada setiap staf, lalu pilih **Cara gajian**: **Bulanan** (gaji pokok tetap) atau **Dari absensi** (gaji per hari hadir dan/atau per jam kerja).",
+        "Isi komponen lain yang berlaku saja: honor per sesi, tunjangan, lembur, dan potongan.",
         "Di akhir bulan buka **Gaji bulanan**, klik **Hitung gaji**. Honor sesi diambil dari sesi tim yang dia latih; lembur dan terlambat dari **Absensi staf**.",
         "Perlu bonus atau kasbon? Klik **Tambah bonus/potongan** di slipnya.",
         "Klik **Setujui**. Biaya gaji langsung tercatat di Keuangan.",
         "Setelah transfer, pilih tanggal dan akun lalu klik **Tandai dibayar**.",
       ] },
+      { t: "tip", text: "Gaji **Dari absensi** dihitung otomatis: jumlah hari ada absen masuk dikali gaji harian, ditambah jam dari absen masuk sampai pulang dikali gaji per jam. Lupa absen pulang? Ajukan **Koreksi absen** supaya jamnya terhitung." },
       { t: "tip", text: "Staf melihat slip gajinya sendiri di **Absensi staf** setelah gaji disetujui." },
     ],
   },
@@ -258,6 +276,14 @@ export const DOCS: DocPage[] = [
         "**Stok opname**: hitung barang di gudang, isi jumlah sebenarnya, selisihnya dicatat otomatis.",
         "Harga pokok dihitung rata-rata dari semua pembelian.",
       ] },
+      { t: "h", text: "Barang toko: foto, ukuran, nomor punggung" },
+      { t: "steps", items: [
+        "Di **Stok → Barang**, klik **Ubah** pada barang. Unggah **Foto barang** dan isi **Kategori** (Jersey, Sepatu, dll).",
+        "Di **Ukuran / varian**, klik template (Baju S-XXL, Baju anak, Sepatu) atau tambah sendiri. Tiap varian punya stok dan boleh ada tambahan harga (mis. XXL +10.000).",
+        "Centang **Dijual di toko**, isi harga. Di **Isian dari pembeli** klik **Nomor punggung** dan/atau **Nama punggung** bila perlu.",
+        "Saat pesan barang ke supplier, pilih varian per baris. Stok varian bertambah saat barang diterima.",
+      ] },
+      { t: "p", text: "Pembeli (staf di **Toko** atau orang tua di akun pemain) memilih ukuran, mengisi nomor punggung, lalu menambah ke keranjang. Pesanan menampilkan ukuran dan nomor punggung supaya mudah disiapkan." },
       { t: "h", text: "Aset tetap" },
       { t: "p", text: "Catat barang tahan lama bernilai besar di **Aset tetap** beserta umur pakainya. Setiap bulan klik **Catat penyusutan** supaya nilainya berkurang di laporan." },
       { t: "h", text: "Toko" },
@@ -298,18 +324,6 @@ export const DOCS: DocPage[] = [
       ] },
       { t: "h", text: "Lonceng notifikasi" },
       { t: "p", text: "Notifikasi muncul di aplikasi (belum lewat WhatsApp atau email) untuk: tagihan iuran baru, pengumuman, hasil penilaian, event baru, balasan layanan, pesanan toko, pendaftaran event, serta pengajuan cuti, koreksi, dan lembur staf." },
-    ],
-  },
-  {
-    slug: "analitik", group: "Uang dan kabar", title: "Analitik dan perbandingan cabang", summary: "Tren pemain, kehadiran, uang, dan perbandingan antar cabang.",
-    blocks: [
-      { t: "p", text: "Buka **Analitik**, pilih periode **Bulan ini**, **3 bulan**, atau **Tahun ini**." },
-      { t: "list", items: [
-        "**Perbandingan cabang**: pemain aktif, baru, berhenti, sesi, kehadiran, iuran masuk, pengeluaran, tunggakan per cabang.",
-        "Grafik 6 bulan: pemain aktif, kehadiran, uang masuk dan keluar.",
-        "**Perlu diperhatikan**: pemain dengan kehadiran di bawah 75%.",
-        "Staf yang dibatasi cabang hanya melihat cabangnya dan tanpa angka uang.",
-      ] },
     ],
   },
   {
@@ -382,7 +396,8 @@ export const DOCS: DocPage[] = [
       { t: "h", text: "Untuk semua staf" },
       { t: "steps", items: [
         "Buka **Absensi staf** (atau tombol **Absen kerja** di Beranda).",
-        "Saat datang klik **Absen masuk**. Saat pulang klik **Absen pulang**. Satu kali per hari.",
+        "Saat datang klik **Absen masuk**, lalu ambil **foto selfie**. Foto diberi cap nama akademi, nama Anda, tanggal, jam, dan lokasi. Saat pulang lakukan hal yang sama dengan **Absen pulang**.",
+        "Izinkan akses **kamera** dan **lokasi** di browser saat diminta.",
         "Lupa absen atau jam salah? Di **Buat pengajuan** pilih **Koreksi absen**, isi tanggal, jam, dan alasan.",
         "Mau izin atau cuti? Pilih **Cuti / izin**, jenisnya, tanggal, dan alasan.",
         "Kerja di luar jadwal? Pilih **Lembur**, isi lama dalam menit.",
@@ -390,7 +405,8 @@ export const DOCS: DocPage[] = [
       { t: "p", text: "Status pengajuan terlihat di **Pengajuan saya**. Selama masih **Menunggu**, Anda bisa **Batalkan**." },
       { t: "h", text: "Untuk pengelola (Pemilik dan Admin)" },
       { t: "list", items: [
-        "**Hari ini**: siapa hadir, terlambat, belum datang, cuti, atau libur. Klik **Jadwal kerja** untuk mengatur hari dan jam kerja tiap staf.",
+        "**Hari ini**: siapa hadir, terlambat, belum datang, cuti, atau libur, lengkap dengan foto dan tautan lokasi absen. Klik **Jadwal kerja** untuk mengatur hari dan jam kerja tiap staf.",
+        "Klik **Izinkan memantau** pada staf (mis. Kepala pelatih) supaya dia juga bisa melihat tab **Hari ini**. Klik lagi untuk mencabut.",
         "**Pengajuan**: klik **Setujui** atau **Tolak**. Koreksi yang disetujui langsung mengganti catatan absen hari itu.",
         "**Rekap bulanan**: hari hadir, terlambat, jam kerja, lembur, dan cuti per staf. Rekap ini dipakai untuk gaji.",
       ] },

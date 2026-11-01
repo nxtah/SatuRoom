@@ -56,7 +56,7 @@ export function SessionCard({
         </span>
         <span className="block truncate text-sm">
           {withDate ? <span className="text-ink-soft">{s.startTime}–{s.endTime}, </span> : null}
-          {s.kind === "match" ? <span className="text-ink-soft">{s.teamName}, </span> : s.title ? <span className="text-ink-soft">{s.title}, </span> : null}
+          {s.kind === "match" ? <span className="text-ink-soft">{s.teamName}, </span> : s.topic || s.title ? <span className="text-ink-soft">{s.topic ?? s.title}, </span> : null}
           <span className={`font-bold ${status.tone}`}>{status.text}</span>
         </span>
       </span>

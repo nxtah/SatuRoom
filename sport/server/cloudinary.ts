@@ -4,7 +4,7 @@ import { requirePermission, type AcademyContext } from "./context";
 import { env } from "./env";
 import { AppError } from "./errors";
 
-export const IMAGE_KINDS = ["logo"] as const;
+export const IMAGE_KINDS = ["logo", "clock", "item"] as const;
 export type ImageKind = (typeof IMAGE_KINDS)[number];
 const FORMATS = "jpg,jpeg,png,webp";
 
@@ -14,6 +14,9 @@ const config = () => {
   return { cloud: e.CLOUDINARY_CLOUD_NAME, key: e.CLOUDINARY_API_KEY, secret: e.CLOUDINARY_API_SECRET };
 };
 
+/** Upload gambar aktif (kredensial Cloudinary terpasang). */
+export const imagesEnabled = () => config() !== null;
+
 /** Folder per akademi: gambar akademi lain tidak bisa dipasang di sini. */
 const folderOf = (ctx: AcademyContext, kind: ImageKind) => `sport/${ctx.businessId}/${kind}`;
 
@@ -22,7 +25,9 @@ const folderOf = (ctx: AcademyContext, kind: ImageKind) => `sport/${ctx.business
  * format ikut ditandatangani, jadi klien tidak bisa menggantinya.
  */
 export function signUpload(ctx: AcademyContext, kind: ImageKind) {
-  requirePermission(ctx, "academy.update");
+  // Logo: pengelola akademi. Foto absen: staf mana pun (untuk dirinya). Gambar barang: pengelola stok/toko.
+  if (kind === "logo") requirePermission(ctx, "academy.update");
+  if (kind === "item" && !ctx.can("inventory.manage") && !ctx.can("store.manage")) requirePermission(ctx, "inventory.manage");
   const c = config();
   if (!c) throw new AppError(503, "images_off", "Upload gambar belum diaktifkan. Hubungi admin SatuRoom.");
   const timestamp = Math.floor(Date.now() / 1000);

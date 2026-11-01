@@ -1,6 +1,9 @@
 "use client";
 
-import { CalendarClock, Check, LogIn, LogOut, X } from "lucide-react";
+import { CalendarClock, Camera, Check, Eye, LogIn, LogOut, MapPin, X } from "lucide-react";
+import { CameraClock, type ClockShot } from "@/components/camera-clock";
+import { Img } from "@/components/img";
+import { thumb } from "@/lib/images";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
@@ -43,14 +46,16 @@ function Pill({ label, cls }: { label: string; cls: string }) {
 
 // ---------- Absen saya ----------
 
-export function ClockCard({ me }: { me: MyAttendance }) {
+export function ClockCard({ me, academy, person, camera }: { me: MyAttendance; academy: string; person: string; camera: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  async function clock(action: "in" | "out") {
+  const [cam, setCam] = useState<"in" | "out" | null>(null);
+  async function clock(action: "in" | "out", shot?: ClockShot) {
+    setCam(null);
     setBusy(true);
     setError(undefined);
-    const r = await api("/staff-attendance/clock", { body: { action } });
+    const r = await api("/staff-attendance/clock", { body: { action, ...shot } });
     setBusy(false);
     if (!r.ok) return setError(r.error.message);
     router.refresh();
@@ -73,11 +78,15 @@ export function ClockCard({ me }: { me: MyAttendance }) {
           variant="primary"
           className="mt-5 w-full sm:w-auto"
           disabled={busy}
-          onClick={() => clock(me.clock ? "out" : "in")}
+          onClick={() => (camera ? setCam(me.clock ? "out" : "in") : clock(me.clock ? "out" : "in"))}
         >
-          {me.clock ? <LogOut aria-hidden className="size-5" /> : <LogIn aria-hidden className="size-5" />}
+          {camera ? <Camera aria-hidden className="size-5" /> : me.clock ? <LogOut aria-hidden className="size-5" /> : <LogIn aria-hidden className="size-5" />}
           {busy ? "Menyimpan…" : me.clock ? "Absen pulang" : "Absen masuk"}
         </Button>
+      ) : null}
+      {camera && !done ? <p className="mt-2 text-xs text-white/70">Absen pakai foto selfie. Jam, nama akademi, dan lokasi tercatat otomatis.</p> : null}
+      {cam ? (
+        <CameraClock academy={academy} person={person} label={cam === "in" ? "absen masuk" : "absen pulang"} onCancel={() => setCam(null)} onDone={(s) => clock(cam, s)} />
       ) : null}
       <dl className="mt-6 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         {[
@@ -202,7 +211,53 @@ export function MyRequests({ requests }: { requests: StaffRequestRow[] }) {
 
 // ---------- Pengelola ----------
 
-export function TeamBoard({ board }: { board: { date: string; today: string; rows: BoardRow[] } }) {
+function Proof({ label, time, photo, loc }: { label: string; time: string | null; photo: string | null; loc: BoardRow["inLoc"] }) {
+  if (!time) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl bg-mist p-2 pr-3">
+      {photo ? (
+        <a href={photo} target="_blank" rel="noreferrer" className="shrink-0" aria-label={`Foto ${label}`}>
+          <Img src={thumb(photo, 160) ?? photo} className="size-16 rounded-xl object-cover" />
+        </a>
+      ) : (
+        <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-white text-xs text-ink-soft">Tanpa foto</span>
+      )}
+      <div className="min-w-0 text-sm">
+        <p className="font-extrabold">{label} {time}</p>
+        {loc ? (
+          <a className="inline-flex items-center gap-1 text-pitch underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}>
+            <MapPin aria-hidden className="size-3.5" /> Lihat lokasi{loc.accuracy ? ` (±${loc.accuracy} m)` : ""}
+          </a>
+        ) : (
+          <p className="text-ink-soft">Lokasi tidak tercatat</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MonitorToggle({ membershipId, on }: { membershipId: string; on: boolean }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      size="sm"
+      variant={on ? "primary" : "outline"}
+      disabled={busy}
+      title="Izinkan staf ini memantau absensi kerja tim"
+      onClick={async () => {
+        setBusy(true);
+        await api(`/staff-attendance/monitors/${membershipId}`, { method: "PUT", body: { on: !on } });
+        setBusy(false);
+        router.refresh();
+      }}
+    >
+      <Eye aria-hidden className="size-4" /> {on ? "Boleh memantau" : "Izinkan memantau"}
+    </Button>
+  );
+}
+
+export function TeamBoard({ board, manage = true }: { board: { date: string; today: string; rows: BoardRow[] }; manage?: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
   const counts = board.rows.reduce<Record<string, number>>((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {});
@@ -238,10 +293,21 @@ export function TeamBoard({ board }: { board: { date: string; today: string; row
                 </p>
               </div>
               <Pill {...STATUS_DAY[r.status]} />
-              <Button size="sm" variant="outline" onClick={() => setEditing(editing === r.membershipId ? null : r.membershipId)}>
-                Jadwal kerja
-              </Button>
+              {manage ? (
+                <>
+                  <MonitorToggle membershipId={r.membershipId} on={r.monitor} />
+                  <Button size="sm" variant="outline" onClick={() => setEditing(editing === r.membershipId ? null : r.membershipId)}>
+                    Jadwal kerja
+                  </Button>
+                </>
+              ) : null}
             </div>
+            {r.clockIn ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Proof label="Masuk" time={r.clockIn} photo={r.inPhoto} loc={r.inLoc} />
+                <Proof label="Pulang" time={r.clockOut} photo={r.outPhoto} loc={r.outLoc} />
+              </div>
+            ) : null}
             {editing === r.membershipId ? <ShiftEditor membershipId={r.membershipId} shifts={r.shifts} onDone={() => setEditing(null)} /> : null}
           </li>
         ))}

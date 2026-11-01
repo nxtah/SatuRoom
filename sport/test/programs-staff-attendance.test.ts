@@ -46,10 +46,11 @@ describe("absensi staf", () => {
     await setShifts(a.ctx, coach.membershipId, { shifts: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, start: "00:00", end: "23:59" })) });
     await expect(setShifts(coach, coach.membershipId, { shifts: [] })).rejects.toMatchObject({ status: 403 });
 
-    await expect(clockOut(coach)).rejects.toMatchObject({ status: 409 });
-    await clockIn(coach);
-    await expect(clockIn(coach)).rejects.toMatchObject({ status: 409 });
-    await clockOut(coach);
+    const pic = { photoUrl: `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/v1/sport/${coach.businessId}/clock/x.jpg` };
+    await expect(clockOut(coach, pic)).rejects.toMatchObject({ status: 409 });
+    await clockIn(coach, pic);
+    await expect(clockIn(coach, pic)).rejects.toMatchObject({ status: 409 });
+    await clockOut(coach, pic);
     const me = await myAttendance(coach);
     expect(me.clock?.clockOut).not.toBeNull();
     expect(me.shiftToday).not.toBeNull();

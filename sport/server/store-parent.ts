@@ -28,7 +28,7 @@ export async function parentStore(session: SessionInfo): Promise<ParentStore | n
 }
 
 /** Orang tua memesan. Dibayar di akademi (tunai/transfer); staf mencatat pembayarannya. */
-export async function parentOrder(session: SessionInfo, lines: z.infer<typeof OrderInput>["lines"], note?: string | null): Promise<string> {
+export async function parentOrder(session: SessionInfo, lines: z.input<typeof OrderInput>["lines"], note?: string | null): Promise<string> {
   return playerTx(session, async (tx, link) => {
     if (!(await storeOn(tx))) throw new AppError(403, "module_off", "Toko tidak aktif.");
     const [p] = (await tx.execute(sql`SELECT full_name AS name FROM bola.players WHERE id = ${link.playerId}::uuid`)) as unknown as { name: string }[];

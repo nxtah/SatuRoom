@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { inAcademy, requireModule, requirePermission, type AcademyContext } from "./context";
 import { AppError, forbidden, notFound } from "./errors";
+import { cleanImageUrl } from "./cloudinary";
 import { accountIdOf, postJournal } from "./ledger";
 import { academyToday } from "./schedule";
 
@@ -19,7 +20,21 @@ export const ItemInput = z.object({
   forSale: z.boolean().default(false),
   salePrice: z.preprocess(empty, rp.nullable()).optional(),
   description: z.preprocess(empty, z.string().trim().max(300).nullable()).optional(),
+  imageUrl: z.preprocess(empty, z.string().trim().max(500).nullable()).optional(),
+  category: z.preprocess(empty, z.string().trim().max(40).nullable()).optional(),
+  /** Isian pembeli, mis. Nomor punggung, Nama punggung. */
+  customFields: z
+    .array(z.object({ label: z.string().trim().min(1, "Isi nama isian.").max(40), required: z.boolean().default(false), kind: z.enum(["text", "number"]).default("text"), max: z.coerce.number().int().min(1).max(60).default(20) }))
+    .max(5)
+    .default([]),
+  /** Varian (ukuran, warna) dengan stok dan tambahan harga sendiri. */
+  variants: z
+    .array(z.object({ id: z.preprocess(empty, z.string().uuid().nullable()).optional(), label: z.string().trim().min(1, "Isi nama varian.").max(40), qty: z.coerce.number().int().min(0).default(0), extraPrice: rp.default(0) }))
+    .max(30)
+    .default([]),
 });
+export type CustomField = z.output<typeof ItemInput>["customFields"][number];
+export interface Variant { id: string; label: string; qty: number; extraPrice: number }
 export const SupplierInput = z.object({
   name: z.string().trim().min(2, "Isi nama supplier.").max(80),
   phone: z.preprocess(empty, z.string().trim().max(30).nullable()).optional(),
@@ -29,7 +44,7 @@ export const PurchaseInput = z.object({
   supplierId: z.string().uuid({ message: "Pilih supplier." }),
   orderedOn: ymd,
   note: z.preprocess(empty, z.string().trim().max(200).nullable()).optional(),
-  lines: z.array(z.object({ itemId: z.string().uuid(), qty: z.coerce.number().int().min(1), unitCost: rp })).min(1, "Tambahkan minimal satu barang.").max(50),
+  lines: z.array(z.object({ itemId: z.string().uuid(), variantId: z.preprocess(empty, z.string().uuid().nullable()).optional(), qty: z.coerce.number().int().min(1), unitCost: rp })).min(1, "Tambahkan minimal satu barang.").max(50),
 });
 export const IssueInput = z.object({ itemId: z.string().uuid(), qty: z.coerce.number().int().min(1), note: z.string().trim().min(2, "Tulis dipakai untuk apa.").max(200) });
 export const CountInput = z.object({ counts: z.array(z.object({ itemId: z.string().uuid(), qty: z.coerce.number().int().min(0) })).min(1).max(500) });
@@ -41,7 +56,12 @@ export const AssetInput = z.object({
   usefulMonths: z.coerce.number().int().min(1, "Isi umur pakai.").max(600),
   paidFrom: z.preprocess(empty, z.string().uuid().nullable()).optional(),
 });
-export const OrderLineInput = z.object({ itemId: z.string().uuid(), qty: z.coerce.number().int().min(1).max(100) });
+export const OrderLineInput = z.object({
+  itemId: z.string().uuid(),
+  variantId: z.preprocess(empty, z.string().uuid().nullable()).optional(),
+  qty: z.coerce.number().int().min(1).max(100),
+  custom: z.record(z.string().max(40), z.string().trim().max(60)).default({}),
+});
 export const OrderInput = z.object({
   playerId: z.preprocess(empty, z.string().uuid().nullable()).optional(),
   buyerName: z.string().trim().min(2, "Isi nama pembeli.").max(100),
@@ -75,16 +95,24 @@ export interface ItemRow {
   salePrice: number | null;
   description: string | null;
   low: boolean;
+  imageUrl: string | null;
+  category: string | null;
+  customFields: CustomField[];
+  variants: Variant[];
 }
+
+const VARIANTS = sql`coalesce((SELECT jsonb_agg(jsonb_build_object('id', v.id, 'label', v.label, 'qty', v.qty, 'extraPrice', v.extra_price) ORDER BY v.position, v.label)
+  FROM bola.item_variants v WHERE v.item_id = i.id AND v.archived_at IS NULL), '[]'::jsonb)`;
 
 export async function listItems(ctx: AcademyContext): Promise<ItemRow[]> {
   if (!ctx.can("inventory.manage") && !ctx.can("store.manage")) throw forbidden();
   requireModule(ctx, "inventory");
   return inAcademy(ctx, async (tx) =>
     (await tx.execute(sql`
-      SELECT id, name, unit, qty, avg_cost AS "avgCost", qty * avg_cost AS value, min_qty AS "minQty", for_sale AS "forSale",
-             sale_price AS "salePrice", description, (qty <= min_qty AND min_qty > 0) AS low
-      FROM bola.items WHERE archived_at IS NULL ORDER BY lower(name)`)) as unknown as ItemRow[],
+      SELECT i.id, i.name, i.unit, i.qty, i.avg_cost AS "avgCost", i.qty * i.avg_cost AS value, i.min_qty AS "minQty", i.for_sale AS "forSale",
+             i.sale_price AS "salePrice", i.description, (i.qty <= i.min_qty AND i.min_qty > 0) AS low,
+             i.image_url AS "imageUrl", i.category, i.custom_fields AS "customFields", ${VARIANTS} AS variants
+      FROM bola.items i WHERE i.archived_at IS NULL ORDER BY lower(i.category) NULLS LAST, lower(i.name)`)) as unknown as ItemRow[],
   );
 }
 
@@ -93,33 +121,72 @@ const dupItem = (e: unknown) => {
   throw e;
 };
 
-export async function saveItem(ctx: AcademyContext, id: string | null, input: z.infer<typeof ItemInput>): Promise<string> {
+export async function saveItem(ctx: AcademyContext, id: string | null, raw: z.input<typeof ItemInput>): Promise<string> {
+  const input = ItemInput.parse(raw);
   if (!ctx.can("inventory.manage") && !ctx.can("store.manage")) throw forbidden();
   requireModule(ctx, "inventory");
   if (input.forSale && (input.salePrice === null || input.salePrice === undefined)) {
     throw new AppError(422, "invalid", "Periksa lagi isian yang ditandai.", { salePrice: "Isi harga jual." });
   }
+  const image = cleanImageUrl(ctx, input.imageUrl);
+  const labels = input.variants.map((v) => v.label.toLowerCase());
+  if (new Set(labels).size !== labels.length) throw new AppError(422, "invalid", "Nama varian tidak boleh sama.");
+  const fields = JSON.stringify(input.customFields);
   return inAcademy(ctx, async (tx) => {
+    let itemId = id;
     if (id) {
       const rows = (await tx
         .execute(sql`
           UPDATE bola.items SET name = ${input.name}, unit = ${input.unit}, min_qty = ${input.minQty}, for_sale = ${input.forSale},
-            sale_price = ${input.salePrice ?? null}, description = ${input.description ?? null}
+            sale_price = ${input.salePrice ?? null}, description = ${input.description ?? null}, image_url = ${image},
+            category = ${input.category ?? null}, custom_fields = ${fields}::jsonb
           WHERE id = ${id}::uuid AND archived_at IS NULL RETURNING id`)
         .catch(dupItem)) as unknown as unknown[];
       if (!rows.length) throw notFound("Barang");
       await audit(ctx, tx, "item.updated", "item", id);
-      return id;
+    } else {
+      const [row] = (await tx
+        .execute(sql`
+          INSERT INTO bola.items (business_id, name, unit, min_qty, for_sale, sale_price, description, image_url, category, custom_fields)
+          VALUES (${ctx.businessId}::uuid, ${input.name}, ${input.unit}, ${input.minQty}, ${input.forSale}, ${input.salePrice ?? null},
+                  ${input.description ?? null}, ${image}, ${input.category ?? null}, ${fields}::jsonb)
+          RETURNING id`)
+        .catch(dupItem)) as unknown as { id: string }[];
+      itemId = row!.id;
+      await audit(ctx, tx, "item.created", "item", itemId, { name: input.name });
     }
-    const [row] = (await tx
-      .execute(sql`
-        INSERT INTO bola.items (business_id, name, unit, min_qty, for_sale, sale_price, description)
-        VALUES (${ctx.businessId}::uuid, ${input.name}, ${input.unit}, ${input.minQty}, ${input.forSale}, ${input.salePrice ?? null}, ${input.description ?? null})
-        RETURNING id`)
-      .catch(dupItem)) as unknown as { id: string }[];
-    await audit(ctx, tx, "item.created", "item", row!.id, { name: input.name });
-    return row!.id;
+    await saveVariants(tx, ctx.businessId, itemId!, input.variants);
+    return itemId!;
   });
+}
+
+/**
+ * Varian: yang dikirim disimpan (stok varian diatur langsung, total stok barang tetap dari pembelian/opname),
+ * yang tidak dikirim diarsipkan. Total stok varian tidak boleh melebihi stok barang.
+ */
+async function saveVariants(tx: Tx, businessId: string, itemId: string, variants: z.output<typeof ItemInput>["variants"]) {
+  const keep = variants.filter((v) => v.id).map((v) => v.id!);
+  await tx.execute(sql`
+    UPDATE bola.item_variants SET archived_at = now()
+    WHERE item_id = ${itemId}::uuid AND archived_at IS NULL ${keep.length ? sql`AND id <> ALL (${`{${keep.join(",")}}`}::uuid[])` : sql``}`);
+  for (const [i, v] of variants.entries()) {
+    if (v.id) {
+      const r = (await tx.execute(sql`
+        UPDATE bola.item_variants SET label = ${v.label}, qty = ${v.qty}, extra_price = ${v.extraPrice}, position = ${i}
+        WHERE id = ${v.id}::uuid AND item_id = ${itemId}::uuid RETURNING id`)) as unknown as unknown[];
+      if (!r.length) throw notFound("Varian");
+    } else {
+      await tx.execute(sql`
+        INSERT INTO bola.item_variants (business_id, item_id, label, qty, extra_price, position)
+        VALUES (${businessId}::uuid, ${itemId}::uuid, ${v.label}, ${v.qty}, ${v.extraPrice}, ${i})`);
+    }
+  }
+  const [c] = (await tx.execute(sql`
+    SELECT i.qty, coalesce(sum(v.qty), 0)::int AS vq, count(v.id)::int AS n FROM bola.items i
+    LEFT JOIN bola.item_variants v ON v.item_id = i.id AND v.archived_at IS NULL WHERE i.id = ${itemId}::uuid GROUP BY i.qty`)) as unknown as { qty: number; vq: number; n: number }[];
+  if (c && c.n > 0 && c.vq > c.qty) {
+    throw new AppError(422, "invalid", `Total stok varian (${c.vq}) melebihi stok barang (${c.qty}). Catat pembelian dulu, atau kurangi stok varian.`);
+  }
 }
 
 export async function archiveItem(ctx: AcademyContext, id: string): Promise<void> {
@@ -286,9 +353,13 @@ export async function createPurchase(ctx: AcademyContext, input: z.infer<typeof 
     for (const l of input.lines) {
       const [i] = (await tx.execute(sql`SELECT 1 AS x FROM bola.items WHERE id = ${l.itemId}::uuid AND archived_at IS NULL`)) as unknown as unknown[];
       if (!i) throw new AppError(422, "invalid", "Ada barang yang tidak ditemukan.");
+      if (l.variantId) {
+        const [v] = (await tx.execute(sql`SELECT 1 AS x FROM bola.item_variants WHERE id = ${l.variantId}::uuid AND item_id = ${l.itemId}::uuid AND archived_at IS NULL`)) as unknown as unknown[];
+        if (!v) throw new AppError(422, "invalid", "Varian barang tidak ditemukan.");
+      }
       await tx.execute(sql`
-        INSERT INTO bola.purchase_lines (business_id, po_id, item_id, qty, unit_cost)
-        VALUES (${ctx.businessId}::uuid, ${po!.id}::uuid, ${l.itemId}::uuid, ${l.qty}, ${l.unitCost})`);
+        INSERT INTO bola.purchase_lines (business_id, po_id, item_id, variant_id, qty, unit_cost)
+        VALUES (${ctx.businessId}::uuid, ${po!.id}::uuid, ${l.itemId}::uuid, ${l.variantId ?? null}::uuid, ${l.qty}, ${l.unitCost})`);
     }
     await audit(ctx, tx, "purchase.created", "purchase", po!.id, { total });
     return po!.id;
@@ -305,8 +376,11 @@ export async function receivePurchase(ctx: AcademyContext, id: string, receivedO
     if (!po) throw notFound("Pembelian");
     if (po.status !== "ordered") throw new AppError(409, "not_open", "Pembelian ini sudah diterima atau dibatalkan.");
     if (receivedOn > (await academyToday(tx))) throw new AppError(422, "invalid", "Tanggal terima tidak boleh di masa depan.");
-    const lines = (await tx.execute(sql`SELECT item_id AS "itemId", qty, unit_cost AS "unitCost" FROM bola.purchase_lines WHERE po_id = ${id}::uuid`)) as unknown as { itemId: string; qty: number; unitCost: number }[];
-    for (const l of lines) await addStock(ctx, tx, l.itemId, l.qty, l.unitCost, "purchase", receivedOn, id, `Pembelian dari ${po.name}`);
+    const lines = (await tx.execute(sql`SELECT item_id AS "itemId", variant_id AS "variantId", qty, unit_cost AS "unitCost" FROM bola.purchase_lines WHERE po_id = ${id}::uuid`)) as unknown as { itemId: string; variantId: string | null; qty: number; unitCost: number }[];
+    for (const l of lines) {
+      await addStock(ctx, tx, l.itemId, l.qty, l.unitCost, "purchase", receivedOn, id, `Pembelian dari ${po.name}`);
+      if (l.variantId) await tx.execute(sql`UPDATE bola.item_variants SET qty = qty + ${l.qty} WHERE id = ${l.variantId}::uuid`);
+    }
     await postJournal(tx, who(ctx), {
       date: receivedOn,
       memo: `Terima barang dari ${po.name}`,
@@ -461,7 +535,7 @@ export interface OrderRow {
   note: string | null;
   createdAt: string;
   paidOn: string | null;
-  lines: { itemName: string; qty: number; price: number }[];
+  lines: { itemName: string; qty: number; price: number; variantLabel: string | null; custom: Record<string, string> }[];
 }
 
 async function ordersWhere(tx: Tx, where: ReturnType<typeof sql>): Promise<OrderRow[]> {
@@ -471,7 +545,7 @@ async function ordersWhere(tx: Tx, where: ReturnType<typeof sql>): Promise<Order
     FROM bola.orders o WHERE ${where} ORDER BY o.created_at DESC LIMIT 100`)) as unknown as Omit<OrderRow, "lines">[];
   if (!orders.length) return [];
   const lines = (await tx.execute(sql`
-    SELECT order_id AS "orderId", item_name AS "itemName", qty, price FROM bola.order_lines
+    SELECT order_id AS "orderId", item_name AS "itemName", qty, price, variant_label AS "variantLabel", custom FROM bola.order_lines
     WHERE order_id = ANY (${`{${orders.map((o) => o.id).join(",")}}`}::uuid[])`)) as unknown as (OrderRow["lines"][number] & { orderId: string })[];
   return orders.map((o) => ({ ...o, lines: lines.filter((l) => l.orderId === o.id).map(({ orderId: _o, ...l }) => l) }));
 }
@@ -482,10 +556,25 @@ export async function listOrders(ctx: AcademyContext): Promise<OrderRow[]> {
 }
 
 /** Katalog toko: barang dijual dan stok tersedia. */
-export async function catalog(tx: Tx) {
+export interface CatalogItem {
+  id: string;
+  name: string;
+  unit: string;
+  price: number;
+  qty: number;
+  description: string | null;
+  imageUrl: string | null;
+  category: string | null;
+  customFields: CustomField[];
+  variants: Variant[];
+}
+
+export async function catalog(tx: Tx): Promise<CatalogItem[]> {
   return (await tx.execute(sql`
-    SELECT id, name, unit, sale_price AS price, qty, description FROM bola.items
-    WHERE for_sale AND archived_at IS NULL ORDER BY lower(name)`)) as unknown as { id: string; name: string; unit: string; price: number; qty: number; description: string | null }[];
+    SELECT i.id, i.name, i.unit, i.sale_price AS price, i.qty, i.description, i.image_url AS "imageUrl", i.category,
+           i.custom_fields AS "customFields", ${VARIANTS} AS variants
+    FROM bola.items i
+    WHERE i.for_sale AND i.archived_at IS NULL ORDER BY lower(i.category) NULLS LAST, lower(i.name)`)) as unknown as CatalogItem[];
 }
 
 export async function storeCatalog(ctx: AcademyContext) {
@@ -494,15 +583,29 @@ export async function storeCatalog(ctx: AcademyContext) {
 }
 
 /** Membuat pesanan (dari staf atau orang tua). Stok belum berkurang sampai dibayar. */
-export async function placeOrderIn(tx: Tx, businessId: string, userId: string, input: z.infer<typeof OrderInput>, channel: "staff" | "parent"): Promise<string> {
+export async function placeOrderIn(tx: Tx, businessId: string, userId: string, raw: z.input<typeof OrderInput>, channel: "staff" | "parent"): Promise<string> {
+  const input = OrderInput.parse(raw);
   const items = await catalog(tx);
   let total = 0;
   const lines = input.lines.map((l) => {
     const it = items.find((x) => x.id === l.itemId);
     if (!it) throw new AppError(422, "invalid", "Ada barang yang tidak dijual lagi. Muat ulang halaman.");
-    if (it.qty < l.qty) throw new AppError(409, "no_stock", `Stok ${it.name} tinggal ${it.qty}.`);
-    total += it.price * l.qty;
-    return { ...l, name: it.name, price: it.price };
+    let variant: Variant | null = null;
+    if (it.variants.length) {
+      variant = it.variants.find((v) => v.id === l.variantId) ?? null;
+      if (!variant) throw new AppError(422, "invalid", `Pilih ukuran/varian untuk ${it.name}.`);
+      if (variant.qty < l.qty) throw new AppError(409, "no_stock", `Stok ${it.name} ${variant.label} tinggal ${variant.qty}.`);
+    } else if (it.qty < l.qty) throw new AppError(409, "no_stock", `Stok ${it.name} tinggal ${it.qty}.`);
+    const custom: Record<string, string> = {};
+    for (const f of it.customFields) {
+      const v = (l.custom[f.label] ?? "").trim().slice(0, f.max);
+      if (f.required && !v) throw new AppError(422, "invalid", `Isi ${f.label} untuk ${it.name}.`);
+      if (v && f.kind === "number" && !/^\d+$/.test(v)) throw new AppError(422, "invalid", `${f.label} harus angka.`);
+      if (v) custom[f.label] = v;
+    }
+    const price = it.price + (variant?.extraPrice ?? 0);
+    total += price * l.qty;
+    return { ...l, name: it.name, price, variantId: variant?.id ?? null, variantLabel: variant?.label ?? null, custom };
   });
   const [o] = (await tx.execute(sql`
     INSERT INTO bola.orders (business_id, player_id, buyer_name, total, note, channel, placed_by)
@@ -510,14 +613,14 @@ export async function placeOrderIn(tx: Tx, businessId: string, userId: string, i
     RETURNING id`)) as unknown as { id: string }[];
   for (const l of lines) {
     await tx.execute(sql`
-      INSERT INTO bola.order_lines (business_id, order_id, item_id, item_name, qty, price)
-      VALUES (${businessId}::uuid, ${o!.id}::uuid, ${l.itemId}::uuid, ${l.name}, ${l.qty}, ${l.price})`);
+      INSERT INTO bola.order_lines (business_id, order_id, item_id, item_name, qty, price, variant_id, variant_label, custom)
+      VALUES (${businessId}::uuid, ${o!.id}::uuid, ${l.itemId}::uuid, ${l.name}, ${l.qty}, ${l.price}, ${l.variantId}::uuid, ${l.variantLabel}, ${JSON.stringify(l.custom)}::jsonb)`);
   }
   await tx.insert(auditEvents).values({ businessId, actorUserId: userId, action: `order.placed_${channel}`, targetType: "order", targetId: o!.id, meta: { total } });
   return o!.id;
 }
 
-export async function placeOrder(ctx: AcademyContext, input: z.infer<typeof OrderInput>): Promise<string> {
+export async function placeOrder(ctx: AcademyContext, input: z.input<typeof OrderInput>): Promise<string> {
   gate(ctx, "store");
   return inAcademy(ctx, (tx) => placeOrderIn(tx, ctx.businessId, ctx.userId, input, "staff"));
 }
@@ -530,9 +633,13 @@ export async function payOrder(ctx: AcademyContext, id: string, method: "cash" |
     if (!o) throw notFound("Pesanan");
     if (o.status !== "pending") throw new AppError(409, "not_pending", "Pesanan ini sudah dibayar atau dibatalkan.");
     if (paidOn > (await academyToday(tx))) throw new AppError(422, "invalid", "Tanggal bayar tidak boleh di masa depan.");
-    const lines = (await tx.execute(sql`SELECT id, item_id AS "itemId", qty FROM bola.order_lines WHERE order_id = ${id}::uuid`)) as unknown as { id: string; itemId: string; qty: number }[];
+    const lines = (await tx.execute(sql`SELECT id, item_id AS "itemId", variant_id AS "variantId", variant_label AS "variantLabel", item_name AS name, qty FROM bola.order_lines WHERE order_id = ${id}::uuid`)) as unknown as { id: string; itemId: string; variantId: string | null; variantLabel: string | null; name: string; qty: number }[];
     let cogs = 0;
     for (const l of lines) {
+      if (l.variantId) {
+        const r = (await tx.execute(sql`UPDATE bola.item_variants SET qty = qty - ${l.qty} WHERE id = ${l.variantId}::uuid AND qty >= ${l.qty} RETURNING id`)) as unknown as unknown[];
+        if (!r.length) throw new AppError(409, "no_stock", `Stok ${l.name} ${l.variantLabel ?? ""} tidak cukup.`);
+      }
       const t = await takeStock(ctx, tx, l.itemId, l.qty, "sale", paidOn, id, `Jual ke ${o.name}`);
       cogs += t.cost;
       await tx.execute(sql`UPDATE bola.order_lines SET unit_cost = ${t.unitCost} WHERE id = ${l.id}::uuid`);

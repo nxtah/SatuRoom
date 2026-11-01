@@ -11,6 +11,10 @@ import { monthTotals } from "./staff-attendance";
 
 const money = z.coerce.number().int().min(0).max(1_000_000_000);
 export const PayProfileInput = z.object({
+  /** monthly = gaji pokok tetap; attendance = dibayar per hari hadir dan per jam kerja dari absen masuk/pulang. */
+  payMode: z.enum(["monthly", "attendance"]).default("monthly"),
+  perDay: money.default(0),
+  perHour: money.default(0),
   baseSalary: money,
   perSession: money,
   allowance: money,
@@ -18,7 +22,8 @@ export const PayProfileInput = z.object({
   lateDeduction: money,
   unpaidLeaveDeduction: money,
 });
-export type PayProfile = z.infer<typeof PayProfileInput>;
+export type PayProfile = z.output<typeof PayProfileInput>;
+export type PayProfileIn = z.input<typeof PayProfileInput>;
 
 export interface PayLine {
   label: string;
@@ -64,6 +69,7 @@ export async function listPayProfiles(ctx: AcademyContext): Promise<StaffPay[]> 
   return inAcademy(ctx, async (tx) =>
     (await tx.execute(sql`
       SELECT m.id AS "membershipId", u.name, p.membership_id IS NOT NULL AS configured,
+        coalesce(p.pay_mode, 'monthly') AS "payMode", coalesce(p.per_day, 0) AS "perDay", coalesce(p.per_hour, 0) AS "perHour",
         coalesce(p.base_salary, 0) AS "baseSalary", coalesce(p.per_session, 0) AS "perSession", coalesce(p.allowance, 0) AS allowance,
         coalesce(p.overtime_per_hour, 0) AS "overtimePerHour", coalesce(p.late_deduction, 0) AS "lateDeduction",
         coalesce(p.unpaid_leave_deduction, 0) AS "unpaidLeaveDeduction"
@@ -74,17 +80,19 @@ export async function listPayProfiles(ctx: AcademyContext): Promise<StaffPay[]> 
   );
 }
 
-export async function setPayProfile(ctx: AcademyContext, membershipId: string, input: PayProfile): Promise<void> {
+export async function setPayProfile(ctx: AcademyContext, membershipId: string, raw: PayProfileIn): Promise<void> {
   gate(ctx);
+  const input = PayProfileInput.parse(raw);
   await inAcademy(ctx, async (tx) => {
     const [m] = (await tx.execute(sql`
       SELECT 1 AS x FROM core.memberships WHERE id = ${membershipId}::uuid AND business_id = ${ctx.businessId}::uuid AND status = 'active'`)) as unknown as unknown[];
     if (!m) throw notFound("Staf");
     await tx.execute(sql`
-      INSERT INTO bola.pay_profiles (membership_id, business_id, base_salary, per_session, allowance, overtime_per_hour, late_deduction, unpaid_leave_deduction)
+      INSERT INTO bola.pay_profiles (membership_id, business_id, base_salary, per_session, allowance, overtime_per_hour, late_deduction, unpaid_leave_deduction, pay_mode, per_day, per_hour)
       VALUES (${membershipId}::uuid, ${ctx.businessId}::uuid, ${input.baseSalary}, ${input.perSession}, ${input.allowance},
-              ${input.overtimePerHour}, ${input.lateDeduction}, ${input.unpaidLeaveDeduction})
-      ON CONFLICT (membership_id) DO UPDATE SET base_salary = excluded.base_salary, per_session = excluded.per_session,
+              ${input.overtimePerHour}, ${input.lateDeduction}, ${input.unpaidLeaveDeduction}, ${input.payMode}, ${input.perDay}, ${input.perHour})
+      ON CONFLICT (membership_id) DO UPDATE SET pay_mode = excluded.pay_mode, per_day = excluded.per_day, per_hour = excluded.per_hour,
+        base_salary = excluded.base_salary, per_session = excluded.per_session,
         allowance = excluded.allowance, overtime_per_hour = excluded.overtime_per_hour, late_deduction = excluded.late_deduction,
         unpaid_leave_deduction = excluded.unpaid_leave_deduction, updated_at = now()`);
     await audit(ctx, tx, "pay_profile.updated", membershipId);
@@ -106,8 +114,18 @@ async function computeSlip(tx: Tx, month: string, p: StaffPay, totals: Awaited<R
       AND status = 'approved' AND date_to >= ${`${month}-01`}::date AND date_from < (${`${month}-01`}::date + interval '1 month')`)) as unknown as { d: number }[];
   const t = totals.get(p.membershipId);
   const sessions = s!.n;
+  // Gaji per absensi: hari hadir dan jam kerja dari absen masuk sampai pulang.
+  const [w] = (await tx.execute(sql`
+    SELECT count(*)::int AS days,
+      coalesce(sum(extract(epoch FROM (clock_out - clock_in)) / 60) FILTER (WHERE clock_out IS NOT NULL), 0)::int AS minutes
+    FROM bola.staff_clock WHERE membership_id = ${p.membershipId}::uuid
+      AND work_date >= ${`${month}-01`}::date AND work_date < (${`${month}-01`}::date + interval '1 month')`)) as unknown as { days: number; minutes: number }[];
+  const byAttendance = p.payMode === "attendance";
+  const hoursWorked = Math.round((w!.minutes / 60) * 10) / 10;
   const lines: PayLine[] = [
-    { label: "Gaji pokok", amount: p.baseSalary, kind: "earning" },
+    { label: "Gaji pokok", amount: byAttendance ? 0 : p.baseSalary, kind: "earning" },
+    { label: `Gaji harian (${w!.days} hari hadir)`, amount: byAttendance ? w!.days * p.perDay : 0, kind: "earning" },
+    { label: `Gaji per jam (${hoursWorked} jam kerja)`, amount: byAttendance ? Math.round((w!.minutes / 60) * p.perHour) : 0, kind: "earning" },
     { label: `Honor melatih (${sessions} sesi)`, amount: sessions * p.perSession, kind: "earning" },
     { label: "Tunjangan", amount: p.allowance, kind: "earning" },
     { label: `Lembur (${Math.round(((t?.overtimeMinutes ?? 0) / 60) * 10) / 10} jam)`, amount: Math.round(((t?.overtimeMinutes ?? 0) / 60) * p.overtimePerHour), kind: "earning" },

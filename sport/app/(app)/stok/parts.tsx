@@ -4,6 +4,9 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { ImageField } from "@/components/image-field";
+import { Img } from "@/components/img";
+import { thumb } from "@/lib/images";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -38,8 +41,21 @@ function useCall() {
 
 type Call = (path: string, body: unknown, method?: string) => Promise<boolean>;
 
+type VariantDraft = { id: string | null; label: string; qty: string; extraPrice: string };
+type FieldDraft = { label: string; required: boolean; kind: "text" | "number"; max: number };
+const SIZE_PRESETS = { "Baju (S-XXL)": ["S", "M", "L", "XL", "XXL"], "Baju anak (4-14)": ["4", "6", "8", "10", "12", "14"], "Sepatu (36-44)": ["36", "37", "38", "39", "40", "41", "42", "43", "44"] };
+const FIELD_PRESETS: FieldDraft[] = [
+  { label: "Nomor punggung", required: true, kind: "number", max: 3 },
+  { label: "Nama punggung", required: false, kind: "text", max: 14 },
+];
+
 function ItemForm({ item, storeOn, call, busy, onDone }: { item?: ItemRow; storeOn: boolean; call: Call; busy: boolean; onDone: () => void }) {
   const [sale, setSale] = useState(item?.forSale ?? false);
+  const [image, setImage] = useState<string | null>(item?.imageUrl ?? null);
+  const [variants, setVariants] = useState<VariantDraft[]>(item?.variants.map((v) => ({ id: v.id, label: v.label, qty: String(v.qty), extraPrice: v.extraPrice ? String(v.extraPrice) : "" })) ?? []);
+  const [fields, setFields] = useState<FieldDraft[]>(item?.customFields ?? []);
+  const setV = (i: number, patch: Partial<VariantDraft>) => setVariants((vs) => vs.map((v, j) => (j === i ? { ...v, ...patch } : v)));
+  const setF = (i: number, patch: Partial<FieldDraft>) => setFields((fs) => fs.map((f, j) => (j === i ? { ...f, ...patch } : f)));
   return (
     <form
       className="grid gap-3 sm:grid-cols-2"
@@ -50,15 +66,46 @@ function ItemForm({ item, storeOn, call, busy, onDone }: { item?: ItemRow; store
         const ok = await call(item ? `/items/${item.id}` : "/items", {
           name: f.get("name"), unit: f.get("unit") || "pcs", minQty: digits(f.get("minQty")) || "0", forSale: sale,
           salePrice: sale ? digits(f.get("salePrice")) : "", description: f.get("description"),
+          imageUrl: image, category: f.get("category"),
+          variants: variants.filter((v) => v.label.trim()).map((v) => ({ id: v.id, label: v.label.trim(), qty: digits(v.qty) || "0", extraPrice: digits(v.extraPrice) || "0" })),
+          customFields: sale ? fields.filter((x) => x.label.trim()) : [],
         }, item ? "PUT" : undefined);
         if (ok) { el.reset(); onDone(); }
       }}
     >
+      <div className="sm:col-span-2">
+        <ImageField kind="item" label="Foto barang (boleh kosong)" hint="Foto jelas dengan latar polos. JPG, PNG, atau WebP maksimal 5 MB." value={image} onChange={setImage} />
+      </div>
       <label className="grid gap-1 text-sm font-bold">Nama barang<input name="name" defaultValue={item?.name} placeholder="Jersey latihan" className={cell} /></label>
+      <label className="grid gap-1 text-sm font-bold">Kategori (boleh kosong)<input name="category" list="item-cats" defaultValue={item?.category ?? ""} placeholder="Jersey, Perlengkapan, Sepatu" className={cell} /></label>
+      <datalist id="item-cats">{["Jersey", "Perlengkapan", "Sepatu", "Bola", "Aksesoris"].map((c) => <option key={c} value={c} />)}</datalist>
       <div className="grid grid-cols-2 gap-2">
         <label className="grid gap-1 text-sm font-bold">Satuan<input name="unit" defaultValue={item?.unit ?? "pcs"} className={cell} /></label>
         <label className="grid gap-1 text-sm font-bold">Ingatkan bila sisa<input name="minQty" inputMode="numeric" defaultValue={item?.minQty || ""} placeholder="0" className={cell} /></label>
       </div>
+
+      <fieldset className="grid gap-2 rounded-2xl bg-mist p-3 sm:col-span-2">
+        <legend className="sr-only">Varian</legend>
+        <p className="text-sm font-extrabold">Ukuran / varian (boleh kosong)</p>
+        <p className="text-xs text-ink-soft">Tiap varian punya stok sendiri. Total stok varian tidak boleh melebihi stok barang{item ? ` (${item.qty})` : ""}. Stok bertambah otomatis saat pembelian per varian diterima.</p>
+        {variants.length === 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(SIZE_PRESETS).map(([k, list]) => (
+              <Button key={k} size="sm" variant="outline" onClick={() => setVariants(list.map((l) => ({ id: null, label: l, qty: "", extraPrice: "" })))}>{k}</Button>
+            ))}
+          </div>
+        ) : null}
+        {variants.map((v, i) => (
+          <div key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto] items-end gap-2">
+            <label className="grid gap-1 text-xs font-bold">Nama<input value={v.label} onChange={(e) => setV(i, { label: e.target.value })} placeholder="M" className={cell} /></label>
+            <label className="grid gap-1 text-xs font-bold">Stok<input value={v.qty} inputMode="numeric" onChange={(e) => setV(i, { qty: e.target.value })} placeholder="0" className={cell} /></label>
+            <label className="grid gap-1 text-xs font-bold">+ Harga<input value={v.extraPrice} inputMode="numeric" onChange={(e) => setV(i, { extraPrice: e.target.value })} placeholder="0" className={cell} /></label>
+            <Button size="sm" variant="ghost" aria-label={`Hapus varian ${v.label}`} onClick={() => setVariants((vs) => vs.filter((_, j) => j !== i))}><Trash2 aria-hidden className="size-4" /></Button>
+          </div>
+        ))}
+        <Button size="sm" variant="ghost" className="justify-self-start" onClick={() => setVariants((vs) => [...vs, { id: null, label: "", qty: "", extraPrice: "" }])}><Plus aria-hidden className="size-4" /> Tambah varian</Button>
+      </fieldset>
+
       {storeOn ? (
         <>
           <label className="flex items-center gap-2 text-sm font-bold sm:col-span-2">
@@ -67,7 +114,29 @@ function ItemForm({ item, storeOn, call, busy, onDone }: { item?: ItemRow; store
           {sale ? (
             <>
               <label className="grid gap-1 text-sm font-bold">Harga jual (Rp)<input name="salePrice" inputMode="numeric" defaultValue={item?.salePrice ?? ""} className={cell} /></label>
-              <label className="grid gap-1 text-sm font-bold">Keterangan (boleh kosong)<input name="description" defaultValue={item?.description ?? ""} placeholder="Ukuran S-XL" className={cell} /></label>
+              <label className="grid gap-1 text-sm font-bold">Keterangan (boleh kosong)<input name="description" defaultValue={item?.description ?? ""} placeholder="Bahan dry-fit, sablon logo akademi" className={cell} /></label>
+              <fieldset className="grid gap-2 rounded-2xl bg-mist p-3 sm:col-span-2">
+                <legend className="sr-only">Isian pembeli</legend>
+                <p className="text-sm font-extrabold">Isian dari pembeli (boleh kosong)</p>
+                <p className="text-xs text-ink-soft">Contoh: nomor dan nama punggung untuk jersey. Pembeli mengisinya saat memesan.</p>
+                {fields.map((x, i) => (
+                  <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
+                    <input value={x.label} onChange={(e) => setF(i, { label: e.target.value })} aria-label="Nama isian" placeholder="Nomor punggung" className={cell} />
+                    <select value={x.kind} onChange={(e) => setF(i, { kind: e.target.value as FieldDraft["kind"] })} aria-label="Jenis isian" className={`${cell} w-auto`}>
+                      <option value="text">Teks</option>
+                      <option value="number">Angka</option>
+                    </select>
+                    <label className="flex items-center gap-1 text-xs font-bold"><input type="checkbox" checked={x.required} onChange={(e) => setF(i, { required: e.target.checked })} className="size-4 accent-pitch" /> Wajib</label>
+                    <Button size="sm" variant="ghost" aria-label="Hapus isian" onClick={() => setFields((fs) => fs.filter((_, j) => j !== i))}><Trash2 aria-hidden className="size-4" /></Button>
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2">
+                  {FIELD_PRESETS.filter((p) => !fields.some((x) => x.label === p.label)).map((p) => (
+                    <Button key={p.label} size="sm" variant="outline" disabled={fields.length >= 5} onClick={() => setFields((fs) => [...fs, p])}><Plus aria-hidden className="size-4" /> {p.label}</Button>
+                  ))}
+                  <Button size="sm" variant="ghost" disabled={fields.length >= 5} onClick={() => setFields((fs) => [...fs, { label: "", required: false, kind: "text", max: 20 }])}><Plus aria-hidden className="size-4" /> Isian lain</Button>
+                </div>
+              </fieldset>
             </>
           ) : null}
         </>
@@ -103,8 +172,10 @@ export function ItemsPanel({ items, storeOn }: { items: ItemRow[]; storeOn: bool
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-2">
+                  {i.imageUrl ? <Img src={thumb(i.imageUrl, 120) ?? i.imageUrl} className="size-12 shrink-0 rounded-xl object-cover" /> : null}
                   <span className="min-w-0 flex-1 basis-40 font-extrabold break-words">
                     {i.name}
+                    {i.category ? <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-xs">{i.category}</span> : null}
                     {i.forSale ? <span className="ml-2 rounded-full bg-turf-soft px-2 py-0.5 text-xs text-pitch">Dijual {rupiah(i.salePrice ?? 0)}</span> : null}
                   </span>
                   <span className={`rounded-full px-3 py-1 text-sm font-bold ${i.low ? "bg-flame/15 text-flame" : i.qty === 0 ? "bg-mist text-ink-soft" : "bg-mist"}`}>
@@ -112,6 +183,11 @@ export function ItemsPanel({ items, storeOn }: { items: ItemRow[]; storeOn: bool
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">Harga pokok rata-rata {rupiah(i.avgCost)} · nilai {rupiah(i.value)}</p>
+                {i.variants.length ? (
+                  <p className="mt-1 flex flex-wrap gap-1 text-xs">
+                    {i.variants.map((v) => <span key={v.id} className={`rounded-full px-2 py-0.5 font-bold ${v.qty ? "bg-mist" : "bg-flame/10 text-flame"}`}>{v.label}: {v.qty}</span>)}
+                  </p>
+                ) : null}
                 <div className="mt-2 flex flex-wrap gap-1">
                   <Button size="sm" variant="ghost" onClick={() => setEdit(i.id)}>Ubah</Button>
                   {i.qty > 0 ? <Button size="sm" variant="ghost" onClick={() => setIssue(issue === i.id ? null : i.id)}>Pakai</Button> : null}
@@ -199,7 +275,7 @@ export function PurchasesPanel({
                 const f = new FormData(e.currentTarget);
                 const ok = await call("/purchases", {
                   supplierId: f.get("supplierId"), orderedOn: f.get("orderedOn"), note: f.get("note"),
-                  lines: lines.filter((l) => l.itemId).map((l) => ({ itemId: l.itemId, qty: l.qty, unitCost: l.unitCost.replace(/[^0-9]/g, "") || "0" })),
+                  lines: lines.filter((l) => l.itemId).map((l) => ({ itemId: l.itemId.split("|")[0], variantId: l.itemId.split("|")[1] || null, qty: l.qty, unitCost: l.unitCost.replace(/[^0-9]/g, "") || "0" })),
                 });
                 if (ok) { setOpen(false); setLines([{ itemId: "", qty: "1", unitCost: "" }]); }
               }}
@@ -216,7 +292,15 @@ export function PurchasesPanel({
                 <div key={i} className="grid grid-cols-[minmax(0,1fr)_4rem_6.5rem_auto] gap-2">
                   <select aria-label="Barang" value={l.itemId} onChange={(e) => setLines((x) => x.map((y, j) => (j === i ? { ...y, itemId: e.target.value } : y)))} className={cell}>
                     <option value="">Barang</option>
-                    {items.map((it) => <option key={it.id} value={it.id}>{it.name}</option>)}
+                    {items.map((it) =>
+                      it.variants.length ? (
+                        <optgroup key={it.id} label={it.name}>
+                          {it.variants.map((v) => <option key={v.id} value={`${it.id}|${v.id}`}>{it.name} {v.label}</option>)}
+                        </optgroup>
+                      ) : (
+                        <option key={it.id} value={it.id}>{it.name}</option>
+                      ),
+                    )}
                   </select>
                   <input aria-label="Jumlah" inputMode="numeric" value={l.qty} onChange={(e) => setLines((x) => x.map((y, j) => (j === i ? { ...y, qty: e.target.value.replace(/[^0-9]/g, "") } : y)))} className={cell} />
                   <input aria-label="Harga satuan" inputMode="numeric" placeholder="Harga/unit" value={l.unitCost} onChange={(e) => setLines((x) => x.map((y, j) => (j === i ? { ...y, unitCost: e.target.value } : y)))} className={cell} />

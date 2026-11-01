@@ -8,26 +8,26 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { rupiah } from "@/lib/money";
-import type { OrderRow } from "@/server/inventory";
+import { cartPayload, cartTotal, StoreCart, type CartLine } from "@/components/store-cart";
+import type { CatalogItem, OrderRow } from "@/server/inventory";
 
 const cell = "h-10 w-full min-w-0 rounded-xl border-2 border-line bg-white px-2 outline-none focus:border-pitch";
-type Item = { id: string; name: string; unit: string; price: number; qty: number };
 const STATUS = { pending: "Menunggu bayar", paid: "Dibayar, belum diambil", fulfilled: "Selesai", cancelled: "Dibatalkan" };
 const TONE = { pending: "bg-sun/40", paid: "bg-turf-soft text-pitch", fulfilled: "bg-mist", cancelled: "bg-mist text-ink-soft" };
 
-export function NewSale({ items, players }: { items: Item[]; players: { id: string; name: string }[] }) {
+export function NewSale({ items, players }: { items: CatalogItem[]; players: { id: string; name: string }[] }) {
   const router = useRouter();
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [cart, setCart] = useState<CartLine[]>([]);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const total = items.reduce((s, i) => s + (cart[i.id] ?? 0) * i.price, 0);
+  const total = cartTotal(items, cart);
 
   if (!items.length) {
-    return <EmptyState title="Belum ada barang dijual">Buka Stok, ubah barang, centang Dijual di toko, dan isi harga jualnya.</EmptyState>;
+    return <EmptyState title="Belum ada barang dijual">Buka Stok, ubah barang, centang Dijual di toko, isi harga, foto, dan ukurannya.</EmptyState>;
   }
   return (
     <form
-      className="rise grid gap-3 rounded-[2rem] bg-chalk p-5"
+      className="rise grid gap-3 rounded-[2rem] bg-chalk p-4 sm:p-5"
       onSubmit={async (e) => {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
@@ -37,31 +37,19 @@ export function NewSale({ items, players }: { items: Item[]; players: { id: stri
           body: {
             playerId,
             buyerName: playerId ? players.find((p) => p.id === playerId)!.name : f.get("buyerName"),
-            lines: Object.entries(cart).filter(([, q]) => q > 0).map(([itemId, qty]) => ({ itemId, qty })),
+            lines: cartPayload(cart),
           },
         });
         setBusy(false);
         if (!r.ok) return setError(r.error.fields ? Object.values(r.error.fields)[0] : r.error.message);
         setError(undefined);
-        setCart({});
+        setCart([]);
         router.refresh();
       }}
     >
       <h2 className="font-extrabold">Catat penjualan</h2>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <ul className="grid gap-1">
-        {items.map((i) => (
-          <li key={i.id} className="flex items-center gap-2 border-b border-mist py-2">
-            <span className="min-w-0 flex-1">
-              <span className="block font-bold break-words">{i.name}</span>
-              <span className="text-xs text-ink-soft">{rupiah(i.price)} · stok {i.qty}</span>
-            </span>
-            <Button size="sm" variant="ghost" aria-label={`Kurangi ${i.name}`} disabled={!cart[i.id]} onClick={() => setCart((c) => ({ ...c, [i.id]: Math.max(0, (c[i.id] ?? 0) - 1) }))}>−</Button>
-            <span className="w-6 text-center font-extrabold tabular-nums">{cart[i.id] ?? 0}</span>
-            <Button size="sm" variant="ghost" aria-label={`Tambah ${i.name}`} disabled={(cart[i.id] ?? 0) >= i.qty} onClick={() => setCart((c) => ({ ...c, [i.id]: (c[i.id] ?? 0) + 1 }))}>+</Button>
-          </li>
-        ))}
-      </ul>
+      <StoreCart items={items} cart={cart} setCart={setCart} />
       <label className="grid gap-1 text-sm font-bold">
         Pembeli
         <select name="playerId" className={cell} defaultValue="">
@@ -102,7 +90,12 @@ export function OrderList({ orders, today }: { orders: OrderRow[]; today: string
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${TONE[o.status]}`}>{STATUS[o.status]}</span>
           </div>
           <ul className="mt-1 text-sm">
-            {o.lines.map((l, i) => <li key={i}>{l.qty} × {l.itemName} @ {rupiah(l.price)}</li>)}
+            {o.lines.map((l, i) => (
+              <li key={i}>
+                {l.qty} × {l.itemName}{l.variantLabel ? ` (${l.variantLabel})` : ""} @ {rupiah(l.price)}
+                {Object.keys(l.custom ?? {}).length ? <span className="block text-ink-soft">{Object.entries(l.custom).map(([k, v]) => `${k}: ${v}`).join(" · ")}</span> : null}
+              </li>
+            ))}
           </ul>
           {o.note ? <p className="text-sm text-ink-soft">Catatan: {o.note}</p> : null}
           <p className="mt-1 font-bold">{rupiah(o.total)}</p>

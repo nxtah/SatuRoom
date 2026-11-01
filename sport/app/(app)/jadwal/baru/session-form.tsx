@@ -68,6 +68,13 @@ export function SessionForm({ teams, today, locations }: { teams: { id: string; 
         maxLength={80}
         error={form.fields.title}
       />
+      <Field
+        label="Topik latihan (boleh kosong)"
+        name="topic"
+        placeholder="Contoh: Passing pendek dan kontrol bola"
+        maxLength={120}
+        error={form.fields.topic}
+      />
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Tanggal" name="date" type="date" defaultValue={today} error={form.fields.date} />
         <Field label="Jam mulai" name="startTime" type="time" defaultValue="15:30" error={form.fields.startTime} />

@@ -13,6 +13,7 @@ import { AttendanceSheet } from "./attendance-sheet";
 import { SessionActions } from "./session-actions";
 import { QrScanner } from "./qr-scanner";
 import { MatchPanel } from "./match-panel";
+import { PlanPanel } from "./plan-panel";
 
 export const metadata: Metadata = { title: "Absensi" };
 
@@ -52,6 +53,8 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           <Alert tone="info">{sheet.blockedReason}</Alert>
         </div>
       ) : null}
+
+      {s.kind === "training" ? <PlanPanel sessionId={s.id} topic={s.topic} plan={s.plan} canEdit={sheet.canManage && s.status !== "cancelled"} /> : null}
 
       {match ? (
         <MatchPanel

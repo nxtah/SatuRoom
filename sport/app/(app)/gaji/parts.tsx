@@ -10,6 +10,10 @@ import { rupiah } from "@/lib/money";
 import type { RunView, StaffPay } from "@/server/payroll";
 
 const cell = "h-10 w-full min-w-0 rounded-xl border-2 border-line bg-white px-2 outline-none focus:border-pitch";
+const ATT_FIELDS = [
+  { k: "perDay", l: "Gaji per hari hadir" },
+  { k: "perHour", l: "Gaji per jam kerja (masuk sampai pulang)" },
+] as const;
 const FIELDS = [
   { k: "baseSalary", l: "Gaji pokok / bulan" },
   { k: "perSession", l: "Honor per sesi melatih" },
@@ -24,13 +28,17 @@ export function PayProfiles({ profiles }: { profiles: StaffPay[] }) {
   const router = useRouter();
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string>();
+  const [mode, setMode] = useState<"monthly" | "attendance">("monthly");
 
   async function save(e: React.FormEvent<HTMLFormElement>, id: string) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const r = await api(`/payroll/profiles/${id}`, {
       method: "PUT",
-      body: Object.fromEntries(FIELDS.map((x) => [x.k, String(f.get(x.k) ?? "0").replace(/[^0-9]/g, "") || "0"])),
+      body: {
+        payMode: mode,
+        ...Object.fromEntries([...FIELDS, ...ATT_FIELDS].map((x) => [x.k, String(f.get(x.k) ?? "0").replace(/[^0-9]/g, "") || "0"])),
+      },
     });
     if (!r.ok) return setError(r.error.message);
     setError(undefined);
@@ -40,7 +48,7 @@ export function PayProfiles({ profiles }: { profiles: StaffPay[] }) {
 
   return (
     <div className="grid gap-3">
-      <Alert tone="info">Isi komponen yang berlaku saja, sisanya biarkan 0. Honor per sesi dihitung dari sesi tim yang dia latih. Lembur dan terlambat diambil dari Absensi staf.</Alert>
+      <Alert tone="info">Pilih cara gajian tiap orang: bulanan (gaji pokok tetap) atau dari absensi (dihitung otomatis dari hari hadir dan jam absen masuk sampai pulang). Isi komponen yang berlaku saja, sisanya biarkan 0. Honor per sesi dihitung dari sesi tim yang dia latih. Lembur dan terlambat diambil dari Absensi staf.</Alert>
       {error ? <Alert tone="error">{error}</Alert> : null}
       <ul className="grid gap-2">
         {profiles.map((p) => (
@@ -48,15 +56,34 @@ export function PayProfiles({ profiles }: { profiles: StaffPay[] }) {
             <div className="flex flex-wrap items-center gap-2">
               <span className="min-w-0 flex-1 font-extrabold break-words">{p.name}</span>
               <span className="text-sm text-ink-soft">
-                {p.configured ? [p.baseSalary && `pokok ${rupiah(p.baseSalary)}`, p.perSession && `${rupiah(p.perSession)}/sesi`].filter(Boolean).join(" · ") || "diatur" : "Belum diatur"}
+                {p.configured ? [p.payMode === "attendance" && "dari absensi", p.perDay && `${rupiah(p.perDay)}/hari`, p.perHour && `${rupiah(p.perHour)}/jam`, p.payMode !== "attendance" && p.baseSalary && `pokok ${rupiah(p.baseSalary)}`, p.perSession && `${rupiah(p.perSession)}/sesi`].filter(Boolean).join(" · ") || "diatur" : "Belum diatur"}
               </span>
-              <Button size="sm" variant={p.configured ? "ghost" : "outline"} onClick={() => setOpen(open === p.membershipId ? null : p.membershipId)}>
+              <Button size="sm" variant={p.configured ? "ghost" : "outline"} onClick={() => { setMode(p.payMode); setOpen(open === p.membershipId ? null : p.membershipId); }}>
                 {p.configured ? "Ubah" : "Atur gaji"}
               </Button>
             </div>
             {open === p.membershipId ? (
               <form onSubmit={(e) => save(e, p.membershipId)} className="mt-3 grid gap-3 sm:grid-cols-2">
-                {FIELDS.map((x) => (
+                <fieldset className="grid gap-2 sm:col-span-2">
+                  <legend className="mb-1 text-sm font-bold">Cara gajian</legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {([["monthly", "Bulanan", "Gaji pokok tetap tiap bulan"], ["attendance", "Dari absensi", "Dihitung otomatis dari absen masuk dan pulang"]] as const).map(([v, t, d]) => (
+                      <label key={v} className={`flex cursor-pointer gap-2 rounded-2xl border-2 p-3 ${mode === v ? "border-pitch bg-white" : "border-line"}`}>
+                        <input type="radio" name="payMode" value={v} checked={mode === v} onChange={() => setMode(v)} className="mt-1 accent-pitch" />
+                        <span><span className="block font-extrabold">{t}</span><span className="text-sm text-ink-soft">{d}</span></span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                {mode === "attendance"
+                  ? ATT_FIELDS.map((x) => (
+                      <label key={x.k} className="grid gap-1 text-sm font-bold">
+                        {x.l}
+                        <input name={x.k} inputMode="numeric" defaultValue={p[x.k] || ""} placeholder="0" className={cell} />
+                      </label>
+                    ))
+                  : null}
+                {FIELDS.filter((x) => mode === "monthly" || x.k !== "baseSalary").map((x) => (
                   <label key={x.k} className="grid gap-1 text-sm font-bold">
                     {x.l}
                     <input name={x.k} inputMode="numeric" defaultValue={p[x.k] || ""} placeholder="0" className={cell} />

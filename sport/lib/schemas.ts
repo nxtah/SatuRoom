@@ -36,7 +36,7 @@ export const AcademyInput = z.object({
   address: z.string().trim().max(200, "Alamat terlalu panjang.").optional(),
 });
 
-export const UploadSignInput = z.object({ kind: z.enum(["logo"]) });
+export const UploadSignInput = z.object({ kind: z.enum(["logo", "clock", "item"]) });
 export const AcademyLogoInput = z.object({ logoUrl: z.string().trim().max(500).nullable() });
 
 /** Umur opsional: isian kosong berarti tidak dibatasi. */
@@ -152,6 +152,7 @@ export const SessionInput = z.object({
   kind: z.enum(["training", "match"]),
   locationId: z.preprocess(emptyToNull, z.string().uuid("Lokasi tidak valid.").nullable()).optional(),
   title: z.preprocess(emptyToNull, z.string().trim().max(80, "Maksimal 80 karakter.").nullable()).optional(),
+  topic: z.preprocess(emptyToNull, z.string().trim().max(120, "Maksimal 120 karakter.").nullable()).optional(),
   /** Hanya dipakai untuk pertandingan; detail lain diisi di halaman sesi. */
   opponent: z.preprocess(emptyToNull, z.string().trim().min(2, "Nama lawan minimal 2 huruf.").max(80, "Nama lawan terlalu panjang.").nullable()).optional(),
 });
@@ -394,4 +395,9 @@ export const ReconcileInput = z.object({
   statementDate: ymd,
   statementBalance: z.coerce.number().int(),
   lineIds: z.array(z.string().uuid()).max(2000),
+});
+
+export const SessionPlanInput = z.object({
+  topic: z.preprocess(emptyToNull, z.string().trim().max(120, "Maksimal 120 karakter.").nullable()),
+  plan: z.preprocess(emptyToNull, z.string().trim().max(3000, "Maksimal 3000 karakter.").nullable()),
 });

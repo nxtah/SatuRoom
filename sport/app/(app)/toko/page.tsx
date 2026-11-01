@@ -27,7 +27,7 @@ export default async function TokoPage() {
         {pending.length ? <span className="rounded-full bg-sun/40 px-3 py-1.5 font-bold">{pending.length} pesanan menunggu bayar</span> : null}
         {ctx.can("inventory.manage") ? <Link href="/stok" className="rounded-full bg-turf-soft px-3 py-1.5 font-bold text-pitch">Atur barang dan harga di Stok</Link> : null}
       </div>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-start">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] xl:items-start">
         <NewSale items={items} players={players.filter((p) => p.status === "active").map((p) => ({ id: p.id, name: p.fullName }))} />
         <OrderList orders={orders} today={today} />
       </div>

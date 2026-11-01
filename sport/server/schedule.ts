@@ -222,6 +222,9 @@ export interface SessionRow {
   opponent: string | null;
   scoreUs: number | null;
   scoreThem: number | null;
+  /** Topik dan rencana latihan yang diisi pelatih. */
+  topic: string | null;
+  plan: string | null;
 }
 
 function sessionQuery(where: SQL): SQL {
@@ -235,7 +238,7 @@ function sessionQuery(where: SQL): SQL {
              WHERE tp.team_id = s.team_id AND p.status = 'active') AS "rosterCount",
            (SELECT count(*)::int FROM bola.attendance a WHERE a.session_id = s.id) AS "recordedCount",
            (SELECT count(*)::int FROM bola.attendance a WHERE a.session_id = s.id AND a.status = 'present') AS "presentCount",
-           m.opponent, m.score_us AS "scoreUs", m.score_them AS "scoreThem"
+           m.opponent, m.score_us AS "scoreUs", m.score_them AS "scoreThem", s.topic, s.plan
     FROM bola.sessions s
     LEFT JOIN bola.match_details m ON m.session_id = s.id
     JOIN bola.teams t ON t.id = s.team_id
@@ -289,9 +292,9 @@ export async function createSession(ctx: AcademyContext, input: z.infer<typeof S
     await assertTeamAccess(ctx, tx, input.teamId, "manage");
     const locationId = await pickLocation(tx, input.locationId);
     const [row] = (await tx.execute(sql`
-      INSERT INTO bola.sessions (business_id, team_id, location_id, kind, title, starts_at, ends_at)
+      INSERT INTO bola.sessions (business_id, team_id, location_id, kind, title, topic, starts_at, ends_at)
       SELECT ${ctx.businessId}::uuid, ${input.teamId}::uuid, ${locationId}::uuid, ${input.kind}::bola.session_kind,
-             ${input.title ?? null},
+             ${input.title ?? null}, ${input.topic ?? null},
              (${input.date}::date + ${input.startTime}::time) AT TIME ZONE b.timezone,
              (${input.date}::date + ${input.startTime}::time) AT TIME ZONE b.timezone + make_interval(mins => ${input.durationMin}::int)
       FROM core.businesses b WHERE b.id = ${ctx.businessId}::uuid
@@ -342,4 +345,17 @@ export { assertTeamAccess };
 /** Boleh membuat jadwal/sesi untuk minimal satu tim (izin semua tim, atau pelatih yang memegang tim). */
 export function canPlan(ctx: AcademyContext, visibleTeams: number): boolean {
   return visibleTeams > 0 && (ctx.can("schedule.manage_all") || !ctx.can("teams.read_all"));
+}
+
+/** Topik dan rencana latihan satu sesi. Pelatih tim itu atau peran dengan `schedule.manage_all`. */
+export async function setSessionPlan(ctx: AcademyContext, sessionId: string, topic: string | null, plan: string | null): Promise<void> {
+  await inAcademy(ctx, async (tx) => {
+    const [s] = (await tx.execute(sql`SELECT team_id AS "teamId" FROM bola.sessions WHERE id = ${sessionId}::uuid`)) as unknown as { teamId: string }[];
+    if (!s) throw notFound("Sesi");
+    await assertTeamAccess(ctx, tx, s.teamId, "manage");
+    await tx.execute(sql`UPDATE bola.sessions SET topic = ${topic}, plan = ${plan}, plan_by = ${ctx.userId}::uuid WHERE id = ${sessionId}::uuid`);
+    await tx.execute(sql`
+      INSERT INTO core.audit_events (business_id, actor_user_id, action, target_type, target_id)
+      VALUES (${ctx.businessId}::uuid, ${ctx.userId}::uuid, 'session.plan_updated', 'session', ${sessionId})`);
+  });
 }

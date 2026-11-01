@@ -13,6 +13,8 @@ import { requireAcademyPage } from "@/server/routing";
 import { todaySessions } from "@/server/schedule";
 import { billingHome } from "@/server/fees";
 import { homeStats } from "@/server/stats";
+import { roleSummary } from "@/server/role-summary";
+import { RoleSummaryCards } from "@/components/role-summary";
 import { AttendanceWidgets, StatTiles } from "@/components/home-stats";
 import { MatchWidget } from "@/components/match-widget";
 import { matchesOverview } from "@/server/matches";
@@ -34,6 +36,7 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
     matchesOverview(ctx),
   ]);
   const tickets = await openTicketCount(ctx);
+  const summary = await roleSummary(ctx);
   const sp = await searchParams;
   const justCreated = sp.selamat === "1";
   const justJoined = sp.selamat === "gabung";
@@ -158,6 +161,8 @@ export default async function BerandaPage({ searchParams }: { searchParams: Prom
       <MatchWidget overview={matches} />
 
       {stats.activePlayers > 0 ? <StatTiles stats={stats} billing={billing} /> : null}
+
+      <RoleSummaryCards s={summary} />
 
       {billing && billing.unpaidCount > 0 ? (
         <Link

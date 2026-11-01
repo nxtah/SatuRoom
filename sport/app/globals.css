@@ -93,9 +93,11 @@
 .fade-in { animation: fade-in 0.8s ease 0.6s both; }
 .ring-fill { animation: ring 1.2s cubic-bezier(0.3, 0.7, 0.2, 1) 0.2s both; }
 .grow-bar { animation: grow-bar 0.9s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+@keyframes grow-col { from { transform: scaleY(0); } }
+.grow-col { animation: grow-col 0.9s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
 .pulse-dot { transform-box: fill-box; transform-origin: center; animation: pulse-dot 2.6s ease-in-out 1.2s infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .draw, .fade-in, .ring-fill, .grow-bar, .pulse-dot { animation: none; }
+  .draw, .fade-in, .ring-fill, .grow-bar, .grow-col, .pulse-dot { animation: none; }
 }
 
 /* Bayangan maskot. */
